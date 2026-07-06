@@ -1,0 +1,89 @@
+// Prisma schema for WordUp.
+// Models cover the whole roadmap: users (Google auth in phase 3), per-word
+// progress, quiz mistake stats, and gamification (XP, streak, achievements).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  googleId      String?   @unique
+  role          Role      @default(USER)
+
+  // Gamification
+  xp            Int       @default(0)
+  streakCount   Int       @default(0)
+  lastStudyDate DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  progress      WordProgress[]
+  quizStats     QuizStat[]
+  achievements  UserAchievement[]
+}
+
+// One row per (user, group, word) that the user has marked.
+model WordProgress {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  groupKey  String
+  word      String
+  state     String   // "known" | "learning"
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, groupKey, word])
+  @@index([userId])
+}
+
+// Aggregated quiz performance per word, with a map of which wrong words
+// the user picked instead (stored as JSON: { "wrongWord": count }).
+model QuizStat {
+  id       String @id @default(cuid())
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  word     String
+  right    Int    @default(0)
+  wrong    Int    @default(0)
+  confused Json   @default("{}")
+
+  @@unique([userId, word])
+  @@index([userId])
+}
+
+// Catalog of achievements (seeded). Admin panel can add more later.
+model Achievement {
+  id          String @id
+  title       String
+  description String
+  icon        String
+  threshold   Int    @default(0)
+
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  achievementId String
+  earnedAt      DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}

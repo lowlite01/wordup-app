@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.DS_Store
+
+# Environment — secrets must never be committed
+.env
+.env.local
+.env.*.local
+
+# Prisma
+apps/api/prisma/*.db
+
+# Vite
+apps/web/dist/
