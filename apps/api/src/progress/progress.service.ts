@@ -40,15 +40,24 @@ export class ProgressService {
     return { ok: true, gamification: award };
   }
 
-  // One-time bulk import from localStorage; replaces the user's rows.
+  // Merges localStorage progress into the account on first login. Only
+  // upserts the given entries — never deletes existing server rows — so
+  // logging in from a fresh browser can't wipe progress from another device.
   async sync(userId: string, entries: ProgressEntryDto[]) {
-    await this.prisma.$transaction([
-      this.prisma.wordProgress.deleteMany({ where: { userId } }),
-      this.prisma.wordProgress.createMany({
-        data: entries.map(e => ({ userId, groupKey: e.groupKey, word: e.word, state: e.state })),
-        skipDuplicates: true,
+    await Promise.all(entries.map(e =>
+      this.prisma.wordProgress.upsert({
+        where: { userId_groupKey_word: { userId, groupKey: e.groupKey, word: e.word } },
+        update: { state: e.state },
+        create: { userId, groupKey: e.groupKey, word: e.word, state: e.state },
       }),
-    ]);
+    ));
+    await this.gamification.recomputeXp(userId);
+    return this.getForUser(userId);
+  }
+
+  // Explicit, deliberate wipe — used by the "reset all progress" button.
+  async resetAll(userId: string) {
+    await this.prisma.wordProgress.deleteMany({ where: { userId } });
     await this.gamification.recomputeXp(userId);
     return this.getForUser(userId);
   }

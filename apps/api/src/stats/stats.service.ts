@@ -52,21 +52,18 @@ export class StatsService {
     return { ok: true };
   }
 
-  // Bulk import from localStorage on first login; replaces the user's rows.
+  // Merges localStorage stats into the account on first login. Only upserts
+  // the given entries — never deletes existing server rows — so logging in
+  // from a fresh browser can't wipe stats from another device. Use `clear()`
+  // for an explicit, deliberate wipe.
   async sync(userId: string, stats: Record<string, { right: number; wrong: number; confused: Record<string, number> }>) {
-    const rows = Object.entries(stats).map(([word, s]) => ({
-      userId,
-      word,
-      right: s.right ?? 0,
-      wrong: s.wrong ?? 0,
-      confused: s.confused ?? {},
-    }));
-    await this.prisma.$transaction([
-      this.prisma.quizStat.deleteMany({ where: { userId } }),
-      ...(rows.length
-        ? [this.prisma.quizStat.createMany({ data: rows, skipDuplicates: true })]
-        : []),
-    ]);
+    await Promise.all(Object.entries(stats).map(([word, s]) =>
+      this.prisma.quizStat.upsert({
+        where: { userId_word: { userId, word } },
+        update: { right: s.right ?? 0, wrong: s.wrong ?? 0, confused: s.confused ?? {} },
+        create: { userId, word, right: s.right ?? 0, wrong: s.wrong ?? 0, confused: s.confused ?? {} },
+      }),
+    ));
     return this.getForUser(userId);
   }
 }

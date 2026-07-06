@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Put, UseGuards } from "@nestjs/common";
 import { ProgressService } from "./progress.service";
 import { SetWordStateDto, SyncProgressDto } from "./dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -22,5 +22,10 @@ export class ProgressController {
   @Post("sync")
   sync(@CurrentUser() user: AuthUser, @Body() dto: SyncProgressDto) {
     return this.progress.sync(user.userId, dto.entries);
+  }
+
+  @Delete()
+  resetAll(@CurrentUser() user: AuthUser) {
+    return this.progress.resetAll(user.userId);
   }
 }

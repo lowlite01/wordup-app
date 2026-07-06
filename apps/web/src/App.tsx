@@ -118,6 +118,7 @@ export default function App() {
       const next = { known: {}, learning: {} };
       saveProgress(next);
       setProgress(next);
+      if (isLoggedIn()) api.clearProgress().then(() => api.gamification()).then(setGamification).catch(() => {});
     },
     stats,
     recordQuiz: (word, picked) => {
@@ -139,7 +140,7 @@ export default function App() {
     clearStats: () => {
       clearStatsStorage();
       setStats({});
-      if (isLoggedIn()) api.syncStats({}).catch(() => {});
+      if (isLoggedIn()) api.clearStats().catch(() => {});
     },
     recent,
     recordRecent: key => setRecent(r => {

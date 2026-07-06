@@ -91,6 +91,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ entries }),
     }),
+  clearProgress: () => request<Progress>("/progress", { method: "DELETE" }),
   getStats: () => request<QuizStats>("/stats"),
   recordQuiz: (word: string, picked: string) =>
     request<{ ok: boolean }>("/stats", {
@@ -102,6 +103,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ stats }),
     }),
+  clearStats: () => request<{ ok: boolean }>("/stats", { method: "DELETE" }),
   gamification: () => request<Gamification>("/gamification/me"),
   leaderboard: () => request<LeaderRow[]>("/leaderboard"),
 };
