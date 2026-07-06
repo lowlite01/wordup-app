@@ -770,9 +770,82 @@ button { font-family: inherit; }
 .leader-name { font-weight: 600; }
 .leader-xp { margin-left: auto; color: var(--muted); font-size: 0.85rem; }
 
+/* ---- Admin panel ---- */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.admin-group-list { display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; }
+.admin-group-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+}
+.admin-group-row:hover { border-color: var(--accent); }
+.admin-group-row.active { border-color: var(--accent); background: var(--card-2); }
+.admin-group-key { font-weight: 600; flex: 1; }
+.admin-x {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.admin-x:hover { color: var(--danger); }
+
+.admin-add-group { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.admin-layout input, .admin-layout select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+}
+.admin-layout input:focus, .admin-layout select:focus { border-color: var(--accent); }
+
+.admin-add-word {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+.admin-add-word .btn { grid-column: 1 / -1; }
+
+.admin-word-list { display: flex; flex-direction: column; gap: 10px; }
+.admin-word-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.admin-word-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.admin-word-actions .btn { flex: 1; }
+
+@media (max-width: 640px) {
+  .admin-layout { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 480px) {
   .logo { font-size: 1.6rem; }
   .fc-word { font-size: 1.7rem; }
   .flashcard { height: 360px; }
   .subtitle { display: none; }
+  .admin-add-word, .admin-word-card { grid-template-columns: 1fr; }
 }

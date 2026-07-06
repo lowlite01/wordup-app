@@ -1,8 +1,23 @@
-import { WORD_GROUPS, TOPIC_LEVEL2 } from "../data/words";
+import { WORD_GROUPS as STATIC_WG, TOPIC_LEVEL2 as STATIC_T2 } from "../data/words";
 import type { KeyedWord, Progress, Word } from "../types";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
-export const TOPICS = Object.keys(WORD_GROUPS).filter(g => !LEVELS.includes(g));
+
+// Content starts as the bundled static data (instant + offline), then gets
+// replaced by the server's copy via setContent() once /content loads, so
+// admin edits appear in the app. TOPICS is mutated in place so existing
+// imports keep pointing at the live list.
+let wgData: Record<string, Word[]> = STATIC_WG;
+let t2Data: Record<string, Word[]> = STATIC_T2;
+export const TOPICS: string[] = Object.keys(wgData).filter(g => !LEVELS.includes(g));
+
+export function setContent(wordGroups: Record<string, Word[]>, topicLevel2: Record<string, Word[]>) {
+  wgData = wordGroups;
+  t2Data = topicLevel2;
+  TOPICS.length = 0;
+  TOPICS.push(...Object.keys(wgData).filter(g => !LEVELS.includes(g)));
+  searchIndex = null; // rebuilt lazily from the new content
+}
 
 // Group keys: CEFR levels use their name ("B1"); topic levels use
 // "Topic" for level 1 and "Topic@2" for level 2.
@@ -19,13 +34,13 @@ export function keyLabel(key: string) {
 
 export function wordsForKey(key: string): Word[] {
   const { name, level } = keyParts(key);
-  if (level === 1) return WORD_GROUPS[name] || [];
-  return TOPIC_LEVEL2[name] || [];
+  if (level === 1) return wgData[name] || [];
+  return t2Data[name] || [];
 }
 
 export function topicLevelKeys(name: string) {
   const keys = [name];
-  if (TOPIC_LEVEL2[name]) keys.push(name + "@2");
+  if (t2Data[name]) keys.push(name + "@2");
   return keys;
 }
 

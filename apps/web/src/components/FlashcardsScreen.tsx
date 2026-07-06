@@ -54,12 +54,12 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.word]);
 
-  const micText = mic.status === "idle" ? ""
-    : mic.status === "listening" ? t.micListening
+  const micText = mic.status === "listening" ? t.micListening
     : mic.status === "good" ? t.micGood
     : mic.status === "blocked" ? t.micBlocked
     : mic.status === "fail" ? t.micFail
-    : t.micHeard(mic.heard);
+    : mic.status === "heard" ? t.micHeard(mic.heard)
+    : "";
   const micClass = mic.status === "good" ? "good"
     : mic.status === "listening" || mic.status === "idle" ? ""
     : "bad";

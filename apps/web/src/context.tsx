@@ -22,6 +22,7 @@ export interface AppApi {
   loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => void;
   loadLeaderboard: () => Promise<LeaderRow[]>;
+  refreshContent: () => Promise<void>;
 }
 
 export const AppContext = createContext<AppApi>(null!);

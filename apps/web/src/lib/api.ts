@@ -106,7 +106,46 @@ export const api = {
   clearStats: () => request<{ ok: boolean }>("/stats", { method: "DELETE" }),
   gamification: () => request<Gamification>("/gamification/me"),
   leaderboard: () => request<LeaderRow[]>("/leaderboard"),
+
+  // Content (public read; admin write)
+  getContent: () => request<AppContent>("/content"),
+  adminGroups: () => request<AdminGroup[]>("/admin/content/groups"),
+  adminCreateGroup: (key: string, category: "level" | "topic", order?: number) =>
+    request<AdminGroup>("/admin/content/groups", {
+      method: "POST",
+      body: JSON.stringify({ key, category, order }),
+    }),
+  adminDeleteGroup: (key: string) =>
+    request<{ ok: boolean }>(`/admin/content/groups/${encodeURIComponent(key)}`, { method: "DELETE" }),
+  adminWords: (key: string) =>
+    request<AdminWord[]>(`/admin/content/groups/${encodeURIComponent(key)}/words`),
+  adminCreateWord: (w: { groupKey: string; word: string; pos: string; def: string; example: string }) =>
+    request<AdminWord>("/admin/content/words", { method: "POST", body: JSON.stringify(w) }),
+  adminUpdateWord: (id: string, w: Partial<{ word: string; pos: string; def: string; example: string }>) =>
+    request<AdminWord>(`/admin/content/words/${id}`, { method: "PATCH", body: JSON.stringify(w) }),
+  adminDeleteWord: (id: string) =>
+    request<{ ok: boolean }>(`/admin/content/words/${id}`, { method: "DELETE" }),
 };
+
+export interface AppContent {
+  wordGroups: Record<string, { word: string; pos: string; def: string; example: string }[]>;
+  topicLevel2: Record<string, { word: string; pos: string; def: string; example: string }[]>;
+}
+export interface AdminGroup {
+  key: string;
+  category: "level" | "topic";
+  order: number;
+  _count: { words: number };
+}
+export interface AdminWord {
+  id: string;
+  groupKey: string;
+  word: string;
+  pos: string;
+  def: string;
+  example: string;
+  order: number;
+}
 
 // Flattens the { known:{key:[w]}, learning:{...} } shape into sync entries.
 export function progressToEntries(p: Progress) {

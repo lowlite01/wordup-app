@@ -24,7 +24,9 @@ import StatsScreen from "./components/StatsScreen";
 import GrammarScreen from "./components/GrammarScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import ProfileScreen from "./components/ProfileScreen";
+import AdminScreen from "./components/AdminScreen";
 import ContextModal from "./components/ContextModal";
+import { loadContent } from "./lib/content";
 
 type Route =
   | { s: "groups" }
@@ -37,7 +39,8 @@ type Route =
   | { s: "known" }
   | { s: "stats" }
   | { s: "settings" }
-  | { s: "profile" };
+  | { s: "profile" }
+  | { s: "admin" };
 
 export default function App() {
   const [progress, setProgress] = useState(loadProgress);
@@ -52,6 +55,7 @@ export default function App() {
   const [posFilter, setPosFilter] = useState("all");
   const [ctxWord, setCtxWord] = useState<Word | null>(null);
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
+  const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
 
   // Refs so async login can read the latest local data without stale closures.
   const progressRef = useRef(progress);
@@ -63,6 +67,11 @@ export default function App() {
     document.documentElement.dataset.theme = settings.theme;
     document.documentElement.lang = settings.lang;
   }, [settings.theme, settings.lang]);
+
+  // Load word content from the server (falls back to bundled data offline).
+  useEffect(() => {
+    loadContent().then(() => setContentVersion(v => v + 1));
+  }, []);
 
   // On load: if we have a saved token, pull the authoritative state from the server.
   useEffect(() => {
@@ -178,6 +187,7 @@ export default function App() {
       setGamification(null);
     },
     loadLeaderboard: () => api.leaderboard(),
+    refreshContent: () => loadContent().then(() => setContentVersion(v => v + 1)),
   }), [progress, stats, recent, settings, user, gamification]);
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
@@ -200,6 +210,7 @@ export default function App() {
     { id: "learning", label: t.tabLearning, badge: learningCount },
     { id: "known", label: t.tabKnown, badge: knownCount },
     { id: "stats", label: t.tabStats },
+    ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin }] : []),
   ];
   const groupsFamily = ["groups", "mode", "flash", "quiz", "list"];
   const activeTab = groupsFamily.includes(route.s) && !(route.s === "flash" && route.mode === "learning-mix")
@@ -314,6 +325,7 @@ export default function App() {
         {route.s === "grammar" && <GrammarScreen />}
         {route.s === "settings" && <SettingsScreen />}
         {route.s === "profile" && <ProfileScreen />}
+        {route.s === "admin" && <AdminScreen />}
       </main>
 
       {ctxWord && (
