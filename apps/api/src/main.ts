@@ -15,8 +15,9 @@ async function bootstrap() {
   });
 
   const port = config.get<number>("PORT") ?? 3000;
-  await app.listen(port);
+  // Bind to 0.0.0.0 so cloud hosts (Render) can route traffic to the container.
+  await app.listen(port, "0.0.0.0");
   // eslint-disable-next-line no-console
-  console.log(`WordUp API running on http://localhost:${port}/api`);
+  console.log(`WordUp API running on port ${port}`);
 }
 bootstrap();

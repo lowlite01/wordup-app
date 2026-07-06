@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: wordup-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: npm install --include=dev && npm --prefix apps/api run prisma:generate && npm --prefix apps/api run build
+    startCommand: npm --prefix apps/api run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
