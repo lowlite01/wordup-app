@@ -7,6 +7,7 @@ import { ProgressModule } from "./progress/progress.module";
 import { StatsModule } from "./stats/stats.module";
 import { GamificationModule } from "./gamification/gamification.module";
 import { AuthModule } from "./auth/auth.module";
+import { ContentModule } from "./content/content.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from "./auth/auth.module";
     ProgressModule,
     StatsModule,
     GamificationModule,
+    ContentModule,
   ],
   controllers: [HealthController],
 })

@@ -8,6 +8,7 @@ import { UsersService } from "../users/users.service";
 export class AuthService {
   private readonly google: OAuth2Client;
   private readonly clientId?: string;
+  private readonly adminEmails: string[];
 
   constructor(
     private readonly users: UsersService,
@@ -16,6 +17,11 @@ export class AuthService {
   ) {
     this.clientId = config.get<string>("GOOGLE_CLIENT_ID");
     this.google = new OAuth2Client(this.clientId);
+    // Emails listed here get the ADMIN role on login (set via env on the host).
+    this.adminEmails = (config.get<string>("ADMIN_EMAILS") || "")
+      .split(",")
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
   }
 
   // Verifies a Google ID token (the "credential" from the front-end button),
@@ -36,12 +42,18 @@ export class AuthService {
     }
     if (!payload?.email) throw new UnauthorizedException("Google token has no email");
 
-    const user = await this.users.findOrCreateByGoogle({
+    let user = await this.users.findOrCreateByGoogle({
       googleId: payload.sub,
       email: payload.email,
       name: payload.name,
       avatarUrl: payload.picture,
     });
+
+    // Promote to admin if this email is on the configured allow-list.
+    const shouldBeAdmin = this.adminEmails.includes(user.email.toLowerCase());
+    if (shouldBeAdmin && user.role !== "ADMIN") {
+      user = await this.users.setRole(user.id, "ADMIN");
+    }
 
     const token = await this.jwt.signAsync({ sub: user.id, email: user.email });
     return { token, user: this.publicUser(user) };

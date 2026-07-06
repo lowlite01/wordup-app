@@ -87,3 +87,27 @@ model UserAchievement {
 
   @@unique([userId, achievementId])
 }
+
+// ---- Word content (managed by the admin panel) ----
+// A group is one card set: a CEFR level ("A1") or a topic level ("City",
+// "City@2"). The `key` matches the front-end's grouping keys exactly, so the
+// existing progress/quiz logic keeps working unchanged.
+model WordGroup {
+  key      String      @id
+  category String                 // "level" | "topic"
+  order    Int         @default(0)
+  words    WordEntry[]
+}
+
+model WordEntry {
+  id       String    @id @default(cuid())
+  group    WordGroup @relation(fields: [groupKey], references: [key], onDelete: Cascade)
+  groupKey String
+  word     String
+  pos      String
+  def      String
+  example  String
+  order    Int       @default(0)
+
+  @@index([groupKey])
+}

@@ -37,6 +37,10 @@ export class UsersService {
     return user;
   }
 
+  setRole(id: string, role: "USER" | "ADMIN") {
+    return this.prisma.user.update({ where: { id }, data: { role } });
+  }
+
   // Convenience for local development before auth exists.
   async ensureDemoUser() {
     const email = "demo@wordup.local";
