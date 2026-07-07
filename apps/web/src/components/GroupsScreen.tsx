@@ -1,50 +1,61 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../context";
-import { timeAgoText, useT } from "../i18n";
+import { useT } from "../i18n";
 import {
-  LEVELS, TOPICS, isKeyComplete, keyLabel, keyParts, knownSet, searchWords,
-  topicLevelKeys, wordsForKey,
+  LEVELS, LEVEL_COLORS, LEVEL_NAMES, TOPICS, keyLabel, keyParts, knownSet,
+  searchWords, topicLevelKeys, wordsForKey,
 } from "../lib/groups";
 import WordRow from "./WordRow";
 
+type Mode = "flashcards" | "quiz" | "list";
+
 interface Props {
-  onOpenGroup: (name: string, preferredKey?: string) => void;
+  onStart: (key: string, mode: Mode) => void;
 }
 
-function GroupCard({ name, onOpen }: { name: string; onOpen: () => void }) {
+function JourneyRow({ groupKey, badge, badgeColor, badgeText, title, open, onToggle, onStart }: {
+  groupKey: string; badge: string; badgeColor: string; badgeText: string; title: string;
+  open: boolean; onToggle: () => void; onStart: (key: string, mode: Mode) => void;
+}) {
   const { progress } = useApp();
   const t = useT();
-  const keys = LEVELS.includes(name) ? [name] : topicLevelKeys(name);
-  const total = keys.reduce((n, k) => n + wordsForKey(k).length, 0);
-  const known = keys.reduce((n, k) => n + knownSet(progress, k).size, 0);
-  const levelsDone = keys.filter(k => isKeyComplete(progress, k)).length;
+  const total = wordsForKey(groupKey).length;
+  const known = knownSet(progress, groupKey).size;
   const pct = total ? Math.round((known / total) * 100) : 0;
 
   return (
-    <button className="group-card" onClick={onOpen}>
-      <span className="g-name">{name}</span>
-      <span className="g-count">
-        {t.wordsCount(total)}{keys.length > 1 ? t.levelsSuffix(keys.length) : ""}
-      </span>
-      {known > 0 && (
-        <>
-          <span className="g-progress"><span style={{ width: `${pct}%` }} /></span>
-          <span className="g-mastered">
-            {t.knownCount(known)}{keys.length > 1 && levelsDone ? t.doneSuffix(levelsDone, keys.length) : ""}
-          </span>
-        </>
+    <div className={"journey-row" + (open ? " open" : "")}>
+      <button className="journey-head" onClick={onToggle}>
+        <span className="journey-badge" style={{ background: badgeColor, color: badgeText }}>{badge}</span>
+        <span className="journey-mid">
+          <span className="journey-title">{title}</span>
+          <span className="journey-sub">{known} / {total} words{pct ? ` · ${pct}%` : ""}</span>
+        </span>
+        <span className="journey-chev">{open ? "▾" : "›"}</span>
+      </button>
+      {total > 0 && <div className="journey-track"><span style={{ width: `${pct}%` }} /></div>}
+      {open && (
+        <div className="journey-modes">
+          <button className="btn" onClick={() => onStart(groupKey, "flashcards")}>🗂️ {t.flashcards}</button>
+          <button className="btn primary" onClick={() => onStart(groupKey, "quiz")}>❓ {t.quiz}</button>
+          <button className="btn" onClick={() => onStart(groupKey, "list")}>📋 {t.wordList}</button>
+        </div>
       )}
-    </button>
+    </div>
   );
 }
 
-export default function GroupsScreen({ onOpenGroup }: Props) {
-  const { recent } = useApp();
+export default function GroupsScreen({ onStart }: Props) {
+  const { recent, gamification } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const matches = useMemo(() => searchWords(query), [query]);
   const searching = query.trim().length > 0;
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
+  const topicRowKeys = TOPICS.flatMap(topicLevelKeys);
+
+  const toggle = (key: string) => setOpenKey(k => (k === key ? null : key));
 
   return (
     <section>
@@ -62,51 +73,70 @@ export default function GroupsScreen({ onOpenGroup }: Props) {
         <div className="word-table">
           {matches.length === 0 && <p className="muted">{t.noWordsFound(query.trim())}</p>}
           {matches.slice(0, 40).map(w => (
-            <WordRow
-              key={w.key + w.word}
-              w={w}
-              showGroup
-              showStatus
-              onOpenGroup={(name, key) => onOpenGroup(name, key)}
-            />
+            <WordRow key={w.key + w.word} w={w} showGroup showStatus onOpenGroup={(_n, key) => onStart(key, "flashcards")} />
           ))}
-          {matches.length > 40 && (
-            <p className="muted">{t.moreResults(matches.length - 40)}</p>
-          )}
+          {matches.length > 40 && <p className="muted">{t.moreResults(matches.length - 40)}</p>}
         </div>
       ) : (
         <>
-          {validRecent.length > 0 && (
-            <div className="group-section">
-              <h2>{t.recentlyStudied}</h2>
-              <div className="recent-list">
-                {validRecent.map(r => (
-                  <button
-                    key={r.key}
-                    className="recent-chip"
-                    onClick={() => onOpenGroup(keyParts(r.key).name, r.key)}
-                  >
-                    {keyLabel(r.key)} <span>{timeAgoText(r.ts, t)}</span>
-                  </button>
-                ))}
+          {gamification && (
+            <div className="stat-header">
+              <div className="stat-top">
+                <span className="stat-streak">🔥 <b>{gamification.streak}</b> <span>{t.streakWord.toLowerCase()}</span></span>
+                <span className="stat-level">{t.levelWord} {gamification.level}</span>
+              </div>
+              <div className="stat-xp">{gamification.levelXp} / {gamification.levelSpan} XP</div>
+              <div className="stat-track">
+                <span style={{ width: `${Math.round((gamification.levelXp / gamification.levelSpan) * 100)}%` }} />
               </div>
             </div>
           )}
-          <div className="group-section">
-            <h2>{t.byLevel}</h2>
-            <div className="group-grid">
-              {LEVELS.map(name => (
-                <GroupCard key={name} name={name} onOpen={() => onOpenGroup(name)} />
-              ))}
-            </div>
+
+          {validRecent.length > 0 && (
+            <>
+              <div className="journey-section">{t.recentlyStudied}</div>
+              <div className="recent-list">
+                {validRecent.map(r => (
+                  <button key={r.key} className="recent-chip" onClick={() => onStart(r.key, "flashcards")}>
+                    {keyLabel(r.key)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="journey-section">{t.byLevel}</div>
+          <div className="journey-list">
+            {LEVELS.map(key => (
+              <JourneyRow
+                key={key}
+                groupKey={key}
+                badge={key}
+                badgeColor={LEVEL_COLORS[key] || "var(--accent)"}
+                badgeText="#08120e"
+                title={LEVEL_NAMES[key] || key}
+                open={openKey === key}
+                onToggle={() => toggle(key)}
+                onStart={onStart}
+              />
+            ))}
           </div>
-          <div className="group-section">
-            <h2>{t.byTopic}</h2>
-            <div className="group-grid">
-              {TOPICS.map(name => (
-                <GroupCard key={name} name={name} onOpen={() => onOpenGroup(name)} />
-              ))}
-            </div>
+
+          <div className="journey-section">{t.byTopic}</div>
+          <div className="journey-list">
+            {topicRowKeys.map(key => (
+              <JourneyRow
+                key={key}
+                groupKey={key}
+                badge={keyParts(key).name[0]}
+                badgeColor="var(--accent-soft)"
+                badgeText="var(--accent-strong)"
+                title={keyLabel(key)}
+                open={openKey === key}
+                onToggle={() => toggle(key)}
+                onStart={onStart}
+              />
+            ))}
           </div>
         </>
       )}

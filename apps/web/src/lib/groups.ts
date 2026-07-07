@@ -3,6 +3,15 @@ import type { KeyedWord, Progress, Word } from "../types";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
+// Per-level accent colours for the journey-path badges.
+export const LEVEL_COLORS: Record<string, string> = {
+  A1: "#4ADE80", A2: "#2DD4BF", B1: "#3B82F6", B2: "#60A5FA", C1: "#A78BFA", C2: "#F472B6",
+};
+export const LEVEL_NAMES: Record<string, string> = {
+  A1: "Beginner", A2: "Elementary", B1: "Intermediate",
+  B2: "Upper-Intermediate", C1: "Advanced", C2: "Mastery",
+};
+
 // Content starts as the bundled static data (instant + offline), then gets
 // replaced by the server's copy via setContent() once /content loads, so
 // admin edits appear in the app. TOPICS is mutated in place so existing

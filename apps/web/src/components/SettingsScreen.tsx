@@ -4,6 +4,12 @@ import type { Lang, ThemeName } from "../types";
 
 const THEME_META: { id: ThemeName; name: (t: Dict) => string; desc: (t: Dict) => string; swatches: string[] }[] = [
   {
+    id: "midnight",
+    name: t => t.themeMidnight,
+    desc: t => t.themeMidnightDesc,
+    swatches: ["#0E0E13", "#34D399", "#23232E"],
+  },
+  {
     id: "playful",
     name: t => t.themePlayful,
     desc: t => t.themePlayfulDesc,

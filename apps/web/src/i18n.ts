@@ -160,6 +160,8 @@ const EN = {
 
   settingsTitle: "Settings",
   themeSection: "Theme",
+  themeMidnight: "Midnight mint",
+  themeMidnightDesc: "Deep near-black background with a fresh mint accent and colour-coded levels.",
   themePlayful: "Playful & bright",
   themePlayfulDesc: "Warm light background, juicy green accent, big rounded corners.",
   themeDark: "Dark premium",
@@ -329,6 +331,8 @@ const RU: Dict = {
 
   settingsTitle: "Настройки",
   themeSection: "Тема",
+  themeMidnight: "Полночная мята",
+  themeMidnightDesc: "Глубокий почти чёрный фон, свежий мятный акцент, цветные уровни.",
   themePlayful: "Игровая и яркая",
   themePlayfulDesc: "Тёплый светлый фон, сочный зелёный акцент, крупные скругления.",
   themeDark: "Тёмный премиум",

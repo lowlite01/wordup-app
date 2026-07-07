@@ -3,7 +3,7 @@ import { AppContext, type AppApi } from "./context";
 import { STRINGS } from "./i18n";
 import type { FlashMode, Word } from "./types";
 import {
-  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, topicLevelKeys,
+  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, topicLevelKeys,
 } from "./lib/groups";
 import {
   clearStatsStorage, loadProgress, loadRecent, loadSettings, loadStats,
@@ -204,6 +204,15 @@ export default function App() {
     setRoute({ s: "mode" });
   };
 
+  // Journey-path home starts a mode directly for a group key.
+  const startGroup = (key: string, mode: "flashcards" | "quiz" | "list") => {
+    setTopic(keyParts(key).name);
+    setGroupKey(key);
+    setPosFilter("all");
+    setNonce(n => n + 1);
+    setRoute(mode === "flashcards" ? { s: "flash", mode: "group" } : { s: mode });
+  };
+
   const tabs: { id: Route["s"]; label: string; badge?: number }[] = [
     { id: "groups", label: t.tabGroups },
     { id: "grammar", label: t.tabGrammar },
@@ -263,7 +272,7 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        {route.s === "groups" && <GroupsScreen onOpenGroup={openGroup} />}
+        {route.s === "groups" && <GroupsScreen onStart={startGroup} />}
         {route.s === "mode" && (
           <ModeScreen
             topic={topic}

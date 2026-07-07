@@ -31,7 +31,7 @@ export const loadRecent = () => load<RecentEntry[]>(RECENT_KEY, []);
 export const saveRecent = (r: RecentEntry[]) => save(RECENT_KEY, r);
 
 const SETTINGS_KEY = "wordup-settings-v1";
-const DEFAULT_SETTINGS: Settings = { theme: "playful", lang: "ru", autoSpeak: false };
+const DEFAULT_SETTINGS: Settings = { theme: "midnight", lang: "ru", autoSpeak: false };
 export function loadSettings(): Settings {
   return { ...DEFAULT_SETTINGS, ...load<Partial<Settings>>(SETTINGS_KEY, {}) };
 }

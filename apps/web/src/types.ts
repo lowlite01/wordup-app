@@ -28,7 +28,7 @@ export interface RecentEntry {
   ts: number;
 }
 
-export type ThemeName = "playful" | "dark" | "minimal";
+export type ThemeName = "midnight" | "playful" | "dark" | "minimal";
 export type Lang = "en" | "ru";
 
 export interface Settings {
