@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, SafeAreaView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
@@ -6,6 +6,10 @@ import { StatusBar } from "expo-status-bar";
 import { Colors, ThemeProvider, useTheme } from "./src/theme";
 import { AppContent, fetchContent } from "./src/api";
 import { Progress, loadProgress, saveProgress } from "./src/storage";
+import {
+  AuthUser, getServerProgress, getToken, loadToken, login as doLogin,
+  logout as doLogout, me, progressToEntries, syncProgress,
+} from "./src/session";
 import GroupsScreen from "./src/GroupsScreen";
 import ModeScreen from "./src/ModeScreen";
 import FlashcardsScreen from "./src/FlashcardsScreen";
@@ -25,9 +29,13 @@ function Main() {
 
   const [content, setContent] = useState<AppContent | null>(null);
   const [progress, setProgress] = useState<Progress>({ known: {}, learning: {} });
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: "groups" });
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
 
   const load = () => {
     setLoading(true);
@@ -38,13 +46,41 @@ function Main() {
   };
 
   useEffect(() => {
-    loadProgress().then(setProgress);
     load();
+    loadProgress().then(setProgress);
+    // If a token is stored, the server is the source of truth.
+    loadToken().then(t => {
+      if (!t) return;
+      me().then(setUser).catch(() => {});
+      getServerProgress()
+        .then(p => { setProgress(p); saveProgress(p); })
+        .catch(() => {});
+    });
   }, []);
 
   const updateProgress = (p: Progress) => {
     setProgress(p);
     saveProgress(p);
+    if (getToken()) syncProgress(progressToEntries(p)).catch(() => {});
+  };
+
+  const onLogin = async () => {
+    const u = await doLogin();
+    if (!u) return;
+    setUser(u);
+    try {
+      await syncProgress(progressToEntries(progressRef.current)); // merge offline progress
+      const p = await getServerProgress();
+      setProgress(p);
+      saveProgress(p);
+    } catch {
+      // keep local progress if the network hiccups
+    }
+  };
+
+  const onLogout = async () => {
+    await doLogout();
+    setUser(null);
   };
 
   return (
@@ -78,7 +114,12 @@ function Main() {
       )}
 
       {screen.name === "settings" && (
-        <SettingsScreen onBack={() => setScreen({ name: "groups" })} />
+        <SettingsScreen
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          onBack={() => setScreen({ name: "groups" })}
+        />
       )}
 
       {content && !loading && screen.name === "groups" && (
