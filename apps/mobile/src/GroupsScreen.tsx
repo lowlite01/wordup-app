@@ -1,78 +1,162 @@
-import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Colors, useTheme } from "./theme";
-import { AppContent, keyLabel, levelKeys, topicKeys, wordsForKey } from "./api";
+import { useMemo, useState } from "react";
+import {
+  LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View,
+} from "react-native";
+import { Colors, LEVEL_COLORS, useTheme } from "./theme";
+import { AppContent, keyLabel, keyParts, levelKeys, topicKeys, wordsForKey } from "./api";
 import { Progress, RecentEntry, knownCount } from "./storage";
+import { Gamification } from "./session";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+type Mode = "flash" | "quiz";
 
 interface Props {
   content: AppContent;
   progress: Progress;
   recent: RecentEntry[];
-  onOpen: (key: string) => void;
+  game: Gamification | null;
+  onStart: (key: string, mode: Mode) => void;
 }
 
-export default function GroupsScreen({ content, progress, recent, onOpen }: Props) {
+const LEVEL_NAMES: Record<string, string> = {
+  A1: "Beginner", A2: "Elementary", B1: "Intermediate",
+  B2: "Upper-Intermediate", C1: "Advanced", C2: "Mastery",
+};
+
+export default function GroupsScreen({ content, progress, recent, game, onStart }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+
   const levels = levelKeys(content);
   const topics = topicKeys(content);
   const validRecent = recent.filter(r => wordsForKey(content, r.key).length > 0);
 
-  const renderGrid = (keys: string[]) => (
-    <View style={styles.grid}>
-      {keys.map(key => {
-        const total = wordsForKey(content, key).length;
-        const known = knownCount(progress, key);
-        const pct = total ? Math.round((known / total) * 100) : 0;
-        return (
-          <TouchableOpacity key={key} style={styles.card} onPress={() => onOpen(key)} activeOpacity={0.7}>
-            <Text style={styles.cardName}>{keyLabel(key)}</Text>
-            <Text style={styles.cardCount}>{total} words</Text>
-            {known > 0 && (
-              <>
-                <View style={styles.bar}>
-                  <View style={[styles.barFill, { width: `${pct}%` }]} />
-                </View>
-                <Text style={styles.cardKnown}>{known} known</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+  const toggle = (key: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenKey(k => (k === key ? null : key));
+  };
+
+  const Row = ({ groupKey, badgeColor, badgeTextColor, letter, title }: {
+    groupKey: string; badgeColor: string; badgeTextColor: string; letter: string; title: string;
+  }) => {
+    const total = wordsForKey(content, groupKey).length;
+    const known = knownCount(progress, groupKey);
+    const pct = total ? Math.round((known / total) * 100) : 0;
+    const isOpen = openKey === groupKey;
+    return (
+      <View style={[styles.row, isOpen && styles.rowOpen]}>
+        <TouchableOpacity style={styles.rowHead} onPress={() => toggle(groupKey)} activeOpacity={0.75}>
+          <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+            <Text style={[styles.badgeText, { color: badgeTextColor }]}>{letter}</Text>
+          </View>
+          <View style={styles.rowMid}>
+            <Text style={styles.rowTitle}>{title}</Text>
+            <Text style={styles.rowSub}>{known} / {total} words{pct ? ` · ${pct}%` : ""}</Text>
+          </View>
+          <Text style={[styles.chev, isOpen && { color: colors.accent }]}>{isOpen ? "▾" : "›"}</Text>
+        </TouchableOpacity>
+        {total > 0 && (
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${pct}%` }]} />
+          </View>
+        )}
+        {isOpen && (
+          <View style={styles.modes}>
+            <TouchableOpacity style={styles.modeBtn} onPress={() => onStart(groupKey, "flash")}>
+              <Text style={styles.modeText}>🗂️  Flashcards</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.modeBtn, styles.modeBtnPrimary]} onPress={() => onStart(groupKey, "quiz")}>
+              <Text style={[styles.modeText, { color: colors.onAccent }]}>❓  Quiz</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {game ? (
+        <View style={styles.statCard}>
+          <View style={styles.statTop}>
+            <View style={styles.streak}>
+              <Text style={styles.streakFlame}>🔥</Text>
+              <Text style={styles.streakNum}>{game.streak}</Text>
+              <Text style={styles.streakLabel}>day streak</Text>
+            </View>
+            <Text style={styles.levelPill}>Level {game.level}</Text>
+          </View>
+          <Text style={styles.xpText}>{game.levelXp} / {game.levelSpan} XP</Text>
+          <View style={styles.xpTrack}>
+            <View style={[styles.xpFill, { width: `${Math.round((game.levelXp / game.levelSpan) * 100)}%` }]} />
+          </View>
+        </View>
+      ) : null}
+
       {validRecent.length > 0 && (
         <>
           <Text style={styles.section}>Recently studied</Text>
           <View style={styles.recentRow}>
             {validRecent.map(r => (
-              <TouchableOpacity
-                key={r.key}
-                style={styles.recentChip}
-                onPress={() => onOpen(r.key)}
-              >
+              <TouchableOpacity key={r.key} style={styles.recentChip} onPress={() => onStart(r.key, "flash")}>
                 <Text style={styles.recentText}>{keyLabel(r.key)}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </>
       )}
-      <Text style={styles.section}>By CEFR level</Text>
-      {renderGrid(levels)}
-      <Text style={styles.section}>By topic</Text>
-      {renderGrid(topics)}
+
+      <Text style={styles.section}>Levels</Text>
+      {levels.map(key => (
+        <Row
+          key={key}
+          groupKey={key}
+          badgeColor={LEVEL_COLORS[key] || colors.accent}
+          badgeTextColor="#08120E"
+          letter={key}
+          title={LEVEL_NAMES[key] || key}
+        />
+      ))}
+
+      <Text style={styles.section}>Topics</Text>
+      {topics.map(key => (
+        <Row
+          key={key}
+          groupKey={key}
+          badgeColor={colors.accentSoft}
+          badgeTextColor={colors.accentStrong}
+          letter={keyParts(key).name[0]}
+          title={keyLabel(key)}
+        />
+      ))}
     </ScrollView>
   );
 }
 
 const makeStyles = (c: Colors) => StyleSheet.create({
   container: { padding: 16, paddingBottom: 40 },
+  statCard: {
+    backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 16, padding: 16,
+  },
+  statTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  streak: { flexDirection: "row", alignItems: "center", gap: 6 },
+  streakFlame: { fontSize: 18 },
+  streakNum: { color: c.text, fontSize: 20, fontWeight: "800" },
+  streakLabel: { color: c.muted, fontSize: 13, marginLeft: 2 },
+  levelPill: {
+    color: c.accentStrong, backgroundColor: c.accentSoft, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 4, fontSize: 13, fontWeight: "700", overflow: "hidden",
+  },
+  xpText: { color: c.muted, fontSize: 13, marginBottom: 6 },
+  xpTrack: { height: 8, backgroundColor: c.card2, borderRadius: 999, overflow: "hidden" },
+  xpFill: { height: 8, backgroundColor: c.accent, borderRadius: 999 },
   section: {
-    fontSize: 13, fontWeight: "600", color: c.muted, textTransform: "uppercase",
-    letterSpacing: 0.5, marginTop: 18, marginBottom: 10,
+    fontSize: 12, fontWeight: "700", color: c.muted, textTransform: "uppercase",
+    letterSpacing: 1, marginTop: 22, marginBottom: 10,
   },
   recentRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   recentChip: {
@@ -80,17 +164,25 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 14,
   },
   recentText: { color: c.text, fontWeight: "600", fontSize: 13 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  card: {
+  row: {
     backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 14,
-    padding: 16, width: "31%", minWidth: 100, flexGrow: 1, alignItems: "center",
+    marginBottom: 10, overflow: "hidden",
   },
-  cardName: { fontSize: 16, fontWeight: "700", color: c.text },
-  cardCount: { fontSize: 12, color: c.muted, marginTop: 4 },
-  bar: {
-    height: 6, backgroundColor: c.accent2Soft, borderRadius: 999, width: "100%",
-    marginTop: 8, overflow: "hidden",
+  rowOpen: { borderColor: c.accent, backgroundColor: c.card2 },
+  rowHead: { flexDirection: "row", alignItems: "center", padding: 12, gap: 12 },
+  badge: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  badgeText: { color: "#08120E", fontWeight: "800", fontSize: 15 },
+  rowMid: { flex: 1 },
+  rowTitle: { color: c.text, fontSize: 16, fontWeight: "700" },
+  rowSub: { color: c.muted, fontSize: 13, marginTop: 2 },
+  chev: { color: c.muted, fontSize: 20, fontWeight: "700" },
+  progressTrack: { height: 3, backgroundColor: c.card2, marginHorizontal: 12, borderRadius: 999, marginBottom: 12 },
+  progressFill: { height: 3, backgroundColor: c.accent, borderRadius: 999 },
+  modes: { flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingBottom: 12 },
+  modeBtn: {
+    flex: 1, backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 12,
+    paddingVertical: 12, alignItems: "center",
   },
-  barFill: { height: 6, backgroundColor: c.accent, borderRadius: 999 },
-  cardKnown: { fontSize: 11, color: c.accentStrong, marginTop: 4 },
+  modeBtnPrimary: { backgroundColor: c.accent, borderColor: c.accent },
+  modeText: { color: c.text, fontWeight: "600", fontSize: 14 },
 });

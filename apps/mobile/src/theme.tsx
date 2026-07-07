@@ -20,9 +20,20 @@ export interface Colors {
   onAccent: string;
 }
 
-export type ThemeName = "playful" | "dark" | "minimal";
+export type ThemeName = "midnight" | "playful" | "dark" | "minimal";
+
+// Per-CEFR-level accent colours used for the journey-path badges.
+export const LEVEL_COLORS: Record<string, string> = {
+  A1: "#4ADE80", A2: "#2DD4BF", B1: "#3B82F6", B2: "#60A5FA", C1: "#A78BFA", C2: "#F472B6",
+};
 
 export const themes: Record<ThemeName, Colors> = {
+  midnight: {
+    bg: "#0E0E13", card: "#191921", card2: "#23232E", text: "#F4F4F7", muted: "#8B8B96",
+    border: "#2A2A36", accent: "#34D399", accentStrong: "#6EE7B7", accentSoft: "#12241C",
+    accent2: "#FB923C", accent2Soft: "#2A1C11", accent2Strong: "#FDBA74",
+    danger: "#F87171", dangerSoft: "#2A1618", success: "#34D399", onAccent: "#052E22",
+  },
   playful: {
     bg: "#FDF6EC", card: "#FFFFFF", card2: "#F2FAF6", text: "#22302A", muted: "#7D8A80",
     border: "#E8DDC6", accent: "#1D9E75", accentStrong: "#0F6E56", accentSoft: "#E1F5EE",
@@ -44,6 +55,7 @@ export const themes: Record<ThemeName, Colors> = {
 };
 
 export const THEME_LABELS: Record<ThemeName, string> = {
+  midnight: "Midnight mint",
   playful: "Playful & bright",
   dark: "Dark premium",
   minimal: "Light minimal",
@@ -55,11 +67,11 @@ interface Ctx {
   setTheme: (n: ThemeName) => void;
 }
 
-const ThemeContext = createContext<Ctx>({ name: "playful", colors: themes.playful, setTheme: () => {} });
+const ThemeContext = createContext<Ctx>({ name: "midnight", colors: themes.midnight, setTheme: () => {} });
 const KEY = "wordup-theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [name, setName] = useState<ThemeName>("playful");
+  const [name, setName] = useState<ThemeName>("midnight");
 
   useEffect(() => {
     AsyncStorage.getItem(KEY).then(v => {

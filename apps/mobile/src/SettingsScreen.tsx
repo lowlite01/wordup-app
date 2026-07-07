@@ -13,7 +13,7 @@ interface Props {
 export default function SettingsScreen({ user, onLogin, onLogout, onBack }: Props) {
   const { colors, name, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const order: ThemeName[] = ["playful", "dark", "minimal"];
+  const order: ThemeName[] = ["midnight", "playful", "dark", "minimal"];
   const [busy, setBusy] = useState(false);
 
   const handleLogin = async () => {

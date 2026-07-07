@@ -10,11 +10,10 @@ import {
   pushRecent, recordQuiz, saveProgress,
 } from "./src/storage";
 import {
-  AuthUser, getServerProgress, getToken, loadToken, login as doLogin,
-  logout as doLogout, me, progressToEntries, pushQuiz, syncProgress,
+  AuthUser, Gamification, getGamification, getServerProgress, getToken, loadToken,
+  login as doLogin, logout as doLogout, me, progressToEntries, pushQuiz, syncProgress,
 } from "./src/session";
 import GroupsScreen from "./src/GroupsScreen";
-import ModeScreen from "./src/ModeScreen";
 import FlashcardsScreen from "./src/FlashcardsScreen";
 import QuizScreen from "./src/QuizScreen";
 import SearchScreen from "./src/SearchScreen";
@@ -26,7 +25,6 @@ import WordContextModal, { WordLite } from "./src/WordContextModal";
 type Tab = "groups" | "search" | "grammar" | "progress";
 type Screen =
   | { name: Tab }
-  | { name: "mode"; key: string }
   | { name: "flash"; key: string }
   | { name: "quiz"; key: string }
   | { name: "settings" };
@@ -47,6 +45,7 @@ function Main() {
   const [recent, setRecent] = useState<RecentEntry[]>([]);
   const [stats, setStats] = useState<QuizStats>({});
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [game, setGame] = useState<Gamification | null>(null);
   const [ctxWord, setCtxWord] = useState<WordLite | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: "groups" });
   const [error, setError] = useState(false);
@@ -72,8 +71,18 @@ function Main() {
       if (!t) return;
       me().then(setUser).catch(() => {});
       getServerProgress().then(p => { setProgress(p); saveProgress(p); }).catch(() => {});
+      refreshGame();
     });
   }, []);
+
+  const refreshGame = () => {
+    if (getToken()) getGamification().then(setGame).catch(() => {});
+  };
+
+  // Keep the home XP/streak fresh whenever we return to it.
+  useEffect(() => {
+    if (screen.name === "groups") refreshGame();
+  }, [screen.name]);
 
   const updateProgress = (p: Progress) => {
     setProgress(p);
@@ -81,9 +90,9 @@ function Main() {
     if (getToken()) syncProgress(progressToEntries(p)).catch(() => {});
   };
 
-  const openGroup = (key: string) => {
+  const onStart = (key: string, mode: "flash" | "quiz") => {
     setRecent(r => pushRecent(r, key));
-    setScreen({ name: "mode", key });
+    setScreen(mode === "flash" ? { name: "flash", key } : { name: "quiz", key });
   };
 
   const onQuiz = (word: string, picked: string) => {
@@ -100,12 +109,14 @@ function Main() {
       const p = await getServerProgress();
       setProgress(p);
       saveProgress(p);
+      refreshGame();
     } catch { /* keep local */ }
   };
 
   const onLogout = async () => {
     await doLogout();
     setUser(null);
+    setGame(null);
   };
 
   const isTab = ["groups", "search", "grammar", "progress"].includes(screen.name);
@@ -147,7 +158,7 @@ function Main() {
         )}
 
         {contentReady && screen.name === "groups" && (
-          <GroupsScreen content={content} progress={progress} recent={recent} onOpen={openGroup} />
+          <GroupsScreen content={content} progress={progress} recent={recent} game={game} onStart={onStart} />
         )}
         {contentReady && screen.name === "search" && (
           <SearchScreen content={content} onOpenWord={setCtxWord} />
@@ -157,23 +168,13 @@ function Main() {
           <ProgressScreen content={content} progress={progress} stats={stats} onOpenWord={setCtxWord} />
         )}
 
-        {contentReady && screen.name === "mode" && (
-          <ModeScreen
-            content={content}
-            groupKey={screen.key}
-            progress={progress}
-            onFlashcards={() => setScreen({ name: "flash", key: screen.key })}
-            onQuiz={() => setScreen({ name: "quiz", key: screen.key })}
-            onBack={() => setScreen({ name: "groups" })}
-          />
-        )}
         {contentReady && screen.name === "flash" && (
           <FlashcardsScreen
             content={content}
             groupKey={screen.key}
             progress={progress}
             onChangeProgress={updateProgress}
-            onBack={() => setScreen({ name: "mode", key: screen.key })}
+            onBack={() => setScreen({ name: "groups" })}
           />
         )}
         {contentReady && screen.name === "quiz" && (
@@ -183,7 +184,7 @@ function Main() {
             progress={progress}
             onChangeProgress={updateProgress}
             onQuiz={onQuiz}
-            onBack={() => setScreen({ name: "mode", key: screen.key })}
+            onBack={() => setScreen({ name: "groups" })}
           />
         )}
       </View>

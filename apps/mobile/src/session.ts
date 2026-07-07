@@ -67,7 +67,17 @@ async function authed<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface Gamification {
+  level: number;
+  xp: number;
+  levelXp: number;
+  levelSpan: number;
+  streak: number;
+  knownCount: number;
+}
+
 export const me = () => authed<AuthUser>("/auth/me");
+export const getGamification = () => authed<Gamification>("/gamification/me");
 export const getServerProgress = () => authed<Progress>("/progress");
 export const pushWordState = (groupKey: string, word: string, state: "known" | "learning" | "none") =>
   authed("/progress", { method: "PUT", body: JSON.stringify({ groupKey, word, state }) });
