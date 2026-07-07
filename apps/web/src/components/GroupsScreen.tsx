@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
+import type { LucideIcon } from "lucide-react";
 import {
   LEVELS, LEVEL_COLORS, LEVEL_NAMES, TOPICS, keyLabel, keyParts, knownSet,
   searchWords, topicLevelKeys, wordsForKey,
 } from "../lib/groups";
+import { topicIcon } from "../lib/topicIcons";
 import WordRow from "./WordRow";
 
 type Mode = "flashcards" | "quiz" | "list";
@@ -13,8 +15,8 @@ interface Props {
   onStart: (key: string, mode: Mode) => void;
 }
 
-function JourneyRow({ groupKey, badge, badgeColor, badgeText, title, open, onToggle, onStart }: {
-  groupKey: string; badge: string; badgeColor: string; badgeText: string; title: string;
+function JourneyRow({ groupKey, badge, Icon, badgeColor, badgeText, title, open, onToggle, onStart }: {
+  groupKey: string; badge: string; Icon?: LucideIcon; badgeColor: string; badgeText: string; title: string;
   open: boolean; onToggle: () => void; onStart: (key: string, mode: Mode) => void;
 }) {
   const { progress } = useApp();
@@ -26,7 +28,9 @@ function JourneyRow({ groupKey, badge, badgeColor, badgeText, title, open, onTog
   return (
     <div className={"journey-row" + (open ? " open" : "")}>
       <button className="journey-head" onClick={onToggle}>
-        <span className="journey-badge" style={{ background: badgeColor, color: badgeText }}>{badge}</span>
+        <span className="journey-badge" style={{ background: badgeColor, color: badgeText }}>
+          {Icon ? <Icon size={22} strokeWidth={2} /> : badge}
+        </span>
         <span className="journey-mid">
           <span className="journey-title">{title}</span>
           <span className="journey-sub">{known} / {total} words{pct ? ` · ${pct}%` : ""}</span>
@@ -129,6 +133,7 @@ export default function GroupsScreen({ onStart }: Props) {
                 key={key}
                 groupKey={key}
                 badge={keyParts(key).name[0]}
+                Icon={topicIcon(keyParts(key).name)}
                 badgeColor="var(--accent-soft)"
                 badgeText="var(--accent-strong)"
                 title={keyLabel(key)}

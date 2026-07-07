@@ -2,10 +2,12 @@ import { useMemo, useState } from "react";
 import {
   LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from "react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { Colors, LEVEL_COLORS, useTheme } from "./theme";
 import { AppContent, keyLabel, keyParts, levelKeys, topicKeys, wordsForKey } from "./api";
 import { Progress, RecentEntry, knownCount } from "./storage";
 import { Gamification } from "./session";
+import { topicIcon } from "./topicIcons";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -40,8 +42,8 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
     setOpenKey(k => (k === key ? null : key));
   };
 
-  const Row = ({ groupKey, badgeColor, badgeTextColor, letter, title }: {
-    groupKey: string; badgeColor: string; badgeTextColor: string; letter: string; title: string;
+  const Row = ({ groupKey, badgeColor, badgeTextColor, letter, title, Icon }: {
+    groupKey: string; badgeColor: string; badgeTextColor: string; letter: string; title: string; Icon?: LucideIcon;
   }) => {
     const total = wordsForKey(content, groupKey).length;
     const known = knownCount(progress, groupKey);
@@ -51,7 +53,9 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
       <View style={[styles.row, isOpen && styles.rowOpen]}>
         <TouchableOpacity style={styles.rowHead} onPress={() => toggle(groupKey)} activeOpacity={0.75}>
           <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-            <Text style={[styles.badgeText, { color: badgeTextColor }]}>{letter}</Text>
+            {Icon
+              ? <Icon size={22} color={badgeTextColor} strokeWidth={2} />
+              : <Text style={[styles.badgeText, { color: badgeTextColor }]}>{letter}</Text>}
           </View>
           <View style={styles.rowMid}>
             <Text style={styles.rowTitle}>{title}</Text>
@@ -131,6 +135,7 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
           badgeTextColor={colors.accentStrong}
           letter={keyParts(key).name[0]}
           title={keyLabel(key)}
+          Icon={topicIcon(keyParts(key).name)}
         />
       ))}
     </ScrollView>
