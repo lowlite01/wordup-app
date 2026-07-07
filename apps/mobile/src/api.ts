@@ -51,3 +51,30 @@ export function topicKeys(content: AppContent): string[] {
   }
   return keys;
 }
+
+export interface KeyedWord extends Word {
+  key: string;
+}
+
+export function allWords(content: AppContent): KeyedWord[] {
+  const out: KeyedWord[] = [];
+  for (const key of [...levelKeys(content), ...topicKeys(content)]) {
+    for (const w of wordsForKey(content, key)) out.push({ ...w, key });
+  }
+  return out;
+}
+
+export function searchWords(content: AppContent, query: string): KeyedWord[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const matches = allWords(content).filter(
+    w => w.word.toLowerCase().includes(q) || w.def.toLowerCase().includes(q),
+  );
+  matches.sort((a, b) => {
+    const aw = a.word.toLowerCase().startsWith(q);
+    const bw = b.word.toLowerCase().startsWith(q);
+    if (aw !== bw) return aw ? -1 : 1;
+    return a.word.localeCompare(b.word);
+  });
+  return matches;
+}

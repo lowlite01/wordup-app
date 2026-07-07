@@ -14,14 +14,25 @@ import GroupsScreen from "./src/GroupsScreen";
 import ModeScreen from "./src/ModeScreen";
 import FlashcardsScreen from "./src/FlashcardsScreen";
 import QuizScreen from "./src/QuizScreen";
+import SearchScreen from "./src/SearchScreen";
+import GrammarScreen from "./src/GrammarScreen";
+import ProgressScreen from "./src/ProgressScreen";
 import SettingsScreen from "./src/SettingsScreen";
 
+type Tab = "groups" | "search" | "grammar" | "progress";
 type Screen =
-  | { name: "groups" }
+  | { name: Tab }
   | { name: "mode"; key: string }
   | { name: "flash"; key: string }
   | { name: "quiz"; key: string }
   | { name: "settings" };
+
+const TABS: { id: Tab; icon: string; label: string }[] = [
+  { id: "groups", icon: "🗂️", label: "Groups" },
+  { id: "search", icon: "🔍", label: "Search" },
+  { id: "grammar", icon: "📖", label: "Grammar" },
+  { id: "progress", icon: "📊", label: "Progress" },
+];
 
 function Main() {
   const { colors, name: themeName } = useTheme();
@@ -48,13 +59,10 @@ function Main() {
   useEffect(() => {
     load();
     loadProgress().then(setProgress);
-    // If a token is stored, the server is the source of truth.
     loadToken().then(t => {
       if (!t) return;
       me().then(setUser).catch(() => {});
-      getServerProgress()
-        .then(p => { setProgress(p); saveProgress(p); })
-        .catch(() => {});
+      getServerProgress().then(p => { setProgress(p); saveProgress(p); }).catch(() => {});
     });
   }, []);
 
@@ -69,19 +77,20 @@ function Main() {
     if (!u) return;
     setUser(u);
     try {
-      await syncProgress(progressToEntries(progressRef.current)); // merge offline progress
+      await syncProgress(progressToEntries(progressRef.current));
       const p = await getServerProgress();
       setProgress(p);
       saveProgress(p);
-    } catch {
-      // keep local progress if the network hiccups
-    }
+    } catch { /* keep local */ }
   };
 
   const onLogout = async () => {
     await doLogout();
     setUser(null);
   };
+
+  const isTab = ["groups", "search", "grammar", "progress"].includes(screen.name);
+  const contentReady = content && !loading;
 
   return (
     <SafeAreaView style={styles.root}>
@@ -96,69 +105,77 @@ function Main() {
         </TouchableOpacity>
       </View>
 
-      {loading && screen.name !== "settings" && (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.muted}>Loading words…</Text>
-          <Text style={styles.hint}>(the free server may take ~30s to wake up)</Text>
+      <View style={styles.body}>
+        {loading && screen.name !== "settings" && (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.accent} />
+            <Text style={styles.muted}>Loading words…</Text>
+            <Text style={styles.hint}>(the free server may take ~30s to wake up)</Text>
+          </View>
+        )}
+
+        {error && !loading && screen.name !== "settings" && (
+          <View style={styles.center}>
+            <Text style={styles.muted}>Couldn't reach the server.</Text>
+            <TouchableOpacity style={styles.retry} onPress={load}>
+              <Text style={styles.retryText}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {screen.name === "settings" && (
+          <SettingsScreen user={user} onLogin={onLogin} onLogout={onLogout} onBack={() => setScreen({ name: "groups" })} />
+        )}
+
+        {contentReady && screen.name === "groups" && (
+          <GroupsScreen content={content} progress={progress} onOpen={key => setScreen({ name: "mode", key })} />
+        )}
+        {contentReady && screen.name === "search" && <SearchScreen content={content} />}
+        {contentReady && screen.name === "grammar" && <GrammarScreen />}
+        {contentReady && screen.name === "progress" && <ProgressScreen content={content} progress={progress} />}
+
+        {contentReady && screen.name === "mode" && (
+          <ModeScreen
+            content={content}
+            groupKey={screen.key}
+            progress={progress}
+            onFlashcards={() => setScreen({ name: "flash", key: screen.key })}
+            onQuiz={() => setScreen({ name: "quiz", key: screen.key })}
+            onBack={() => setScreen({ name: "groups" })}
+          />
+        )}
+        {contentReady && screen.name === "flash" && (
+          <FlashcardsScreen
+            content={content}
+            groupKey={screen.key}
+            progress={progress}
+            onChangeProgress={updateProgress}
+            onBack={() => setScreen({ name: "mode", key: screen.key })}
+          />
+        )}
+        {contentReady && screen.name === "quiz" && (
+          <QuizScreen
+            content={content}
+            groupKey={screen.key}
+            progress={progress}
+            onChangeProgress={updateProgress}
+            onBack={() => setScreen({ name: "mode", key: screen.key })}
+          />
+        )}
+      </View>
+
+      {isTab && (
+        <View style={styles.tabBar}>
+          {TABS.map(t => {
+            const active = screen.name === t.id;
+            return (
+              <TouchableOpacity key={t.id} style={styles.tab} onPress={() => setScreen({ name: t.id })}>
+                <Text style={[styles.tabIcon, { opacity: active ? 1 : 0.5 }]}>{t.icon}</Text>
+                <Text style={[styles.tabLabel, { color: active ? colors.accent : colors.muted }]}>{t.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      )}
-
-      {error && !loading && screen.name !== "settings" && (
-        <View style={styles.center}>
-          <Text style={styles.muted}>Couldn't reach the server.</Text>
-          <TouchableOpacity style={styles.retry} onPress={load}>
-            <Text style={styles.retryText}>Try again</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {screen.name === "settings" && (
-        <SettingsScreen
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onBack={() => setScreen({ name: "groups" })}
-        />
-      )}
-
-      {content && !loading && screen.name === "groups" && (
-        <GroupsScreen
-          content={content}
-          progress={progress}
-          onOpen={key => setScreen({ name: "mode", key })}
-        />
-      )}
-
-      {content && !loading && screen.name === "mode" && (
-        <ModeScreen
-          content={content}
-          groupKey={screen.key}
-          progress={progress}
-          onFlashcards={() => setScreen({ name: "flash", key: screen.key })}
-          onQuiz={() => setScreen({ name: "quiz", key: screen.key })}
-          onBack={() => setScreen({ name: "groups" })}
-        />
-      )}
-
-      {content && !loading && screen.name === "flash" && (
-        <FlashcardsScreen
-          content={content}
-          groupKey={screen.key}
-          progress={progress}
-          onChangeProgress={updateProgress}
-          onBack={() => setScreen({ name: "mode", key: screen.key })}
-        />
-      )}
-
-      {content && !loading && screen.name === "quiz" && (
-        <QuizScreen
-          content={content}
-          groupKey={screen.key}
-          progress={progress}
-          onChangeProgress={updateProgress}
-          onBack={() => setScreen({ name: "mode", key: screen.key })}
-        />
       )}
     </SafeAreaView>
   );
@@ -185,11 +202,17 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     backgroundColor: c.card, alignItems: "center", justifyContent: "center",
   },
   gearIcon: { fontSize: 18 },
+  body: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   muted: { color: c.muted, marginTop: 12, fontSize: 15, textAlign: "center" },
   hint: { color: c.muted, marginTop: 4, fontSize: 12, textAlign: "center" },
-  retry: {
-    marginTop: 16, backgroundColor: c.accent, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24,
-  },
+  retry: { marginTop: 16, backgroundColor: c.accent, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
   retryText: { color: c.onAccent, fontWeight: "700" },
+  tabBar: {
+    flexDirection: "row", borderTopColor: c.border, borderTopWidth: 1, backgroundColor: c.card,
+    paddingTop: 6, paddingBottom: 6,
+  },
+  tab: { flex: 1, alignItems: "center", paddingVertical: 6 },
+  tabIcon: { fontSize: 20 },
+  tabLabel: { fontSize: 11, marginTop: 2, fontWeight: "600" },
 });
