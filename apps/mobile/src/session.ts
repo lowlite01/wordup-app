@@ -73,6 +73,8 @@ export const pushWordState = (groupKey: string, word: string, state: "known" | "
   authed("/progress", { method: "PUT", body: JSON.stringify({ groupKey, word, state }) });
 export const syncProgress = (entries: { groupKey: string; word: string; state: "known" | "learning" }[]) =>
   authed<Progress>("/progress/sync", { method: "POST", body: JSON.stringify({ entries }) });
+export const pushQuiz = (word: string, picked: string) =>
+  authed("/stats", { method: "POST", body: JSON.stringify({ word, picked }) });
 
 export function progressToEntries(p: Progress) {
   const out: { groupKey: string; word: string; state: "known" | "learning" }[] = [];

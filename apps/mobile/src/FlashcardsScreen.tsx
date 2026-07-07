@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
-import * as Speech from "expo-speech";
 import { Colors, useTheme } from "./theme";
 import { AppContent, keyLabel, wordsForKey } from "./api";
 import { Progress, setWordState } from "./storage";
+import { cachedEntry, fetchDict, pronounce } from "./dict";
 
 interface Props {
   content: AppContent;
@@ -30,6 +30,15 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
   const total = useMemo(() => wordsForKey(content, groupKey).length, [content, groupKey]);
   const card = deck.length ? deck[Math.min(idx, deck.length - 1)] : null;
 
+  const [ipa, setIpa] = useState("");
+  useEffect(() => {
+    if (!card) { setIpa(""); return; }
+    setIpa(cachedEntry(card.word)?.ipa || "");
+    let alive = true;
+    fetchDict(card.word).then(d => { if (alive && d?.ipa) setIpa(d.ipa); });
+    return () => { alive = false; };
+  }, [card?.word]);
+
   const pos = useRef(new Animated.Value(0)).current;       // horizontal drag
   const scale = useRef(new Animated.Value(1)).current;     // "pop-in" of a new card
   const flip = useRef(new Animated.Value(0)).current;      // 0 = front, 1 = back
@@ -41,11 +50,6 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
   const popIn = () => {
     scale.setValue(0.92);
     Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }).start();
-  };
-
-  const speak = (word: string) => {
-    Speech.stop();
-    Speech.speak(word, { language: "en-US", rate: 0.9 });
   };
 
   const advanceLearning = () => {
@@ -146,6 +150,7 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
           <Animated.View style={[styles.face, { transform: [{ perspective: 1000 }, { rotateY: frontRotate }] }]}>
             <Text style={styles.pos}>{card.pos}</Text>
             <Text style={styles.word}>{card.word}</Text>
+            {ipa ? <Text style={styles.ipa}>{ipa}</Text> : null}
             <Text style={styles.hint}>Tap to flip · swipe to sort</Text>
           </Animated.View>
           <Animated.View style={[styles.face, styles.faceBack, { transform: [{ perspective: 1000 }, { rotateY: backRotate }] }]}>
@@ -155,7 +160,7 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
         </Animated.View>
       </View>
 
-      <TouchableOpacity style={styles.speak} onPress={() => speak(card.word)}>
+      <TouchableOpacity style={styles.speak} onPress={() => pronounce(card.word)}>
         <Text style={styles.speakText}>🔊 Pronounce</Text>
       </TouchableOpacity>
 
@@ -199,6 +204,7 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     overflow: "hidden", marginBottom: 14,
   },
   word: { fontSize: 32, fontWeight: "700", color: c.text, textAlign: "center" },
+  ipa: { color: c.muted, fontSize: 15, marginTop: 8 },
   hint: { color: c.muted, fontSize: 12, marginTop: 20 },
   def: { fontSize: 18, color: c.text, textAlign: "center" },
   example: { fontSize: 14, color: c.muted, fontStyle: "italic", marginTop: 12, textAlign: "center" },

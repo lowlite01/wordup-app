@@ -2,19 +2,21 @@ import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors, useTheme } from "./theme";
 import { AppContent, keyLabel, levelKeys, topicKeys, wordsForKey } from "./api";
-import { Progress, knownCount } from "./storage";
+import { Progress, RecentEntry, knownCount } from "./storage";
 
 interface Props {
   content: AppContent;
   progress: Progress;
+  recent: RecentEntry[];
   onOpen: (key: string) => void;
 }
 
-export default function GroupsScreen({ content, progress, onOpen }: Props) {
+export default function GroupsScreen({ content, progress, recent, onOpen }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const levels = levelKeys(content);
   const topics = topicKeys(content);
+  const validRecent = recent.filter(r => wordsForKey(content, r.key).length > 0);
 
   const renderGrid = (keys: string[]) => (
     <View style={styles.grid}>
@@ -42,6 +44,22 @@ export default function GroupsScreen({ content, progress, onOpen }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {validRecent.length > 0 && (
+        <>
+          <Text style={styles.section}>Recently studied</Text>
+          <View style={styles.recentRow}>
+            {validRecent.map(r => (
+              <TouchableOpacity
+                key={r.key}
+                style={styles.recentChip}
+                onPress={() => onOpen(r.key)}
+              >
+                <Text style={styles.recentText}>{keyLabel(r.key)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
       <Text style={styles.section}>By CEFR level</Text>
       {renderGrid(levels)}
       <Text style={styles.section}>By topic</Text>
@@ -56,6 +74,12 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     fontSize: 13, fontWeight: "600", color: c.muted, textTransform: "uppercase",
     letterSpacing: 0.5, marginTop: 18, marginBottom: 10,
   },
+  recentRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  recentChip: {
+    backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 999,
+    paddingVertical: 8, paddingHorizontal: 14,
+  },
+  recentText: { color: c.text, fontWeight: "600", fontSize: 13 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   card: {
     backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 14,

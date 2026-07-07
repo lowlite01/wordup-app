@@ -5,10 +5,13 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Colors, ThemeProvider, useTheme } from "./src/theme";
 import { AppContent, fetchContent } from "./src/api";
-import { Progress, loadProgress, saveProgress } from "./src/storage";
+import {
+  Progress, QuizStats, RecentEntry, loadProgress, loadRecent, loadStats,
+  pushRecent, recordQuiz, saveProgress,
+} from "./src/storage";
 import {
   AuthUser, getServerProgress, getToken, loadToken, login as doLogin,
-  logout as doLogout, me, progressToEntries, syncProgress,
+  logout as doLogout, me, progressToEntries, pushQuiz, syncProgress,
 } from "./src/session";
 import GroupsScreen from "./src/GroupsScreen";
 import ModeScreen from "./src/ModeScreen";
@@ -18,6 +21,7 @@ import SearchScreen from "./src/SearchScreen";
 import GrammarScreen from "./src/GrammarScreen";
 import ProgressScreen from "./src/ProgressScreen";
 import SettingsScreen from "./src/SettingsScreen";
+import WordContextModal, { WordLite } from "./src/WordContextModal";
 
 type Tab = "groups" | "search" | "grammar" | "progress";
 type Screen =
@@ -40,7 +44,10 @@ function Main() {
 
   const [content, setContent] = useState<AppContent | null>(null);
   const [progress, setProgress] = useState<Progress>({ known: {}, learning: {} });
+  const [recent, setRecent] = useState<RecentEntry[]>([]);
+  const [stats, setStats] = useState<QuizStats>({});
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [ctxWord, setCtxWord] = useState<WordLite | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: "groups" });
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -59,6 +66,8 @@ function Main() {
   useEffect(() => {
     load();
     loadProgress().then(setProgress);
+    loadRecent().then(setRecent);
+    loadStats().then(setStats);
     loadToken().then(t => {
       if (!t) return;
       me().then(setUser).catch(() => {});
@@ -70,6 +79,16 @@ function Main() {
     setProgress(p);
     saveProgress(p);
     if (getToken()) syncProgress(progressToEntries(p)).catch(() => {});
+  };
+
+  const openGroup = (key: string) => {
+    setRecent(r => pushRecent(r, key));
+    setScreen({ name: "mode", key });
+  };
+
+  const onQuiz = (word: string, picked: string) => {
+    setStats(s => recordQuiz(s, word, picked));
+    if (getToken()) pushQuiz(word, picked).catch(() => {});
   };
 
   const onLogin = async () => {
@@ -128,11 +147,15 @@ function Main() {
         )}
 
         {contentReady && screen.name === "groups" && (
-          <GroupsScreen content={content} progress={progress} onOpen={key => setScreen({ name: "mode", key })} />
+          <GroupsScreen content={content} progress={progress} recent={recent} onOpen={openGroup} />
         )}
-        {contentReady && screen.name === "search" && <SearchScreen content={content} />}
+        {contentReady && screen.name === "search" && (
+          <SearchScreen content={content} onOpenWord={setCtxWord} />
+        )}
         {contentReady && screen.name === "grammar" && <GrammarScreen />}
-        {contentReady && screen.name === "progress" && <ProgressScreen content={content} progress={progress} />}
+        {contentReady && screen.name === "progress" && (
+          <ProgressScreen content={content} progress={progress} stats={stats} onOpenWord={setCtxWord} />
+        )}
 
         {contentReady && screen.name === "mode" && (
           <ModeScreen
@@ -159,6 +182,7 @@ function Main() {
             groupKey={screen.key}
             progress={progress}
             onChangeProgress={updateProgress}
+            onQuiz={onQuiz}
             onBack={() => setScreen({ name: "mode", key: screen.key })}
           />
         )}
@@ -177,6 +201,8 @@ function Main() {
           })}
         </View>
       )}
+
+      <WordContextModal word={ctxWord} onClose={() => setCtxWord(null)} onPickWord={setCtxWord} />
     </SafeAreaView>
   );
 }

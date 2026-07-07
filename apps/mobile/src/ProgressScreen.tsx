@@ -1,19 +1,24 @@
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import * as Speech from "expo-speech";
 import { Colors, useTheme } from "./theme";
 import { AppContent, KeyedWord, allWords, keyLabel } from "./api";
-import { Progress } from "./storage";
+import { Progress, QuizStats } from "./storage";
+import { pronounce } from "./dict";
+import { WordLite } from "./WordContextModal";
 
 interface Props {
   content: AppContent;
   progress: Progress;
+  stats: QuizStats;
+  onOpenWord: (w: WordLite) => void;
 }
 
-export default function ProgressScreen({ content, progress }: Props) {
+type Tab = "learning" | "known" | "mistakes";
+
+export default function ProgressScreen({ content, progress, stats, onOpenWord }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const [tab, setTab] = useState<"learning" | "known">("learning");
+  const [tab, setTab] = useState<Tab>("learning");
 
   const { learning, known } = useMemo(() => {
     const learn: KeyedWord[] = [];
@@ -25,45 +30,65 @@ export default function ProgressScreen({ content, progress }: Props) {
     return { learning: learn, known: kn };
   }, [content, progress]);
 
+  const mistakes = useMemo(() =>
+    Object.entries(stats)
+      .filter(([, s]) => s.wrong > 0)
+      .sort((a, b) => b[1].wrong - a[1].wrong || a[1].right - b[1].right),
+    [stats]);
+
+  const seg = (id: Tab, label: string) => (
+    <TouchableOpacity style={[styles.segBtn, tab === id && styles.segActive]} onPress={() => setTab(id)}>
+      <Text style={[styles.segText, tab === id && styles.segTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   const list = tab === "learning" ? learning : known;
 
   return (
     <View style={styles.container}>
       <View style={styles.segment}>
-        <TouchableOpacity
-          style={[styles.segBtn, tab === "learning" && styles.segActive]}
-          onPress={() => setTab("learning")}
-        >
-          <Text style={[styles.segText, tab === "learning" && styles.segTextActive]}>Learning ({learning.length})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.segBtn, tab === "known" && styles.segActive]}
-          onPress={() => setTab("known")}
-        >
-          <Text style={[styles.segText, tab === "known" && styles.segTextActive]}>Known ({known.length})</Text>
-        </TouchableOpacity>
+        {seg("learning", `Learning ${learning.length}`)}
+        {seg("known", `Known ${known.length}`)}
+        {seg("mistakes", `Mistakes ${mistakes.length}`)}
       </View>
 
       <ScrollView contentContainerStyle={styles.list}>
-        {list.length === 0 && (
+        {tab === "mistakes" ? (
+          mistakes.length === 0 ? (
+            <Text style={styles.muted}>Take a quiz — the words you miss will collect here.</Text>
+          ) : mistakes.map(([word, s]) => {
+            const total = s.right + s.wrong;
+            const confused = Object.entries(s.confused).sort((a, b) => b[1] - a[1]).slice(0, 3)
+              .map(([w, n]) => `“${w}”${n > 1 ? ` ×${n}` : ""}`).join(", ");
+            return (
+              <TouchableOpacity key={word} style={styles.row} onPress={() => onOpenWord({ word })}>
+                <View style={styles.rowTop}>
+                  <Text style={styles.word}>{word}</Text>
+                  <Text style={styles.wrong}>✗ {s.wrong}</Text>
+                  <Text style={styles.right}>✓ {s.right}</Text>
+                  <Text style={styles.tag}>{Math.round((s.right / total) * 100)}%</Text>
+                </View>
+                {confused ? <Text style={styles.def}>You picked instead: {confused}</Text> : null}
+              </TouchableOpacity>
+            );
+          })
+        ) : list.length === 0 ? (
           <Text style={styles.muted}>
             {tab === "learning"
               ? "Mark words as “Still learning” in flashcards and they'll collect here."
               : "Words you mark as known will appear here."}
           </Text>
-        )}
-        {list.map(w => (
+        ) : list.map(w => (
           <View key={w.key + w.word} style={styles.row}>
             <View style={styles.rowTop}>
-              <Text style={styles.word}>{w.word}</Text>
+              <TouchableOpacity onPress={() => onOpenWord(w)}>
+                <Text style={styles.wordLink}>{w.word}</Text>
+              </TouchableOpacity>
               <Text style={styles.pos}>{w.pos}</Text>
               <Text style={styles.tag}>{keyLabel(w.key)}</Text>
             </View>
             <Text style={styles.def}>{w.def}</Text>
-            <TouchableOpacity
-              style={styles.speak}
-              onPress={() => { Speech.stop(); Speech.speak(w.word, { language: "en-US", rate: 0.9 }); }}
-            >
+            <TouchableOpacity style={styles.speak} onPress={() => pronounce(w.word)}>
               <Text style={styles.speakText}>🔊</Text>
             </TouchableOpacity>
           </View>
@@ -75,13 +100,13 @@ export default function ProgressScreen({ content, progress }: Props) {
 
 const makeStyles = (c: Colors) => StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  segment: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  segment: { flexDirection: "row", gap: 6, marginBottom: 8 },
   segBtn: {
-    flex: 1, borderColor: c.border, borderWidth: 1, borderRadius: 999, paddingVertical: 10,
+    flex: 1, borderColor: c.border, borderWidth: 1, borderRadius: 999, paddingVertical: 9,
     alignItems: "center", backgroundColor: c.card,
   },
   segActive: { backgroundColor: c.accent, borderColor: c.accent },
-  segText: { color: c.muted, fontWeight: "600", fontSize: 14 },
+  segText: { color: c.muted, fontWeight: "600", fontSize: 12 },
   segTextActive: { color: c.onAccent },
   list: { paddingVertical: 12, paddingBottom: 40 },
   muted: { color: c.muted, fontSize: 14, marginTop: 8, lineHeight: 20 },
@@ -91,7 +116,10 @@ const makeStyles = (c: Colors) => StyleSheet.create({
   },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   word: { fontSize: 16, fontWeight: "700", color: c.text },
+  wordLink: { fontSize: 16, fontWeight: "700", color: c.text, textDecorationLine: "underline" },
   pos: { fontSize: 12, color: c.accent2Strong, textTransform: "uppercase" },
+  wrong: { color: c.danger, fontSize: 13 },
+  right: { color: c.success, fontSize: 13 },
   tag: {
     marginLeft: "auto", backgroundColor: c.accentSoft, color: c.accentStrong,
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, fontSize: 12, overflow: "hidden",

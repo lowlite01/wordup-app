@@ -9,6 +9,7 @@ interface Props {
   groupKey: string;
   progress: Progress;
   onChangeProgress: (p: Progress) => void;
+  onQuiz: (word: string, picked: string) => void;
   onBack: () => void;
 }
 
@@ -21,7 +22,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export default function QuizScreen({ content, groupKey, progress, onChangeProgress, onBack }: Props) {
+export default function QuizScreen({ content, groupKey, progress, onChangeProgress, onQuiz, onBack }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -66,6 +67,7 @@ export default function QuizScreen({ content, groupKey, progress, onChangeProgre
   const answer = (opt: Word) => {
     if (picked) return;
     setPicked(opt.word);
+    onQuiz(correct.word, opt.word);
     if (opt.word === correct.word) {
       setScore(s => s + 1);
       onChangeProgress(setWordState(progress, groupKey, correct.word, "known"));
