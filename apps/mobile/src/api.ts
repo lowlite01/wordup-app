@@ -42,13 +42,42 @@ export function levelKeys(content: AppContent): string[] {
   return LEVELS.filter(l => content.wordGroups[l]);
 }
 
+export function topicNames(content: AppContent): string[] {
+  return Object.keys(content.wordGroups).filter(k => !LEVELS.includes(k));
+}
+
 export function topicKeys(content: AppContent): string[] {
-  const topics = Object.keys(content.wordGroups).filter(k => !LEVELS.includes(k));
   const keys: string[] = [];
-  for (const t of topics) {
+  for (const t of topicNames(content)) {
     keys.push(t);
     if (content.topicLevel2[t]) keys.push(`${t}@2`);
   }
+  return keys;
+}
+
+export function topicLevelKeys(content: AppContent, name: string): string[] {
+  return content.topicLevel2[name] ? [name, `${name}@2`] : [name];
+}
+
+// Which CEFR level each topic belongs to (curriculum grouping). Unmapped
+// topics fall back to B1 so admin-added topics still appear.
+export const TOPIC_LEVEL: Record<string, string> = {
+  Food: "A1", Clothes: "A1", Animals: "A1",
+  City: "A2", Weather: "A2", Sports: "A2",
+  Travel: "B1", School: "B1", Music: "B1",
+  Health: "B2", Nature: "B2", Emotions: "B2",
+  Technology: "C1", Business: "C1",
+  Museum: "C2", Law: "C2",
+};
+
+export function topicsForLevel(content: AppContent, level: string): string[] {
+  return topicNames(content).filter(t => (TOPIC_LEVEL[t] || "B1") === level);
+}
+
+// All study keys under a level: the level's own core words + its topics' keys.
+export function levelAllKeys(content: AppContent, level: string): string[] {
+  const keys = [level];
+  for (const t of topicsForLevel(content, level)) keys.push(...topicLevelKeys(content, t));
   return keys;
 }
 

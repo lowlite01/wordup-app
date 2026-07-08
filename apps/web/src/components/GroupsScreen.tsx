@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
-import type { LucideIcon } from "lucide-react";
 import {
-  LEVELS, LEVEL_COLORS, LEVEL_NAMES, TOPICS, keyLabel, keyParts, knownSet,
-  searchWords, topicLevelKeys, wordsForKey,
+  LEVELS, LEVEL_COLORS, LEVEL_NAMES, keyLabel, knownSet, levelAllKeys,
+  searchWords, topicLevelKeys, topicsForLevel, wordsForKey,
 } from "../lib/groups";
 import { topicIcon } from "../lib/topicIcons";
 import WordRow from "./WordRow";
@@ -15,36 +15,25 @@ interface Props {
   onStart: (key: string, mode: Mode) => void;
 }
 
-function JourneyRow({ groupKey, badge, Icon, badgeColor, badgeText, title, open, onToggle, onStart }: {
-  groupKey: string; badge: string; Icon?: LucideIcon; badgeColor: string; badgeText: string; title: string;
-  open: boolean; onToggle: () => void; onStart: (key: string, mode: Mode) => void;
+function SubRow({ groupKey, label, Icon, letter, onStart }: {
+  groupKey: string; label: string; Icon?: LucideIcon; letter?: string;
+  onStart: (key: string, mode: Mode) => void;
 }) {
   const { progress } = useApp();
-  const t = useT();
   const total = wordsForKey(groupKey).length;
   const known = knownSet(progress, groupKey).size;
   const pct = total ? Math.round((known / total) * 100) : 0;
-
   return (
-    <div className={"journey-row" + (open ? " open" : "")}>
-      <button className="journey-head" onClick={onToggle}>
-        <span className="journey-badge" style={{ background: badgeColor, color: badgeText }}>
-          {Icon ? <Icon size={22} strokeWidth={2} /> : badge}
+    <div className="journey-sub">
+      <button className="journey-sub-main" onClick={() => onStart(groupKey, "flashcards")}>
+        <span className="journey-sub-badge">{Icon ? <Icon size={17} strokeWidth={2} /> : letter}</span>
+        <span className="journey-sub-mid">
+          <span className="journey-sub-title">{label}</span>
+          <span className="journey-sub-sum">{known} / {total}{pct ? ` · ${pct}%` : ""}</span>
         </span>
-        <span className="journey-mid">
-          <span className="journey-title">{title}</span>
-          <span className="journey-sub">{known} / {total} words{pct ? ` · ${pct}%` : ""}</span>
-        </span>
-        <span className="journey-chev">{open ? "▾" : "›"}</span>
       </button>
-      {total > 0 && <div className="journey-track"><span style={{ width: `${pct}%` }} /></div>}
-      {open && (
-        <div className="journey-modes">
-          <button className="btn" onClick={() => onStart(groupKey, "flashcards")}>🗂️ {t.flashcards}</button>
-          <button className="btn primary" onClick={() => onStart(groupKey, "quiz")}>❓ {t.quiz}</button>
-          <button className="btn" onClick={() => onStart(groupKey, "list")}>📋 {t.wordList}</button>
-        </div>
-      )}
+      <button className="journey-sub-mode" title="Quiz" onClick={() => onStart(groupKey, "quiz")}>❓</button>
+      <button className="journey-sub-mode" title="Word list" onClick={() => onStart(groupKey, "list")}>📋</button>
     </div>
   );
 }
@@ -53,13 +42,13 @@ export default function GroupsScreen({ onStart }: Props) {
   const { recent, gamification } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [openLevel, setOpenLevel] = useState<string | null>(null);
   const matches = useMemo(() => searchWords(query), [query]);
   const searching = query.trim().length > 0;
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
-  const topicRowKeys = TOPICS.flatMap(topicLevelKeys);
+  const { progress } = useApp();
 
-  const toggle = (key: string) => setOpenKey(k => (k === key ? null : key));
+  const toggle = (level: string) => setOpenLevel(l => (l === level ? null : level));
 
   return (
     <section>
@@ -109,39 +98,36 @@ export default function GroupsScreen({ onStart }: Props) {
             </>
           )}
 
-          <div className="journey-section">{t.byLevel}</div>
+          <div className="journey-section">{t.yourPath}</div>
           <div className="journey-list">
-            {LEVELS.map(key => (
-              <JourneyRow
-                key={key}
-                groupKey={key}
-                badge={key}
-                badgeColor={LEVEL_COLORS[key] || "var(--accent)"}
-                badgeText="#08120e"
-                title={LEVEL_NAMES[key] || key}
-                open={openKey === key}
-                onToggle={() => toggle(key)}
-                onStart={onStart}
-              />
-            ))}
-          </div>
-
-          <div className="journey-section">{t.byTopic}</div>
-          <div className="journey-list">
-            {topicRowKeys.map(key => (
-              <JourneyRow
-                key={key}
-                groupKey={key}
-                badge={keyParts(key).name[0]}
-                Icon={topicIcon(keyParts(key).name)}
-                badgeColor="var(--accent-soft)"
-                badgeText="var(--accent-strong)"
-                title={keyLabel(key)}
-                open={openKey === key}
-                onToggle={() => toggle(key)}
-                onStart={onStart}
-              />
-            ))}
+            {LEVELS.map(level => {
+              const allKeys = levelAllKeys(level);
+              const total = allKeys.reduce((n, k) => n + wordsForKey(k).length, 0);
+              const known = allKeys.reduce((n, k) => n + knownSet(progress, k).size, 0);
+              const pct = total ? Math.round((known / total) * 100) : 0;
+              const open = openLevel === level;
+              return (
+                <div key={level} className={"journey-row" + (open ? " open" : "")}>
+                  <button className="journey-head" onClick={() => toggle(level)}>
+                    <span className="journey-badge" style={{ background: LEVEL_COLORS[level], color: "#08120e" }}>{level}</span>
+                    <span className="journey-mid">
+                      <span className="journey-title">{LEVEL_NAMES[level] || level}</span>
+                      <span className="journey-sub-count">{known} / {total} words{pct ? ` · ${pct}%` : ""}</span>
+                    </span>
+                    <span className="journey-chev">{open ? "▾" : "›"}</span>
+                  </button>
+                  <div className="journey-track"><span style={{ width: `${pct}%` }} /></div>
+                  {open && (
+                    <div className="journey-sublist">
+                      <SubRow groupKey={level} label="Core vocabulary" letter={level} onStart={onStart} />
+                      {topicsForLevel(level).flatMap(topicLevelKeys).map(key => (
+                        <SubRow key={key} groupKey={key} label={keyLabel(key)} Icon={topicIcon(key.split("@")[0])} onStart={onStart} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

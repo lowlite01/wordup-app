@@ -12,6 +12,28 @@ export const LEVEL_NAMES: Record<string, string> = {
   B2: "Upper-Intermediate", C1: "Advanced", C2: "Mastery",
 };
 
+// Which CEFR level each topic belongs to (curriculum grouping); unmapped
+// topics fall back to B1 so admin-added topics still appear.
+export const TOPIC_LEVEL: Record<string, string> = {
+  Food: "A1", Clothes: "A1", Animals: "A1",
+  City: "A2", Weather: "A2", Sports: "A2",
+  Travel: "B1", School: "B1", Music: "B1",
+  Health: "B2", Nature: "B2", Emotions: "B2",
+  Technology: "C1", Business: "C1",
+  Museum: "C2", Law: "C2",
+};
+
+export function topicsForLevel(level: string): string[] {
+  return TOPICS.filter(t => (TOPIC_LEVEL[t] || "B1") === level);
+}
+
+// All study keys under a level: its own core words + its topics' keys.
+export function levelAllKeys(level: string): string[] {
+  const keys = [level];
+  for (const t of topicsForLevel(level)) keys.push(...topicLevelKeys(t));
+  return keys;
+}
+
 // Content starts as the bundled static data (instant + offline), then gets
 // replaced by the server's copy via setContent() once /content loads, so
 // admin edits appear in the app. TOPICS is mutated in place so existing
