@@ -38,13 +38,19 @@ export function levelAllKeys(level: string): string[] {
 // replaced by the server's copy via setContent() once /content loads, so
 // admin edits appear in the app. TOPICS is mutated in place so existing
 // imports keep pointing at the live list.
-let wgData: Record<string, Word[]> = STATIC_WG;
-let t2Data: Record<string, Word[]> = STATIC_T2;
+// Merge each topic's level-2 words into the topic itself, so the whole app
+// treats a topic as one group (no "Level 1 / Level 2" split anywhere).
+function mergeLevels(wg: Record<string, Word[]>, t2: Record<string, Word[]>): Record<string, Word[]> {
+  const out: Record<string, Word[]> = { ...wg };
+  for (const [name, l2] of Object.entries(t2)) out[name] = [...(out[name] || []), ...l2];
+  return out;
+}
+
+let wgData: Record<string, Word[]> = mergeLevels(STATIC_WG, STATIC_T2);
 export const TOPICS: string[] = Object.keys(wgData).filter(g => !LEVELS.includes(g));
 
 export function setContent(wordGroups: Record<string, Word[]>, topicLevel2: Record<string, Word[]>) {
-  wgData = wordGroups;
-  t2Data = topicLevel2;
+  wgData = mergeLevels(wordGroups, topicLevel2);
   TOPICS.length = 0;
   TOPICS.push(...Object.keys(wgData).filter(g => !LEVELS.includes(g)));
   searchIndex = null; // rebuilt lazily from the new content
@@ -60,19 +66,15 @@ export function keyParts(key: string) {
 export function keyLabel(key: string) {
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
-  return `${name} · Level ${level}`;
+  return level > 1 ? `${name} · ${level}` : name;
 }
 
 export function wordsForKey(key: string): Word[] {
-  const { name, level } = keyParts(key);
-  if (level === 1) return wgData[name] || [];
-  return t2Data[name] || [];
+  return wgData[keyParts(key).name] || [];
 }
 
 export function topicLevelKeys(name: string) {
-  const keys = [name];
-  if (t2Data[name]) keys.push(name + "@2");
-  return keys;
+  return [name];
 }
 
 export function allKeys() {

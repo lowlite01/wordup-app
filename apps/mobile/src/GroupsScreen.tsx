@@ -2,14 +2,13 @@ import { useMemo, useState } from "react";
 import {
   LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from "react-native";
-import type { LucideIcon } from "lucide-react-native";
 import { Colors, LEVEL_COLORS, useTheme } from "./theme";
 import {
   AppContent, keyLabel, levelAllKeys, levelKeys, topicLevelKeys, topicsForLevel, wordsForKey,
 } from "./api";
 import { Progress, RecentEntry, knownCount } from "./storage";
 import { Gamification } from "./session";
-import { topicIcon } from "./topicIcons";
+import { topicEmoji } from "./topicIcons";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -43,8 +42,8 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
     setOpenLevel(l => (l === level ? null : level));
   };
 
-  const SubRow = ({ groupKey, label, Icon, letter }: {
-    groupKey: string; label: string; Icon?: LucideIcon; letter?: string;
+  const SubRow = ({ groupKey, label, emoji, letter }: {
+    groupKey: string; label: string; emoji?: string; letter?: string;
   }) => {
     const total = wordsForKey(content, groupKey).length;
     const known = knownCount(progress, groupKey);
@@ -53,7 +52,7 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
       <View style={styles.sub}>
         <TouchableOpacity style={styles.subMain} onPress={() => onStart(groupKey, "flash")} activeOpacity={0.7}>
           <View style={styles.subBadge}>
-            {Icon ? <Icon size={17} color={colors.accentStrong} strokeWidth={2} />
+            {emoji ? <Text style={styles.subEmoji}>{emoji}</Text>
               : <Text style={styles.subBadgeText}>{letter}</Text>}
           </View>
           <View style={styles.subMid}>
@@ -125,7 +124,7 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
               <View style={styles.subList}>
                 <SubRow groupKey={level} label="Core vocabulary" letter={level} />
                 {topicsForLevel(content, level).flatMap(t => topicLevelKeys(content, t)).map(key => (
-                  <SubRow key={key} groupKey={key} label={keyLabel(key)} Icon={topicIcon(key.split("@")[0])} />
+                  <SubRow key={key} groupKey={key} label={keyLabel(key)} emoji={topicEmoji(key.split("@")[0])} />
                 ))}
               </View>
             )}
@@ -186,6 +185,7 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   subBadgeText: { color: c.accentStrong, fontWeight: "800", fontSize: 12 },
+  subEmoji: { fontSize: 17 },
   subMid: { flex: 1 },
   subTitle: { color: c.text, fontSize: 14, fontWeight: "600" },
   subSum: { color: c.muted, fontSize: 12, marginTop: 1 },

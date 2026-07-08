@@ -4,6 +4,8 @@ import { setContent } from "./groups";
 // Loads word content from the server so admin edits show up in the app.
 // Applies any cached copy immediately, then refreshes from the API. If the
 // API is unreachable, the bundled static data (already in groups.ts) stays.
+// setContent() merges topic level-2 words into the topic, so the app shows a
+// single entry per topic.
 const CACHE_KEY = "wordup-content-v1";
 
 export async function loadContent(): Promise<void> {

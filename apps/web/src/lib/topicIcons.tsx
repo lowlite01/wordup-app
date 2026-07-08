@@ -27,3 +27,14 @@ const MAP: Record<string, LucideIcon> = {
 export function topicIcon(name: string): LucideIcon {
   return MAP[name] || BookOpen;
 }
+
+// Colourful emoji illustration per topic.
+const EMOJI: Record<string, string> = {
+  School: "🏫", Technology: "💻", Museum: "🏛️", Travel: "✈️", Business: "💼",
+  Nature: "🌿", Food: "🍽️", Sports: "⚽", Emotions: "😊", City: "🏙️",
+  Weather: "⛅", Clothes: "👕", Music: "🎵", Animals: "🐾", Law: "⚖️", Health: "🩺",
+};
+
+export function topicEmoji(name: string): string {
+  return EMOJI[name] || "📘";
+}

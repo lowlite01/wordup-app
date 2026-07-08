@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
-import type { LucideIcon } from "lucide-react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import {
   LEVELS, LEVEL_COLORS, LEVEL_NAMES, keyLabel, knownSet, levelAllKeys,
   searchWords, topicLevelKeys, topicsForLevel, wordsForKey,
 } from "../lib/groups";
-import { topicIcon } from "../lib/topicIcons";
+import { topicEmoji } from "../lib/topicIcons";
 import WordRow from "./WordRow";
 
 type Mode = "flashcards" | "quiz" | "list";
@@ -15,8 +14,8 @@ interface Props {
   onStart: (key: string, mode: Mode) => void;
 }
 
-function SubRow({ groupKey, label, Icon, letter, onStart }: {
-  groupKey: string; label: string; Icon?: LucideIcon; letter?: string;
+function SubRow({ groupKey, label, emoji, letter, onStart }: {
+  groupKey: string; label: string; emoji?: string; letter?: string;
   onStart: (key: string, mode: Mode) => void;
 }) {
   const { progress } = useApp();
@@ -26,7 +25,7 @@ function SubRow({ groupKey, label, Icon, letter, onStart }: {
   return (
     <div className="journey-sub">
       <button className="journey-sub-main" onClick={() => onStart(groupKey, "flashcards")}>
-        <span className="journey-sub-badge">{Icon ? <Icon size={17} strokeWidth={2} /> : letter}</span>
+        <span className={"journey-sub-badge" + (emoji ? " emoji" : "")}>{emoji || letter}</span>
         <span className="journey-sub-mid">
           <span className="journey-sub-title">{label}</span>
           <span className="journey-sub-sum">{known} / {total}{pct ? ` · ${pct}%` : ""}</span>
@@ -121,7 +120,7 @@ export default function GroupsScreen({ onStart }: Props) {
                     <div className="journey-sublist">
                       <SubRow groupKey={level} label="Core vocabulary" letter={level} onStart={onStart} />
                       {topicsForLevel(level).flatMap(topicLevelKeys).map(key => (
-                        <SubRow key={key} groupKey={key} label={keyLabel(key)} Icon={topicIcon(key.split("@")[0])} onStart={onStart} />
+                        <SubRow key={key} groupKey={key} label={keyLabel(key)} emoji={topicEmoji(key.split("@")[0])} onStart={onStart} />
                       ))}
                     </div>
                   )}

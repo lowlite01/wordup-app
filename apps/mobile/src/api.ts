@@ -17,7 +17,13 @@ export interface AppContent {
 export async function fetchContent(): Promise<AppContent> {
   const res = await fetch(`${API_URL}/content`);
   if (!res.ok) throw new Error(`content ${res.status}`);
-  return res.json();
+  const c: AppContent = await res.json();
+  // Merge each topic's level-2 words into the single topic so the home shows
+  // one entry per topic (no "Level 1 / Level 2" split).
+  for (const [name, l2] of Object.entries(c.topicLevel2)) {
+    c.wordGroups[name] = [...(c.wordGroups[name] || []), ...l2];
+  }
+  return { wordGroups: c.wordGroups, topicLevel2: {} };
 }
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
