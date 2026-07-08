@@ -13,6 +13,9 @@ import {
   AuthUser, Gamification, getGamification, getServerProgress, getToken, loadToken,
   login as doLogin, logout as doLogout, me, progressToEntries, pushQuiz, syncProgress,
 } from "./src/session";
+import {
+  CrystalState, awardMastery, emptyCrystals, loadCrystals, saveCrystals, unlockTopic as unlockTopicFn,
+} from "./src/crystals";
 import GroupsScreen from "./src/GroupsScreen";
 import FlashcardsScreen from "./src/FlashcardsScreen";
 import QuizScreen from "./src/QuizScreen";
@@ -50,9 +53,12 @@ function Main() {
   const [screen, setScreen] = useState<Screen>({ name: "groups" });
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [crystals, setCrystals] = useState<CrystalState>(emptyCrystals);
 
   const progressRef = useRef(progress);
   progressRef.current = progress;
+  const crystalsRef = useRef(crystals);
+  crystalsRef.current = crystals;
 
   const load = () => {
     setLoading(true);
@@ -67,6 +73,7 @@ function Main() {
     loadProgress().then(setProgress);
     loadRecent().then(setRecent);
     loadStats().then(setStats);
+    loadCrystals().then(setCrystals);
     loadToken().then(t => {
       if (!t) return;
       me().then(setUser).catch(() => {});
@@ -83,6 +90,21 @@ function Main() {
   useEffect(() => {
     if (screen.name === "groups") refreshGame();
   }, [screen.name]);
+
+  // Award crystals whenever a group becomes fully mastered.
+  useEffect(() => {
+    if (!content) return;
+    const { state, gained } = awardMastery(crystalsRef.current, content, progress);
+    if (gained) { setCrystals(state); saveCrystals(state); }
+  }, [progress, content]);
+
+  const onUnlock = (topic: string): boolean => {
+    const next = unlockTopicFn(crystalsRef.current, topic);
+    if (!next) return false;
+    setCrystals(next);
+    saveCrystals(next);
+    return true;
+  };
 
   const updateProgress = (p: Progress) => {
     setProgress(p);
@@ -158,7 +180,7 @@ function Main() {
         )}
 
         {contentReady && screen.name === "groups" && (
-          <GroupsScreen content={content} progress={progress} recent={recent} game={game} onStart={onStart} />
+          <GroupsScreen content={content} progress={progress} recent={recent} game={game} crystals={crystals} onUnlock={onUnlock} onStart={onStart} />
         )}
         {contentReady && screen.name === "search" && (
           <SearchScreen content={content} onOpenWord={setCtxWord} />

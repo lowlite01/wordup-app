@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import {
-  LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View,
+  Alert, LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from "react-native";
 import { Colors, LEVEL_COLORS, useTheme } from "./theme";
 import {
-  AppContent, keyLabel, levelAllKeys, levelKeys, topicLevelKeys, topicsForLevel, wordsForKey,
+  AppContent, keyLabel, keyParts, levelAllKeys, levelKeys, topicLevelKeys, topicsForLevel, wordsForKey,
 } from "./api";
 import { Progress, RecentEntry, knownCount } from "./storage";
 import { Gamification } from "./session";
+import { CrystalState, isTopicLocked, unlockCost } from "./crystals";
 import { topicEmoji } from "./topicIcons";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -21,6 +22,8 @@ interface Props {
   progress: Progress;
   recent: RecentEntry[];
   game: Gamification | null;
+  crystals: CrystalState;
+  onUnlock: (topic: string) => boolean;
   onStart: (key: string, mode: Mode) => void;
 }
 
@@ -29,10 +32,14 @@ const LEVEL_NAMES: Record<string, string> = {
   B2: "Upper-Intermediate", C1: "Advanced", C2: "Mastery",
 };
 
-export default function GroupsScreen({ content, progress, recent, game, onStart }: Props) {
+export default function GroupsScreen({ content, progress, recent, game, crystals, onUnlock, onStart }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [openLevel, setOpenLevel] = useState<string | null>(null);
+
+  const handleUnlock = (topic: string) => {
+    if (!onUnlock(topic)) Alert.alert("Not enough crystals", `You need ${unlockCost(topic)} 💎 to unlock this topic.`);
+  };
 
   const levels = levelKeys(content);
   const validRecent = recent.filter(r => wordsForKey(content, r.key).length > 0);
@@ -42,12 +49,26 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
     setOpenLevel(l => (l === level ? null : level));
   };
 
-  const SubRow = ({ groupKey, label, emoji, letter }: {
-    groupKey: string; label: string; emoji?: string; letter?: string;
+  const SubRow = ({ groupKey, label, emoji, letter, locked, cost }: {
+    groupKey: string; label: string; emoji?: string; letter?: string; locked?: boolean; cost?: number;
   }) => {
     const total = wordsForKey(content, groupKey).length;
     const known = knownCount(progress, groupKey);
     const pct = total ? Math.round((known / total) * 100) : 0;
+    if (locked) {
+      return (
+        <View style={styles.sub}>
+          <TouchableOpacity style={styles.subMain} onPress={() => handleUnlock(groupKey)} activeOpacity={0.7}>
+            <View style={styles.subBadge}><Text style={styles.subEmoji}>🔒</Text></View>
+            <View style={styles.subMid}>
+              <Text style={styles.subTitle}>{label}</Text>
+              <Text style={styles.subSum}>{total} words · unlock</Text>
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.unlockCost}>{cost} 💎</Text>
+        </View>
+      );
+    }
     return (
       <View style={styles.sub}>
         <TouchableOpacity style={styles.subMain} onPress={() => onStart(groupKey, "flash")} activeOpacity={0.7}>
@@ -69,6 +90,9 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.crystalBar}>
+        <Text style={styles.crystalPill}>💎 {crystals.crystals}</Text>
+      </View>
       {game ? (
         <View style={styles.statCard}>
           <View style={styles.statTop}>
@@ -123,9 +147,19 @@ export default function GroupsScreen({ content, progress, recent, game, onStart 
             {isOpen && (
               <View style={styles.subList}>
                 <SubRow groupKey={level} label="Core vocabulary" letter={level} />
-                {topicsForLevel(content, level).flatMap(t => topicLevelKeys(content, t)).map(key => (
-                  <SubRow key={key} groupKey={key} label={keyLabel(key)} emoji={topicEmoji(key.split("@")[0])} />
-                ))}
+                {topicsForLevel(content, level).flatMap(t => topicLevelKeys(content, t)).map(key => {
+                  const name = keyParts(key).name;
+                  return (
+                    <SubRow
+                      key={key}
+                      groupKey={key}
+                      label={keyLabel(key)}
+                      emoji={topicEmoji(name)}
+                      locked={isTopicLocked(crystals, name)}
+                      cost={unlockCost(name)}
+                    />
+                  );
+                })}
               </View>
             )}
           </View>
@@ -191,4 +225,10 @@ const makeStyles = (c: Colors) => StyleSheet.create({
   subSum: { color: c.muted, fontSize: 12, marginTop: 1 },
   quizBtn: { padding: 8, borderRadius: 8 },
   quizBtnText: { fontSize: 16 },
+  unlockCost: { color: c.accentStrong, fontWeight: "700", fontSize: 13, paddingHorizontal: 8 },
+  crystalBar: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 4 },
+  crystalPill: {
+    backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 999,
+    paddingHorizontal: 14, paddingVertical: 6, color: c.text, fontWeight: "700", fontSize: 14, overflow: "hidden",
+  },
 });
