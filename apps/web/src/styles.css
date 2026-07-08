@@ -928,6 +928,17 @@ button { font-family: inherit; }
   background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; font-size: 0.8rem;
 }
 .journey-sub-badge.emoji { background: var(--card-2); font-size: 1.1rem; }
+
+.crystal-bar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.crystal-pill {
+  background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 14px; font-weight: 700; font-size: 0.9rem;
+}
+.journey-sub.locked .journey-sub-main { opacity: 0.75; }
+.journey-sub.locked .journey-sub-badge { background: var(--card-2); font-size: 1rem; }
+.journey-unlock {
+  color: var(--accent-strong); font-weight: 700; font-size: 0.85rem; padding: 0 10px; white-space: nowrap;
+}
 .journey-sub-mid { min-width: 0; display: flex; flex-direction: column; }
 .journey-sub-title { font-weight: 600; font-size: 0.95rem; }
 .journey-sub-sum { color: var(--muted); font-size: 0.78rem; margin-top: 1px; }

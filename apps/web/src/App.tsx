@@ -13,6 +13,7 @@ import {
   api, getToken, isLoggedIn, progressToEntries, setToken,
   type AuthUser, type Gamification,
 } from "./lib/api";
+import { awardMastery, loadCrystals, saveCrystals, unlockTopic as unlockTopicFn } from "./lib/crystals";
 import GroupsScreen from "./components/GroupsScreen";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
@@ -56,10 +57,19 @@ export default function App() {
   const [ctxWord, setCtxWord] = useState<Word | null>(null);
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
+  const [crystals, setCrystals] = useState(loadCrystals);
 
   // Refs so async login can read the latest local data without stale closures.
   const progressRef = useRef(progress);
   progressRef.current = progress;
+  const crystalsRef = useRef(crystals);
+  crystalsRef.current = crystals;
+
+  // Award crystals whenever a group becomes fully mastered.
+  useEffect(() => {
+    const { state, gained } = awardMastery(crystalsRef.current, progress);
+    if (gained) { setCrystals(state); saveCrystals(state); }
+  }, [progress, contentVersion]);
   const statsRef = useRef(stats);
   statsRef.current = stats;
 
@@ -188,7 +198,15 @@ export default function App() {
     },
     loadLeaderboard: () => api.leaderboard(),
     refreshContent: () => loadContent().then(() => setContentVersion(v => v + 1)),
-  }), [progress, stats, recent, settings, user, gamification]);
+    crystals,
+    unlockTopic: (topic: string) => {
+      const next = unlockTopicFn(crystalsRef.current, topic);
+      if (!next) return false;
+      setCrystals(next);
+      saveCrystals(next);
+      return true;
+    },
+  }), [progress, stats, recent, settings, user, gamification, crystals]);
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
   const knownCount = useMemo(() => collectWords(progress, "known").length, [progress]);

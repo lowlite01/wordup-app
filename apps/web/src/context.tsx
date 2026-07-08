@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type { Progress, QuizStats, RecentEntry, Settings, Word, WordState } from "./types";
 import type { AuthUser, Gamification, LeaderRow } from "./lib/api";
+import type { CrystalState } from "./lib/crystals";
 
 export interface AppApi {
   progress: Progress;
@@ -23,6 +24,9 @@ export interface AppApi {
   logout: () => void;
   loadLeaderboard: () => Promise<LeaderRow[]>;
   refreshContent: () => Promise<void>;
+
+  crystals: CrystalState;
+  unlockTopic: (topic: string) => boolean;
 }
 
 export const AppContext = createContext<AppApi>(null!);

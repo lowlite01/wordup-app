@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import {
-  LEVELS, LEVEL_COLORS, LEVEL_NAMES, keyLabel, knownSet, levelAllKeys,
+  LEVELS, LEVEL_COLORS, LEVEL_NAMES, keyLabel, keyParts, knownSet, levelAllKeys,
   searchWords, topicLevelKeys, topicsForLevel, wordsForKey,
 } from "../lib/groups";
+import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { topicEmoji } from "../lib/topicIcons";
 import WordRow from "./WordRow";
 
@@ -14,14 +15,31 @@ interface Props {
   onStart: (key: string, mode: Mode) => void;
 }
 
-function SubRow({ groupKey, label, emoji, letter, onStart }: {
+function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStart }: {
   groupKey: string; label: string; emoji?: string; letter?: string;
+  locked?: boolean; cost?: number; onUnlock?: () => void;
   onStart: (key: string, mode: Mode) => void;
 }) {
   const { progress } = useApp();
   const total = wordsForKey(groupKey).length;
   const known = knownSet(progress, groupKey).size;
   const pct = total ? Math.round((known / total) * 100) : 0;
+
+  if (locked) {
+    return (
+      <div className="journey-sub locked">
+        <button className="journey-sub-main" onClick={onUnlock}>
+          <span className="journey-sub-badge">🔒</span>
+          <span className="journey-sub-mid">
+            <span className="journey-sub-title">{label}</span>
+            <span className="journey-sub-sum">{total} words · tap to unlock</span>
+          </span>
+        </button>
+        <span className="journey-unlock">{cost} 💎</span>
+      </div>
+    );
+  }
+
   return (
     <div className="journey-sub">
       <button className="journey-sub-main" onClick={() => onStart(groupKey, "flashcards")}>
@@ -38,16 +56,18 @@ function SubRow({ groupKey, label, emoji, letter, onStart }: {
 }
 
 export default function GroupsScreen({ onStart }: Props) {
-  const { recent, gamification } = useApp();
+  const { recent, gamification, progress, crystals, unlockTopic } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
   const [openLevel, setOpenLevel] = useState<string | null>(null);
   const matches = useMemo(() => searchWords(query), [query]);
   const searching = query.trim().length > 0;
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
-  const { progress } = useApp();
 
   const toggle = (level: string) => setOpenLevel(l => (l === level ? null : level));
+  const handleUnlock = (topic: string) => {
+    if (!unlockTopic(topic)) alert(`Not enough crystals — you need ${unlockCost(topic)} 💎.`);
+  };
 
   return (
     <section>
@@ -71,6 +91,8 @@ export default function GroupsScreen({ onStart }: Props) {
         </div>
       ) : (
         <>
+          <div className="crystal-bar"><span className="crystal-pill">💎 {crystals.crystals}</span></div>
+
           {gamification && (
             <div className="stat-header">
               <div className="stat-top">
@@ -119,9 +141,22 @@ export default function GroupsScreen({ onStart }: Props) {
                   {open && (
                     <div className="journey-sublist">
                       <SubRow groupKey={level} label="Core vocabulary" letter={level} onStart={onStart} />
-                      {topicsForLevel(level).flatMap(topicLevelKeys).map(key => (
-                        <SubRow key={key} groupKey={key} label={keyLabel(key)} emoji={topicEmoji(key.split("@")[0])} onStart={onStart} />
-                      ))}
+                      {topicsForLevel(level).flatMap(topicLevelKeys).map(key => {
+                        const name = keyParts(key).name;
+                        const locked = isTopicLocked(crystals, name);
+                        return (
+                          <SubRow
+                            key={key}
+                            groupKey={key}
+                            label={keyLabel(key)}
+                            emoji={topicEmoji(name)}
+                            locked={locked}
+                            cost={unlockCost(name)}
+                            onUnlock={() => handleUnlock(name)}
+                            onStart={onStart}
+                          />
+                        );
+                      })}
                     </div>
                   )}
                 </div>
