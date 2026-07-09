@@ -932,6 +932,25 @@ button { font-family: inherit; }
 }
 .journey-sub-badge.emoji { background: var(--card-2); font-size: 1.1rem; }
 
+.daily-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  width: 100%; background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 22px 18px; margin-bottom: 8px; cursor: pointer; color: var(--text);
+  transition: border-color .15s, transform .1s;
+}
+.daily-card:hover { border-color: var(--accent); }
+.daily-card:active { transform: scale(0.99); }
+.daily-top { display: flex; justify-content: space-between; width: 100%; margin-bottom: 12px; }
+.daily-label { color: var(--muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.daily-group { color: var(--accent-strong); font-size: 0.8rem; }
+.daily-word { font-size: 1.9rem; font-weight: 700; }
+.daily-pos { color: var(--accent-2-strong); font-size: 0.72rem; text-transform: uppercase; margin-top: 4px; }
+.daily-def { color: var(--muted); font-size: 0.95rem; margin-top: 10px; max-width: 90%; }
+.daily-learn {
+  margin-top: 18px; background: var(--accent); color: var(--on-accent);
+  font-weight: 700; padding: 11px 30px; border-radius: 999px; font-size: 0.95rem;
+}
+
 .crystal-bar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .crystal-pill {
   background: var(--card); border: 1px solid var(--border); border-radius: 999px;

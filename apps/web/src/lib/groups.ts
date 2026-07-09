@@ -168,3 +168,18 @@ export function searchWords(q: string): KeyedWord[] {
   });
   return matches;
 }
+
+// Deterministic "word of the day": same all day, rotates each date.
+function dateHash(): number {
+  const d = new Date();
+  const s = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+export function wordOfDay(): KeyedWord | null {
+  const all = buildSearchIndex();
+  if (!all.length) return null;
+  return all[dateHash() % all.length];
+}

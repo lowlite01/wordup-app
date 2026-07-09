@@ -3,7 +3,7 @@ import { useApp } from "../context";
 import { useT } from "../i18n";
 import {
   LEVELS, LEVEL_COLORS, LEVEL_NAMES, keyLabel, keyParts, knownSet, levelAllKeys,
-  searchWords, topicLevelKeys, topicsForLevel, wordsForKey,
+  searchWords, topicLevelKeys, topicsForLevel, wordOfDay, wordsForKey,
 } from "../lib/groups";
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { topicEmoji } from "../lib/topicIcons";
@@ -92,6 +92,22 @@ export default function GroupsScreen({ onStart }: Props) {
       ) : (
         <>
           <div className="crystal-bar"><span className="crystal-pill">💎 {crystals.crystals}</span></div>
+
+          {(() => {
+            const wotd = wordOfDay();
+            return wotd ? (
+              <button className="daily-card" onClick={() => onStart(wotd.key, "flashcards")}>
+                <span className="daily-top">
+                  <span className="daily-label">🎯 {t.wordOfDay}</span>
+                  <span className="daily-group">{keyLabel(wotd.key)}</span>
+                </span>
+                <span className="daily-word">{wotd.word}</span>
+                <span className="daily-pos">{wotd.pos}</span>
+                <span className="daily-def">{wotd.def}</span>
+                <span className="daily-learn">{t.learn} ›</span>
+              </button>
+            ) : null;
+          })()}
 
           {gamification && (
             <div className="stat-header">
