@@ -68,10 +68,10 @@ export function topicLevelKeys(content: AppContent, name: string): string[] {
 // Which CEFR level each topic belongs to (curriculum grouping). Unmapped
 // topics fall back to B1 so admin-added topics still appear.
 export const TOPIC_LEVEL: Record<string, string> = {
-  Food: "A1", Clothes: "A1", Animals: "A1",
+  Food: "A1", Clothes: "A1", Animals: "A1", Colors: "A1",
   City: "A2", Weather: "A2", Sports: "A2",
   Travel: "B1", School: "B1", Music: "B1",
-  Health: "B2", Nature: "B2", Emotions: "B2",
+  Health: "B2", Nature: "B2", Emotions: "B2", Space: "B2",
   Technology: "C1", Business: "C1",
   Museum: "C2", Law: "C2",
 };
