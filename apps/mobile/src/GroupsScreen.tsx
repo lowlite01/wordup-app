@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { Colors, LEVEL_COLORS, useTheme } from "./theme";
 import {
-  AppContent, keyLabel, keyParts, levelAllKeys, levelKeys, topicLevelKeys, topicsForLevel, wordsForKey,
+  AppContent, keyLabel, keyParts, levelAllKeys, levelKeys, topicLevelKeys, topicsForLevel, wordOfDay, wordsForKey,
 } from "./api";
 import { Progress, RecentEntry, knownCount } from "./storage";
 import { Gamification } from "./session";
@@ -93,6 +93,23 @@ export default function GroupsScreen({ content, progress, recent, game, crystals
       <View style={styles.crystalBar}>
         <Text style={styles.crystalPill}>💎 {crystals.crystals}</Text>
       </View>
+
+      {(() => {
+        const wotd = wordOfDay(content);
+        return wotd ? (
+          <TouchableOpacity style={styles.daily} activeOpacity={0.85} onPress={() => onStart(wotd.key, "flash")}>
+            <View style={styles.dailyTop}>
+              <Text style={styles.dailyLabel}>🎯 Word of the day</Text>
+              <Text style={styles.dailyGroup}>{keyLabel(wotd.key)}</Text>
+            </View>
+            <Text style={styles.dailyWord}>{wotd.word}</Text>
+            <Text style={styles.dailyPos}>{wotd.pos}</Text>
+            <Text style={styles.dailyDef}>{wotd.def}</Text>
+            <View style={styles.dailyBtn}><Text style={styles.dailyBtnText}>Learn ›</Text></View>
+          </TouchableOpacity>
+        ) : null;
+      })()}
+
       {game ? (
         <View style={styles.statCard}>
           <View style={styles.statTop}>
@@ -226,6 +243,20 @@ const makeStyles = (c: Colors) => StyleSheet.create({
   quizBtn: { padding: 8, borderRadius: 8 },
   quizBtnText: { fontSize: 16 },
   unlockCost: { color: c.accentStrong, fontWeight: "700", fontSize: 13, paddingHorizontal: 8 },
+  daily: {
+    backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 16,
+    padding: 20, alignItems: "center", marginBottom: 8,
+  },
+  dailyTop: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginBottom: 10 },
+  dailyLabel: { color: c.muted, fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
+  dailyGroup: { color: c.accentStrong, fontSize: 12 },
+  dailyWord: { color: c.text, fontSize: 28, fontWeight: "800" },
+  dailyPos: { color: c.accent2Strong, fontSize: 11, textTransform: "uppercase", marginTop: 4 },
+  dailyDef: { color: c.muted, fontSize: 14, marginTop: 8, textAlign: "center" },
+  dailyBtn: {
+    marginTop: 16, backgroundColor: c.accent, borderRadius: 999, paddingVertical: 11, paddingHorizontal: 32,
+  },
+  dailyBtnText: { color: c.onAccent, fontWeight: "800", fontSize: 15 },
   crystalBar: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 4 },
   crystalPill: {
     backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 999,

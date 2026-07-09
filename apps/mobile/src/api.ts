@@ -99,6 +99,21 @@ export function allWords(content: AppContent): KeyedWord[] {
   return out;
 }
 
+function dateHash(): number {
+  const d = new Date();
+  const s = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+// Deterministic "word of the day": same all day, rotates each date.
+export function wordOfDay(content: AppContent): KeyedWord | null {
+  const all = allWords(content);
+  if (!all.length) return null;
+  return all[dateHash() % all.length];
+}
+
 export function searchWords(content: AppContent, query: string): KeyedWord[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
