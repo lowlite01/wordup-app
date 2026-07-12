@@ -2,15 +2,23 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors, THEME_LABELS, ThemeName, themes, useTheme } from "./theme";
 import { AuthUser } from "./session";
+import { CourseLang } from "./LanguagePicker";
 
 interface Props {
   user: AuthUser | null;
   onLogin: () => Promise<void>;
   onLogout: () => Promise<void>;
   onBack: () => void;
+  courseLang: CourseLang;
+  onSetCourseLang: (l: CourseLang) => void;
 }
 
-export default function SettingsScreen({ user, onLogin, onLogout, onBack }: Props) {
+const COURSES: { id: CourseLang; label: string }[] = [
+  { id: "en", label: "🇬🇧 English" },
+  { id: "de", label: "🇩🇪 Deutsch" },
+];
+
+export default function SettingsScreen({ user, onLogin, onLogout, onBack, courseLang, onSetCourseLang }: Props) {
   const { colors, name, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const order: ThemeName[] = ["midnight", "playful", "dark", "minimal"];
@@ -25,6 +33,23 @@ export default function SettingsScreen({ user, onLogin, onLogout, onBack }: Prop
     <ScrollView contentContainerStyle={styles.container}>
       <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
       <Text style={styles.title}>Settings</Text>
+
+      <Text style={styles.section}>Course language</Text>
+      <View style={styles.courseRow}>
+        {COURSES.map(c => {
+          const active = courseLang === c.id;
+          return (
+            <TouchableOpacity
+              key={c.id}
+              style={[styles.courseChip, active && { borderColor: colors.accent, backgroundColor: colors.accentSoft }]}
+              onPress={() => onSetCourseLang(c.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.courseText, active && { color: colors.accentStrong }]}>{c.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <Text style={styles.section}>Account</Text>
       {user ? (
@@ -80,6 +105,12 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     letterSpacing: 0.5, marginTop: 20, marginBottom: 10,
   },
   muted: { color: c.muted, fontSize: 14, lineHeight: 20 },
+  courseRow: { flexDirection: "row", gap: 10 },
+  courseChip: {
+    flex: 1, backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 12,
+    paddingVertical: 12, alignItems: "center",
+  },
+  courseText: { color: c.text, fontWeight: "700", fontSize: 15 },
   account: {
     backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 14, padding: 16,
   },

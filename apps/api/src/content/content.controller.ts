@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Delete, Get, Param, Patch, Post, UseGuards,
+  Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards,
 } from "@nestjs/common";
 import { ContentService } from "./content.service";
 import { CreateGroupDto, CreateWordDto, UpdateGroupDto, UpdateWordDto } from "./dto";
@@ -12,8 +12,8 @@ export class ContentController {
   constructor(private readonly content: ContentService) {}
 
   @Get()
-  get() {
-    return this.content.getContent();
+  get(@Query("lang") lang?: string) {
+    return this.content.getContent(lang === "de" ? "de" : "en");
   }
 }
 

@@ -27,6 +27,7 @@ import SettingsScreen from "./components/SettingsScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import AdminScreen from "./components/AdminScreen";
 import ContextModal from "./components/ContextModal";
+import LanguagePicker from "./components/LanguagePicker";
 import { loadContent } from "./lib/content";
 
 type Route =
@@ -78,10 +79,11 @@ export default function App() {
     document.documentElement.lang = settings.lang;
   }, [settings.theme, settings.lang]);
 
-  // Load word content from the server (falls back to bundled data offline).
+  // Load word content for the chosen course language (falls back to bundled
+  // data offline). Re-runs when the user switches course.
   useEffect(() => {
-    loadContent().then(() => setContentVersion(v => v + 1));
-  }, []);
+    loadContent(settings.courseLang ?? "en").then(() => setContentVersion(v => v + 1));
+  }, [settings.courseLang]);
 
   // On load: if we have a saved token, pull the authoritative state from the server.
   useEffect(() => {
@@ -244,13 +246,22 @@ export default function App() {
     ? "groups"
     : route.s === "flash" ? "learning" : route.s;
 
+  // First launch: no course chosen yet — show the language picker full-screen.
+  if (!settings.courseLang) {
+    return (
+      <AppContext.Provider value={api2}>
+        <LanguagePicker onPick={l => api2.updateSettings({ courseLang: l })} />
+      </AppContext.Provider>
+    );
+  }
+
   return (
     <AppContext.Provider value={api2}>
       <header className="app-header">
         <div className="header-inner">
           <div>
             <h1 className="logo">WordUp</h1>
-            <p className="subtitle">{t.subtitle}</p>
+            <p className="subtitle">{settings.courseLang === "de" ? t.subtitleDe : t.subtitle}</p>
           </div>
           <div className="header-right">
             {gamification && (

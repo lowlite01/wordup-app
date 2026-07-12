@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, SafeAreaView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { Colors, ThemeProvider, useTheme } from "./src/theme";
 import { AppContent, fetchContent } from "./src/api";
+import LanguagePicker, { CourseLang } from "./src/LanguagePicker";
 import {
   Progress, QuizStats, RecentEntry, loadProgress, loadRecent, loadStats,
   pushRecent, recordQuiz, saveProgress,
@@ -54,26 +56,37 @@ function Main() {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [crystals, setCrystals] = useState<CrystalState>(emptyCrystals);
+  const [courseLang, setCourseLangState] = useState<CourseLang | null>(null);
+  const [langLoaded, setLangLoaded] = useState(false);
+
+  const COURSE_KEY = "wordup-course-lang";
+  const setCourseLang = (l: CourseLang) => {
+    setCourseLangState(l);
+    AsyncStorage.setItem(COURSE_KEY, l);
+  };
 
   const progressRef = useRef(progress);
   progressRef.current = progress;
   const crystalsRef = useRef(crystals);
   crystalsRef.current = crystals;
 
-  const load = () => {
+  const load = (lang: CourseLang) => {
     setLoading(true);
     setError(false);
-    fetchContent()
+    fetchContent(lang)
       .then(c => { setContent(c); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
   };
 
   useEffect(() => {
-    load();
     loadProgress().then(setProgress);
     loadRecent().then(setRecent);
     loadStats().then(setStats);
     loadCrystals().then(setCrystals);
+    AsyncStorage.getItem(COURSE_KEY).then(v => {
+      setCourseLangState(v === "de" ? "de" : v === "en" ? "en" : null);
+      setLangLoaded(true);
+    });
     loadToken().then(t => {
       if (!t) return;
       me().then(setUser).catch(() => {});
@@ -81,6 +94,11 @@ function Main() {
       refreshGame();
     });
   }, []);
+
+  // (Re)load word content whenever the chosen course changes.
+  useEffect(() => {
+    if (courseLang) load(courseLang);
+  }, [courseLang]);
 
   const refreshGame = () => {
     if (getToken()) getGamification().then(setGame).catch(() => {});
@@ -144,13 +162,33 @@ function Main() {
   const isTab = ["groups", "search", "grammar", "progress"].includes(screen.name);
   const contentReady = content && !loading;
 
+  // Wait for the stored course choice before deciding what to show.
+  if (!langLoaded) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.accent} /></View>
+      </SafeAreaView>
+    );
+  }
+  // First launch: no course chosen yet — show the language picker full-screen.
+  if (!courseLang) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <StatusBar style={themeName === "dark" ? "light" : "dark"} />
+        <LanguagePicker onPick={setCourseLang} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar style={themeName === "dark" ? "light" : "dark"} />
       <View style={styles.header}>
         <View>
           <Text style={styles.logo}>WordUp</Text>
-          <Text style={styles.subtitle}>Learn English by level & topic</Text>
+          <Text style={styles.subtitle}>
+            {courseLang === "de" ? "Learn German — alphabet & basics" : "Learn English by level & topic"}
+          </Text>
         </View>
         <TouchableOpacity style={styles.gear} onPress={() => setScreen({ name: "settings" })}>
           <Text style={styles.gearIcon}>⚙️</Text>
@@ -169,14 +207,21 @@ function Main() {
         {error && !loading && screen.name !== "settings" && (
           <View style={styles.center}>
             <Text style={styles.muted}>Couldn't reach the server.</Text>
-            <TouchableOpacity style={styles.retry} onPress={load}>
+            <TouchableOpacity style={styles.retry} onPress={() => load(courseLang)}>
               <Text style={styles.retryText}>Try again</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {screen.name === "settings" && (
-          <SettingsScreen user={user} onLogin={onLogin} onLogout={onLogout} onBack={() => setScreen({ name: "groups" })} />
+          <SettingsScreen
+            user={user}
+            onLogin={onLogin}
+            onLogout={onLogout}
+            onBack={() => setScreen({ name: "groups" })}
+            courseLang={courseLang}
+            onSetCourseLang={setCourseLang}
+          />
         )}
 
         {contentReady && screen.name === "groups" && (

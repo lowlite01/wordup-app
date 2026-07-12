@@ -7,9 +7,11 @@ export class ContentService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Public: rebuilds the exact { wordGroups, topicLevel2 } shape the front-end
-  // expects, so nothing downstream of the data layer has to change.
-  async getContent() {
+  // expects, so nothing downstream of the data layer has to change. Filters to
+  // one course language (defaults to English).
+  async getContent(language = "en") {
     const groups = await this.prisma.wordGroup.findMany({
+      where: { language },
       orderBy: { order: "asc" },
       include: { words: { orderBy: { order: "asc" } } },
     });

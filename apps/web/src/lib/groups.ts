@@ -17,6 +17,7 @@ export const LEVEL_NAMES: Record<string, string> = {
 export const TOPIC_LEVEL: Record<string, string> = {
   Food: "A1", Clothes: "A1", Animals: "A1", Colors: "A1",
   "German Alphabet": "A1", "German Articles": "A1", "German Basics": "A1",
+  "German Numbers": "A1", "German Verbs": "A1",
   City: "A2", Weather: "A2", Sports: "A2",
   Travel: "B1", School: "B1", Music: "B1",
   Health: "B2", Nature: "B2", Emotions: "B2", Space: "B2",

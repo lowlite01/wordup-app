@@ -95,6 +95,7 @@ model UserAchievement {
 model WordGroup {
   key      String      @id
   category String                 // "level" | "topic"
+  language String      @default("en")  // course language: "en" | "de"
   order    Int         @default(0)
   words    WordEntry[]
 }

@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { Colors, LEVEL_COLORS, useTheme } from "./theme";
 import {
-  AppContent, keyLabel, keyParts, levelAllKeys, levelKeys, topicLevelKeys, topicsForLevel, wordOfDay, wordsForKey,
+  AppContent, LEVELS, keyLabel, keyParts, levelAllKeys, topicLevelKeys, topicsForLevel, wordOfDay, wordsForKey,
 } from "./api";
 import { Progress, RecentEntry, knownCount } from "./storage";
 import { Gamification } from "./session";
@@ -41,7 +41,11 @@ export default function GroupsScreen({ content, progress, recent, game, crystals
     if (!onUnlock(topic)) Alert.alert("Not enough crystals", `You need ${unlockCost(topic)} 💎 to unlock this topic.`);
   };
 
-  const levels = levelKeys(content);
+  // Show every CEFR level that has content for this course (core words or
+  // topics). German has no per-level "core", so only levels with topics appear.
+  const levelTotal = (level: string) =>
+    levelAllKeys(content, level).reduce((n, k) => n + wordsForKey(content, k).length, 0);
+  const levels = LEVELS.filter(l => levelTotal(l) > 0);
   const validRecent = recent.filter(r => wordsForKey(content, r.key).length > 0);
 
   const toggle = (level: string) => {
@@ -163,7 +167,9 @@ export default function GroupsScreen({ content, progress, recent, game, crystals
             <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${pct}%` }]} /></View>
             {isOpen && (
               <View style={styles.subList}>
-                <SubRow groupKey={level} label="Core vocabulary" letter={level} />
+                {wordsForKey(content, level).length > 0 && (
+                  <SubRow groupKey={level} label="Core vocabulary" letter={level} />
+                )}
                 {topicsForLevel(content, level).flatMap(t => topicLevelKeys(content, t)).map(key => {
                   const name = keyParts(key).name;
                   return (

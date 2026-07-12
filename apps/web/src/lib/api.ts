@@ -107,8 +107,8 @@ export const api = {
   gamification: () => request<Gamification>("/gamification/me"),
   leaderboard: () => request<LeaderRow[]>("/leaderboard"),
 
-  // Content (public read; admin write)
-  getContent: () => request<AppContent>("/content"),
+  // Content (public read; admin write). `lang` picks the course (en | de).
+  getContent: (lang: string = "en") => request<AppContent>(`/content?lang=${lang}`),
   adminGroups: () => request<AdminGroup[]>("/admin/content/groups"),
   adminCreateGroup: (key: string, category: "level" | "topic", order?: number) =>
     request<AdminGroup>("/admin/content/groups", {

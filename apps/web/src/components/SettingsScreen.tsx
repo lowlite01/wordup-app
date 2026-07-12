@@ -1,6 +1,6 @@
 import { useApp } from "../context";
 import { useT, type Dict } from "../i18n";
-import type { Lang, ThemeName } from "../types";
+import type { CourseLang, Lang, ThemeName } from "../types";
 
 const THEME_META: { id: ThemeName; name: (t: Dict) => string; desc: (t: Dict) => string; swatches: string[] }[] = [
   {
@@ -38,9 +38,25 @@ export default function SettingsScreen() {
   const { settings, updateSettings, resetAllProgress, clearStats } = useApp();
   const t = useT();
 
+  const courses: { id: CourseLang; label: string }[] = [
+    { id: "en", label: `🇬🇧 ${t.courseEnglish}` },
+    { id: "de", label: `🇩🇪 ${t.courseGerman}` },
+  ];
+
   return (
     <section>
       <h2 className="screen-title">{t.settingsTitle}</h2>
+
+      <h3 className="settings-group">{t.courseSection}</h3>
+      <div className="level-chips">
+        {courses.map(c => (
+          <button
+            key={c.id}
+            className={"level-chip" + ((settings.courseLang ?? "en") === c.id ? " active" : "")}
+            onClick={() => updateSettings({ courseLang: c.id })}
+          >{c.label}</button>
+        ))}
+      </div>
 
       <h3 className="settings-group">{t.langSection}</h3>
       <div className="level-chips">

@@ -140,6 +140,8 @@ export default function GroupsScreen({ onStart }: Props) {
             {LEVELS.map(level => {
               const allKeys = levelAllKeys(level);
               const total = allKeys.reduce((n, k) => n + wordsForKey(k).length, 0);
+              if (total === 0) return null; // hide levels with no content for this course
+              const coreCount = wordsForKey(level).length;
               const known = allKeys.reduce((n, k) => n + knownSet(progress, k).size, 0);
               const pct = total ? Math.round((known / total) * 100) : 0;
               const open = openLevel === level;
@@ -156,7 +158,9 @@ export default function GroupsScreen({ onStart }: Props) {
                   <div className="journey-track"><span style={{ width: `${pct}%` }} /></div>
                   {open && (
                     <div className="journey-sublist">
-                      <SubRow groupKey={level} label="Core vocabulary" letter={level} onStart={onStart} />
+                      {coreCount > 0 && (
+                        <SubRow groupKey={level} label="Core vocabulary" letter={level} onStart={onStart} />
+                      )}
                       {topicsForLevel(level).flatMap(topicLevelKeys).map(key => {
                         const name = keyParts(key).name;
                         const locked = isTopicLocked(crystals, name);

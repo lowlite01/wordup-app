@@ -11,6 +11,14 @@ const ru = (n: number, one: string, few: string, many: string) => {
 
 const EN = {
   subtitle: "Learn English words by level & topic",
+  subtitleDe: "Learn German — alphabet, articles & basics",
+  chooseCourseTitle: "Choose your course",
+  chooseCourseSub: "Which language do you want to learn? You can switch anytime in Settings.",
+  courseEnglish: "English",
+  courseEnglishSub: "Vocabulary by CEFR level & topic",
+  courseGerman: "Deutsch",
+  courseGermanSub: "Alphabet, articles, numbers & basics",
+  courseSection: "Course language",
   tabGroups: "Groups",
   tabGrammar: "Grammar",
   tabLearning: "Learning",
@@ -185,6 +193,14 @@ export type Dict = typeof EN;
 
 const RU: Dict = {
   subtitle: "Учи английские слова по уровням и темам",
+  subtitleDe: "Учи немецкий — алфавит, артикли и основы",
+  chooseCourseTitle: "Выбери курс",
+  chooseCourseSub: "Какой язык хочешь учить? Поменять можно в любой момент в настройках.",
+  courseEnglish: "Английский",
+  courseEnglishSub: "Лексика по уровням CEFR и темам",
+  courseGerman: "Немецкий",
+  courseGermanSub: "Алфавит, артикли, числа и основы",
+  courseSection: "Язык курса",
   tabGroups: "Группы",
   tabGrammar: "Грамматика",
   tabLearning: "Учу",

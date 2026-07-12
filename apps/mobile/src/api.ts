@@ -14,8 +14,8 @@ export interface AppContent {
   topicLevel2: Record<string, Word[]>;
 }
 
-export async function fetchContent(): Promise<AppContent> {
-  const res = await fetch(`${API_URL}/content`);
+export async function fetchContent(lang: string = "en"): Promise<AppContent> {
+  const res = await fetch(`${API_URL}/content?lang=${lang}`);
   if (!res.ok) throw new Error(`content ${res.status}`);
   const c: AppContent = await res.json();
   // Merge each topic's level-2 words into the single topic so the home shows
@@ -70,6 +70,7 @@ export function topicLevelKeys(content: AppContent, name: string): string[] {
 export const TOPIC_LEVEL: Record<string, string> = {
   Food: "A1", Clothes: "A1", Animals: "A1", Colors: "A1",
   "German Alphabet": "A1", "German Articles": "A1", "German Basics": "A1",
+  "German Numbers": "A1", "German Verbs": "A1",
   City: "A2", Weather: "A2", Sports: "A2",
   Travel: "B1", School: "B1", Music: "B1",
   Health: "B2", Nature: "B2", Emotions: "B2", Space: "B2",

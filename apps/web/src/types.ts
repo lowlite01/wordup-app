@@ -30,11 +30,14 @@ export interface RecentEntry {
 
 export type ThemeName = "midnight" | "playful" | "dark" | "minimal";
 export type Lang = "en" | "ru";
+// Which vocabulary course the user is studying (separate from the UI language).
+export type CourseLang = "en" | "de";
 
 export interface Settings {
   theme: ThemeName;
   lang: Lang;
   autoSpeak: boolean;
+  courseLang?: CourseLang; // undefined until the user picks a course on first launch
 }
 
 export interface GrammarItem {

@@ -35,6 +35,7 @@ const EMOJI: Record<string, string> = {
   Weather: "⛅", Clothes: "👕", Music: "🎵", Animals: "🐾", Law: "⚖️", Health: "🩺",
   Colors: "🎨", Space: "🚀",
   "German Alphabet": "🔤", "German Articles": "🇩🇪", "German Basics": "👋",
+  "German Numbers": "🔢", "German Verbs": "🏃",
 };
 
 export function topicEmoji(name: string): string {
