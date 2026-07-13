@@ -230,7 +230,7 @@ function Main() {
         {contentReady && screen.name === "search" && (
           <SearchScreen content={content} onOpenWord={setCtxWord} />
         )}
-        {contentReady && screen.name === "grammar" && <GrammarScreen />}
+        {contentReady && screen.name === "grammar" && <GrammarScreen courseLang={courseLang} />}
         {contentReady && screen.name === "progress" && (
           <ProgressScreen content={content} progress={progress} stats={stats} onOpenWord={setCtxWord} />
         )}

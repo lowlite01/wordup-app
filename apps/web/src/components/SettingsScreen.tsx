@@ -32,6 +32,7 @@ const THEME_META: { id: ThemeName; name: (t: Dict) => string; desc: (t: Dict) =>
 const LANGS: { id: Lang; label: string }[] = [
   { id: "ru", label: "Русский" },
   { id: "en", label: "English" },
+  { id: "de", label: "Deutsch" },
 ];
 
 export default function SettingsScreen() {

@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { LayoutAnimation, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, UIManager } from "react-native";
 import { Colors, useTheme } from "./theme";
 import { GRAMMAR } from "./grammar";
+import { GRAMMAR_DE } from "./grammar-de";
+import { CourseLang } from "./LanguagePicker";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -19,10 +21,11 @@ interface GrammarSection {
   items: GrammarItem[];
 }
 
-export default function GrammarScreen() {
+export default function GrammarScreen({ courseLang }: { courseLang: CourseLang }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [open, setOpen] = useState<string | null>(null);
+  const grammar = courseLang === "de" ? GRAMMAR_DE : GRAMMAR;
 
   const toggle = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -33,7 +36,7 @@ export default function GrammarScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Grammar guide</Text>
       <Text style={styles.muted}>Tap a rule to expand it.</Text>
-      {(GRAMMAR as unknown as GrammarSection[]).map(section => (
+      {(grammar as unknown as GrammarSection[]).map(section => (
         <View key={section.section}>
           <Text style={styles.section}>{section.section}</Text>
           {section.items.map(item => {

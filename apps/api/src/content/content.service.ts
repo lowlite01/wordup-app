@@ -19,8 +19,11 @@ export class ContentService {
     const topicLevel2: Record<string, unknown[]> = {};
     for (const g of groups) {
       const words = g.words.map(w => ({ word: w.word, pos: w.pos, def: w.def, example: w.example }));
-      if (g.key.endsWith("@2")) topicLevel2[g.key.slice(0, -2)] = words;
-      else wordGroups[g.key] = words;
+      // German groups are stored with a "de:" key prefix to stay unique in the
+      // DB; strip it so the front-end sees the same "A1"/"Food" keys as English.
+      const key = g.key.startsWith("de:") ? g.key.slice(3) : g.key;
+      if (key.endsWith("@2")) topicLevel2[key.slice(0, -2)] = words;
+      else wordGroups[key] = words;
     }
     return { wordGroups, topicLevel2 };
   }

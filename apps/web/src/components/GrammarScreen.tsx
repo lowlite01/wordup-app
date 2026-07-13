@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useApp } from "../context";
 import { useT } from "../i18n";
 import { GRAMMAR } from "../data/grammar";
+import { GRAMMAR_DE } from "../data/grammar-de";
 
 export default function GrammarScreen() {
   const t = useT();
+  const { settings } = useApp();
+  const grammar = settings.courseLang === "de" ? GRAMMAR_DE : GRAMMAR;
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   const toggle = (id: string) => {
@@ -19,7 +23,7 @@ export default function GrammarScreen() {
     <section>
       <h2 className="screen-title">{t.grammarTitle}</h2>
       <p className="muted">{t.grammarHint}</p>
-      {GRAMMAR.map(section => (
+      {grammar.map(section => (
         <div key={section.section}>
           <h3 className="gram-section">{section.section}</h3>
           {section.items.map(item => {

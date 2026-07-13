@@ -29,7 +29,7 @@ export interface RecentEntry {
 }
 
 export type ThemeName = "midnight" | "playful" | "dark" | "minimal";
-export type Lang = "en" | "ru";
+export type Lang = "en" | "ru" | "de";
 // Which vocabulary course the user is studying (separate from the UI language).
 export type CourseLang = "en" | "de";
 
