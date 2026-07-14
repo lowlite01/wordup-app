@@ -3,7 +3,7 @@ import { AppContext, type AppApi } from "./context";
 import { STRINGS } from "./i18n";
 import type { FlashMode, Word } from "./types";
 import {
-  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, topicLevelKeys,
+  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, resetSearchIndex, topicLevelKeys,
 } from "./lib/groups";
 import {
   clearStatsStorage, loadProgress, loadRecent, loadSettings, loadStats,
@@ -14,6 +14,10 @@ import {
   type AuthUser, type Gamification,
 } from "./lib/api";
 import { awardMastery, loadCrystals, saveCrystals, unlockTopic as unlockTopicFn } from "./lib/crystals";
+import {
+  addCustomList, deleteCustomList as deleteCustomListFn, getCustomLists,
+  parseWords, renameCustomList as renameCustomListFn,
+} from "./lib/customLists";
 import GroupsScreen from "./components/GroupsScreen";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
@@ -59,6 +63,7 @@ export default function App() {
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
   const [crystals, setCrystals] = useState(loadCrystals);
+  const [customVersion, setCustomVersion] = useState(0); // bumps when custom lists change
 
   // Refs so async login can read the latest local data without stale closures.
   const progressRef = useRef(progress);
@@ -208,7 +213,26 @@ export default function App() {
       saveCrystals(next);
       return true;
     },
-  }), [progress, stats, recent, settings, user, gamification, crystals]);
+
+    customLists: getCustomLists(),
+    importCustomList: (name, text) => {
+      const words = parseWords(text);
+      if (!words.length) return 0;
+      addCustomList(name, words);
+      resetSearchIndex();
+      setCustomVersion(v => v + 1);
+      return words.length;
+    },
+    removeCustomList: id => {
+      deleteCustomListFn(id);
+      resetSearchIndex();
+      setCustomVersion(v => v + 1);
+    },
+    renameCustomList: (id, name) => {
+      renameCustomListFn(id, name);
+      setCustomVersion(v => v + 1);
+    },
+  }), [progress, stats, recent, settings, user, gamification, crystals, customVersion]);
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
   const knownCount = useMemo(() => collectWords(progress, "known").length, [progress]);

@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 import type { Progress, QuizStats, RecentEntry, Settings, Word, WordState } from "./types";
 import type { AuthUser, Gamification, LeaderRow } from "./lib/api";
 import type { CrystalState } from "./lib/crystals";
+import type { CustomList } from "./lib/customLists";
 
 export interface AppApi {
   progress: Progress;
@@ -27,6 +28,12 @@ export interface AppApi {
 
   crystals: CrystalState;
   unlockTopic: (topic: string) => boolean;
+
+  // User-created word lists (import from Claude/anywhere, then study).
+  customLists: CustomList[];
+  importCustomList: (name: string, text: string) => number; // returns words imported
+  removeCustomList: (id: string) => void;
+  renameCustomList: (id: string, name: string) => void;
 }
 
 export const AppContext = createContext<AppApi>(null!);

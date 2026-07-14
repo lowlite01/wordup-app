@@ -18,6 +18,10 @@ import {
 import {
   CrystalState, awardMastery, emptyCrystals, loadCrystals, saveCrystals, unlockTopic as unlockTopicFn,
 } from "./src/crystals";
+import {
+  CustomList, addCustomList, deleteCustomList, getCustomLists, loadCustomLists, parseWords,
+} from "./src/customLists";
+import ImportListModal from "./src/ImportListModal";
 import GroupsScreen from "./src/GroupsScreen";
 import FlashcardsScreen from "./src/FlashcardsScreen";
 import QuizScreen from "./src/QuizScreen";
@@ -58,6 +62,8 @@ function Main() {
   const [crystals, setCrystals] = useState<CrystalState>(emptyCrystals);
   const [courseLang, setCourseLangState] = useState<CourseLang | null>(null);
   const [langLoaded, setLangLoaded] = useState(false);
+  const [customLists, setCustomLists] = useState<CustomList[]>([]);
+  const [showImport, setShowImport] = useState(false);
 
   const COURSE_KEY = "wordup-course-lang";
   const setCourseLang = (l: CourseLang) => {
@@ -83,6 +89,7 @@ function Main() {
     loadRecent().then(setRecent);
     loadStats().then(setStats);
     loadCrystals().then(setCrystals);
+    loadCustomLists().then(setCustomLists);
     AsyncStorage.getItem(COURSE_KEY).then(v => {
       setCourseLangState(v === "de" ? "de" : v === "en" ? "en" : null);
       setLangLoaded(true);
@@ -122,6 +129,18 @@ function Main() {
     setCrystals(next);
     saveCrystals(next);
     return true;
+  };
+
+  const importList = (name: string, text: string): number => {
+    const words = parseWords(text);
+    if (!words.length) return 0;
+    addCustomList(name, words);
+    setCustomLists([...getCustomLists()]);
+    return words.length;
+  };
+  const removeList = (id: string) => {
+    deleteCustomList(id);
+    setCustomLists([...getCustomLists()]);
   };
 
   const updateProgress = (p: Progress) => {
@@ -225,7 +244,18 @@ function Main() {
         )}
 
         {contentReady && screen.name === "groups" && (
-          <GroupsScreen content={content} progress={progress} recent={recent} game={game} crystals={crystals} onUnlock={onUnlock} onStart={onStart} />
+          <GroupsScreen
+            content={content}
+            progress={progress}
+            recent={recent}
+            game={game}
+            crystals={crystals}
+            onUnlock={onUnlock}
+            onStart={onStart}
+            customLists={customLists}
+            onImportList={() => setShowImport(true)}
+            onDeleteList={removeList}
+          />
         )}
         {contentReady && screen.name === "search" && (
           <SearchScreen content={content} onOpenWord={setCtxWord} />
@@ -271,6 +301,7 @@ function Main() {
       )}
 
       <WordContextModal word={ctxWord} onClose={() => setCtxWord(null)} onPickWord={setCtxWord} />
+      <ImportListModal visible={showImport} onClose={() => setShowImport(false)} onImport={importList} />
     </SafeAreaView>
   );
 }

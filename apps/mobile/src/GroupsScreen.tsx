@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Alert, LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View,
+  Alert, LayoutAnimation, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from "react-native";
 import { Colors, LEVEL_COLORS, useTheme } from "./theme";
 import {
@@ -9,6 +9,7 @@ import {
 import { Progress, RecentEntry, knownCount } from "./storage";
 import { Gamification } from "./session";
 import { CrystalState, isTopicLocked, unlockCost } from "./crystals";
+import { CustomList, customKey, listToText } from "./customLists";
 import { topicEmoji } from "./topicIcons";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -25,6 +26,9 @@ interface Props {
   crystals: CrystalState;
   onUnlock: (topic: string) => boolean;
   onStart: (key: string, mode: Mode) => void;
+  customLists: CustomList[];
+  onImportList: () => void;
+  onDeleteList: (id: string) => void;
 }
 
 const LEVEL_NAMES: Record<string, string> = {
@@ -32,13 +36,26 @@ const LEVEL_NAMES: Record<string, string> = {
   B2: "Upper-Intermediate", C1: "Advanced", C2: "Mastery",
 };
 
-export default function GroupsScreen({ content, progress, recent, game, crystals, onUnlock, onStart }: Props) {
+export default function GroupsScreen({
+  content, progress, recent, game, crystals, onUnlock, onStart,
+  customLists, onImportList, onDeleteList,
+}: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [openLevel, setOpenLevel] = useState<string | null>(null);
 
   const handleUnlock = (topic: string) => {
     if (!onUnlock(topic)) Alert.alert("Not enough crystals", `You need ${unlockCost(topic)} 💎 to unlock this topic.`);
+  };
+
+  const confirmDelete = (list: CustomList) => {
+    Alert.alert("Delete list", `Delete the list "${list.name}"?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => onDeleteList(list.id) },
+    ]);
+  };
+  const exportList = (list: CustomList) => {
+    Share.share({ message: listToText(list) }).catch(() => {});
   };
 
   // Show every CEFR level that has content for this course (core words or
@@ -142,6 +159,40 @@ export default function GroupsScreen({ content, progress, recent, game, crystals
             ))}
           </View>
         </>
+      )}
+
+      <View style={styles.listsHead}>
+        <Text style={styles.section}>My lists</Text>
+        <TouchableOpacity style={styles.importBtn} onPress={onImportList} activeOpacity={0.8}>
+          <Text style={styles.importBtnText}>＋ Import</Text>
+        </TouchableOpacity>
+      </View>
+      {customLists.length === 0 ? (
+        <Text style={styles.listsEmpty}>
+          No lists yet — import words (e.g. a list you prepared elsewhere) and study them as flashcards.
+        </Text>
+      ) : (
+        customLists.map(list => {
+          const total = list.words.length;
+          const known = knownCount(progress, customKey(list.id));
+          return (
+            <View style={styles.myList} key={list.id}>
+              <TouchableOpacity style={styles.myListMain} onPress={() => onStart(customKey(list.id), "flash")} activeOpacity={0.7}>
+                <View style={styles.myListBadge}><Text style={styles.myListEmoji}>📝</Text></View>
+                <View style={styles.myListMid}>
+                  <Text style={styles.myListName} numberOfLines={1}>{list.name}</Text>
+                  <Text style={styles.myListSum}>{known} / {total}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.listAct} onPress={() => exportList(list)}>
+                <Text style={styles.listActIcon}>⤴</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.listAct} onPress={() => confirmDelete(list)}>
+                <Text style={styles.listActIcon}>🗑</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })
       )}
 
       <Text style={styles.section}>Your path</Text>
@@ -263,6 +314,27 @@ const makeStyles = (c: Colors) => StyleSheet.create({
     marginTop: 16, backgroundColor: c.accent, borderRadius: 999, paddingVertical: 11, paddingHorizontal: 32,
   },
   dailyBtnText: { color: c.onAccent, fontWeight: "800", fontSize: 15 },
+  listsHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  importBtn: {
+    backgroundColor: c.accentSoft, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 5,
+  },
+  importBtnText: { color: c.accentStrong, fontWeight: "700", fontSize: 13 },
+  listsEmpty: { color: c.muted, fontSize: 13, lineHeight: 19, marginBottom: 4 },
+  myList: {
+    flexDirection: "row", alignItems: "center", backgroundColor: c.card,
+    borderColor: c.border, borderWidth: 1, borderRadius: 12, marginBottom: 8, paddingRight: 4,
+  },
+  myListMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
+  myListBadge: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: c.accentSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  myListEmoji: { fontSize: 18 },
+  myListMid: { flex: 1, minWidth: 0 },
+  myListName: { color: c.text, fontSize: 15, fontWeight: "700" },
+  myListSum: { color: c.muted, fontSize: 12, marginTop: 2 },
+  listAct: { padding: 9 },
+  listActIcon: { fontSize: 16 },
   crystalBar: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 4 },
   crystalPill: {
     backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 999,

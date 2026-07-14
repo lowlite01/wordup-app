@@ -6,8 +6,10 @@ import {
   searchWords, topicLevelKeys, topicsForLevel, wordOfDay, wordsForKey,
 } from "../lib/groups";
 import { isTopicLocked, unlockCost } from "../lib/crystals";
+import { customKey, listToJson, listToText } from "../lib/customLists";
 import { topicEmoji } from "../lib/topicIcons";
 import WordRow from "./WordRow";
+import ImportListModal from "./ImportListModal";
 
 type Mode = "flashcards" | "quiz" | "list";
 
@@ -56,10 +58,12 @@ function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStar
 }
 
 export default function GroupsScreen({ onStart }: Props) {
-  const { recent, gamification, progress, crystals, unlockTopic } = useApp();
+  const { recent, gamification, progress, crystals, unlockTopic, customLists, removeCustomList } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
   const [openLevel, setOpenLevel] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const matches = useMemo(() => searchWords(query), [query]);
   const searching = query.trim().length > 0;
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
@@ -67,6 +71,24 @@ export default function GroupsScreen({ onStart }: Props) {
   const toggle = (level: string) => setOpenLevel(l => (l === level ? null : level));
   const handleUnlock = (topic: string) => {
     if (!unlockTopic(topic)) alert(`Not enough crystals — you need ${unlockCost(topic)} 💎.`);
+  };
+
+  const downloadList = (list: (typeof customLists)[number]) => {
+    const blob = new Blob([listToJson(list)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${list.name.replace(/[^\w\- ]+/g, "").trim() || "list"}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+  const copyList = (list: (typeof customLists)[number]) => {
+    navigator.clipboard?.writeText(listToText(list)).then(() => {
+      setCopiedId(list.id);
+      setTimeout(() => setCopiedId(c => (c === list.id ? null : c)), 1500);
+    });
   };
 
   return (
@@ -135,6 +157,41 @@ export default function GroupsScreen({ onStart }: Props) {
             </>
           )}
 
+          <div className="journey-section list-section-head">
+            <span>{t.myLists}</span>
+            <button className="list-import-btn" onClick={() => setShowImport(true)}>{t.importOpen}</button>
+          </div>
+          {customLists.length === 0 ? (
+            <p className="lists-empty">{t.listsEmptyHint}</p>
+          ) : (
+            <div className="my-lists">
+              {customLists.map(list => {
+                const total = list.words.length;
+                const known = knownSet(progress, customKey(list.id)).size;
+                return (
+                  <div className="my-list" key={list.id}>
+                    <button className="my-list-main" onClick={() => onStart(customKey(list.id), "flashcards")}>
+                      <span className="my-list-badge">📝</span>
+                      <span className="my-list-mid">
+                        <span className="my-list-name">{list.name}</span>
+                        <span className="my-list-sum">{known} / {total}</span>
+                      </span>
+                    </button>
+                    <button className="my-list-act" title={t.exportCopyText} onClick={() => copyList(list)}>
+                      {copiedId === list.id ? "✓" : "⧉"}
+                    </button>
+                    <button className="my-list-act" title={t.exportDownload} onClick={() => downloadList(list)}>⤓</button>
+                    <button
+                      className="my-list-act danger"
+                      title={t.deleteListTitle}
+                      onClick={() => { if (confirm(t.deleteListConfirm(list.name))) removeCustomList(list.id); }}
+                    >🗑</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="journey-section">{t.yourPath}</div>
           <div className="journey-list">
             {LEVELS.map(level => {
@@ -184,6 +241,10 @@ export default function GroupsScreen({ onStart }: Props) {
             })}
           </div>
         </>
+      )}
+
+      {showImport && (
+        <ImportListModal onClose={() => setShowImport(false)} onImported={() => setShowImport(false)} />
       )}
     </section>
   );

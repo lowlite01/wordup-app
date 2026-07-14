@@ -1,5 +1,8 @@
 import { WORD_GROUPS as STATIC_WG, TOPIC_LEVEL2 as STATIC_T2 } from "../data/words";
 import type { KeyedWord, Progress, Word } from "../types";
+import {
+  customLabelForKey, customListKeys, customWordsForKey, isCustomKey,
+} from "./customLists";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -64,12 +67,14 @@ export function keyParts(key: string) {
 }
 
 export function keyLabel(key: string) {
+  if (isCustomKey(key)) return customLabelForKey(key);
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
   return level > 1 ? `${name} · ${level}` : name;
 }
 
 export function wordsForKey(key: string): Word[] {
+  if (isCustomKey(key)) return customWordsForKey(key);
   return wgData[keyParts(key).name] || [];
 }
 
@@ -80,6 +85,7 @@ export function topicLevelKeys(name: string) {
 export function allKeys() {
   const keys = [...LEVELS];
   TOPICS.forEach(t => keys.push(...topicLevelKeys(t)));
+  keys.push(...customListKeys());
   return keys;
 }
 
@@ -146,6 +152,10 @@ export function shuffle<T>(arr: T[]): T[] {
 }
 
 let searchIndex: KeyedWord[] | null = null;
+// Custom lists change the search corpus, so let callers drop the cache.
+export function resetSearchIndex() {
+  searchIndex = null;
+}
 export function buildSearchIndex(): KeyedWord[] {
   if (!searchIndex) {
     searchIndex = [];
@@ -179,7 +189,8 @@ function dateHash(): number {
 }
 
 export function wordOfDay(): KeyedWord | null {
-  const all = buildSearchIndex();
+  // Word of the day comes from the course, not the user's own lists.
+  const all = buildSearchIndex().filter(w => !isCustomKey(w.key));
   if (!all.length) return null;
   return all[dateHash() % all.length];
 }

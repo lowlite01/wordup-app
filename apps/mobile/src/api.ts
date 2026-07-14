@@ -1,5 +1,9 @@
 // Thin client to the deployed WordUp API — the phone fetches words from the
 // same server the website uses, so there's no word data bundled in the app.
+import {
+  customLabelForKey, customListKeys, customWordsForKey, isCustomKey,
+} from "./customLists";
+
 export const API_URL = "https://wordup-api.onrender.com/api";
 
 export interface Word {
@@ -34,12 +38,14 @@ export function keyParts(key: string) {
 }
 
 export function keyLabel(key: string) {
+  if (isCustomKey(key)) return customLabelForKey(key);
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
   return level > 1 ? `${name} · ${level}` : name;
 }
 
 export function wordsForKey(content: AppContent, key: string): Word[] {
+  if (isCustomKey(key)) return customWordsForKey(key);
   const { name, level } = keyParts(key);
   return level === 1 ? content.wordGroups[name] || [] : content.topicLevel2[name] || [];
 }
@@ -93,7 +99,7 @@ export interface KeyedWord extends Word {
 
 export function allWords(content: AppContent): KeyedWord[] {
   const out: KeyedWord[] = [];
-  for (const key of [...levelKeys(content), ...topicKeys(content)]) {
+  for (const key of [...levelKeys(content), ...topicKeys(content), ...customListKeys()]) {
     for (const w of wordsForKey(content, key)) out.push({ ...w, key });
   }
   return out;
@@ -109,7 +115,8 @@ function dateHash(): number {
 
 // Deterministic "word of the day": same all day, rotates each date.
 export function wordOfDay(content: AppContent): KeyedWord | null {
-  const all = allWords(content);
+  // Word of the day comes from the course, not the user's own lists.
+  const all = allWords(content).filter(w => !isCustomKey(w.key));
   if (!all.length) return null;
   return all[dateHash() % all.length];
 }
