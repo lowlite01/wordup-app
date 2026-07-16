@@ -27,11 +27,12 @@ import FlashcardsScreen from "./src/FlashcardsScreen";
 import QuizScreen from "./src/QuizScreen";
 import SearchScreen from "./src/SearchScreen";
 import GrammarScreen from "./src/GrammarScreen";
+import PhrasalVerbsScreen from "./src/PhrasalVerbsScreen";
 import ProgressScreen from "./src/ProgressScreen";
 import SettingsScreen from "./src/SettingsScreen";
 import WordContextModal, { WordLite } from "./src/WordContextModal";
 
-type Tab = "groups" | "search" | "grammar" | "progress";
+type Tab = "groups" | "search" | "grammar" | "phrasal" | "progress";
 type Screen =
   | { name: Tab }
   | { name: "flash"; key: string }
@@ -42,6 +43,7 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: "groups", icon: "🗂️", label: "Groups" },
   { id: "search", icon: "🔍", label: "Search" },
   { id: "grammar", icon: "📖", label: "Grammar" },
+  { id: "phrasal", icon: "🔗", label: "Phrasal" },
   { id: "progress", icon: "📊", label: "Progress" },
 ];
 
@@ -64,6 +66,7 @@ function Main() {
   const [langLoaded, setLangLoaded] = useState(false);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [showImport, setShowImport] = useState(false);
+  const [studyOrigin, setStudyOrigin] = useState<"phrasal" | null>(null);
 
   const COURSE_KEY = "wordup-course-lang";
   const setCourseLang = (l: CourseLang) => {
@@ -107,6 +110,11 @@ function Main() {
     if (courseLang) load(courseLang);
   }, [courseLang]);
 
+  // Phrasal verbs are English-only; leave that tab if the course changes away.
+  useEffect(() => {
+    if (courseLang !== "en" && screen.name === "phrasal") setScreen({ name: "groups" });
+  }, [courseLang, screen.name]);
+
   const refreshGame = () => {
     if (getToken()) getGamification().then(setGame).catch(() => {});
   };
@@ -149,10 +157,12 @@ function Main() {
     if (getToken()) syncProgress(progressToEntries(p)).catch(() => {});
   };
 
-  const onStart = (key: string, mode: "flash" | "quiz") => {
+  const onStart = (key: string, mode: "flash" | "quiz", origin: "phrasal" | null = null) => {
+    setStudyOrigin(origin);
     setRecent(r => pushRecent(r, key));
     setScreen(mode === "flash" ? { name: "flash", key } : { name: "quiz", key });
   };
+  const studyBack = () => setScreen(studyOrigin === "phrasal" ? { name: "phrasal" } : { name: "groups" });
 
   const onQuiz = (word: string, picked: string) => {
     setStats(s => recordQuiz(s, word, picked));
@@ -178,7 +188,9 @@ function Main() {
     setGame(null);
   };
 
-  const isTab = ["groups", "search", "grammar", "progress"].includes(screen.name);
+  const isTab = ["groups", "search", "grammar", "phrasal", "progress"].includes(screen.name);
+  // Phrasal verbs tab is English-course only.
+  const visibleTabs = TABS.filter(t => t.id !== "phrasal" || courseLang === "en");
   const contentReady = content && !loading;
 
   // Wait for the stored course choice before deciding what to show.
@@ -261,6 +273,9 @@ function Main() {
           <SearchScreen content={content} onOpenWord={setCtxWord} />
         )}
         {contentReady && screen.name === "grammar" && <GrammarScreen courseLang={courseLang} />}
+        {screen.name === "phrasal" && (
+          <PhrasalVerbsScreen progress={progress} onStart={(key, mode) => onStart(key, mode, "phrasal")} />
+        )}
         {contentReady && screen.name === "progress" && (
           <ProgressScreen content={content} progress={progress} stats={stats} onOpenWord={setCtxWord} />
         )}
@@ -271,7 +286,7 @@ function Main() {
             groupKey={screen.key}
             progress={progress}
             onChangeProgress={updateProgress}
-            onBack={() => setScreen({ name: "groups" })}
+            onBack={studyBack}
           />
         )}
         {contentReady && screen.name === "quiz" && (
@@ -281,14 +296,14 @@ function Main() {
             progress={progress}
             onChangeProgress={updateProgress}
             onQuiz={onQuiz}
-            onBack={() => setScreen({ name: "groups" })}
+            onBack={studyBack}
           />
         )}
       </View>
 
       {isTab && (
         <View style={styles.tabBar}>
-          {TABS.map(t => {
+          {visibleTabs.map(t => {
             const active = screen.name === t.id;
             return (
               <TouchableOpacity key={t.id} style={styles.tab} onPress={() => setScreen({ name: t.id })}>

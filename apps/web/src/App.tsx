@@ -27,6 +27,7 @@ import LearningScreen from "./components/LearningScreen";
 import KnownScreen from "./components/KnownScreen";
 import StatsScreen from "./components/StatsScreen";
 import GrammarScreen from "./components/GrammarScreen";
+import PhrasalVerbsScreen from "./components/PhrasalVerbsScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import AdminScreen from "./components/AdminScreen";
@@ -41,6 +42,7 @@ type Route =
   | { s: "quiz" }
   | { s: "list" }
   | { s: "grammar" }
+  | { s: "phrasal" }
   | { s: "learning" }
   | { s: "known" }
   | { s: "stats" }
@@ -61,6 +63,7 @@ export default function App() {
   const [posFilter, setPosFilter] = useState("all");
   const [ctxWord, setCtxWord] = useState<Word | null>(null);
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
+  const [studyOrigin, setStudyOrigin] = useState<"phrasal" | null>(null); // where a study session returns to
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
   const [crystals, setCrystals] = useState(loadCrystals);
   const [customVersion, setCustomVersion] = useState(0); // bumps when custom lists change
@@ -89,6 +92,11 @@ export default function App() {
   useEffect(() => {
     loadContent(settings.courseLang ?? "en").then(() => setContentVersion(v => v + 1));
   }, [settings.courseLang]);
+
+  // Phrasal verbs are English-only; leave the tab if the course changes away.
+  useEffect(() => {
+    if (settings.courseLang !== "en" && route.s === "phrasal") setRoute({ s: "groups" });
+  }, [settings.courseLang, route.s]);
 
   // On load: if we have a saved token, pull the authoritative state from the server.
   useEffect(() => {
@@ -238,6 +246,7 @@ export default function App() {
   const knownCount = useMemo(() => collectWords(progress, "known").length, [progress]);
 
   const openGroup = (name: string, preferredKey?: string) => {
+    setStudyOrigin(null);
     setTopic(name);
     const keys = LEVELS.includes(name) ? [name] : topicLevelKeys(name);
     const key = preferredKey ||
@@ -248,18 +257,22 @@ export default function App() {
     setRoute({ s: "mode" });
   };
 
-  // Journey-path home starts a mode directly for a group key.
-  const startGroup = (key: string, mode: "flashcards" | "quiz" | "list") => {
+  // Journey-path home (and the phrasal tab) start a mode directly for a key.
+  const startGroup = (key: string, mode: "flashcards" | "quiz" | "list", origin: "phrasal" | null = null) => {
+    setStudyOrigin(origin);
     setTopic(keyParts(key).name);
     setGroupKey(key);
     setPosFilter("all");
     setNonce(n => n + 1);
     setRoute(mode === "flashcards" ? { s: "flash", mode: "group" } : { s: mode });
   };
+  // Where the Back button of a study screen should land.
+  const studyBack = (): Route => (studyOrigin === "phrasal" ? { s: "phrasal" } : { s: "mode" });
 
   const tabs: { id: Route["s"]; label: string; badge?: number }[] = [
     { id: "groups", label: t.tabGroups },
     { id: "grammar", label: t.tabGrammar },
+    ...(settings.courseLang === "en" ? [{ id: "phrasal" as Route["s"], label: t.tabPhrasal }] : []),
     { id: "learning", label: t.tabLearning, badge: learningCount },
     { id: "known", label: t.tabKnown, badge: knownCount },
     { id: "stats", label: t.tabStats },
@@ -348,7 +361,7 @@ export default function App() {
             posFilter={posFilter}
             onBack={() => {
               if (route.mode === "learning-mix") setRoute({ s: "learning" });
-              else setRoute({ s: "mode" });
+              else setRoute(studyBack());
             }}
             onNextLevel={k => {
               setGroupKey(k);
@@ -361,7 +374,7 @@ export default function App() {
             key={`${groupKey}|${nonce}`}
             groupKey={groupKey}
             posFilter={posFilter}
-            onBack={() => setRoute({ s: "mode" })}
+            onBack={() => setRoute(studyBack())}
             onRetry={() => setNonce(n => n + 1)}
             onGroups={() => setRoute({ s: "groups" })}
           />
@@ -370,7 +383,7 @@ export default function App() {
           <WordListScreen
             groupKey={groupKey}
             posFilter={posFilter}
-            onBack={() => setRoute({ s: "mode" })}
+            onBack={() => setRoute(studyBack())}
           />
         )}
         {route.s === "learning" && (
@@ -385,6 +398,7 @@ export default function App() {
         {route.s === "known" && <KnownScreen />}
         {route.s === "stats" && <StatsScreen />}
         {route.s === "grammar" && <GrammarScreen />}
+        {route.s === "phrasal" && <PhrasalVerbsScreen onStart={(key, mode) => startGroup(key, mode, "phrasal")} />}
         {route.s === "settings" && <SettingsScreen />}
         {route.s === "profile" && <ProfileScreen />}
         {route.s === "admin" && <AdminScreen />}

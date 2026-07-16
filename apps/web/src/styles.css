@@ -1057,3 +1057,24 @@ button { font-family: inherit; }
 .import-status.ok { color: var(--accent-strong); }
 .import-status.err { color: var(--danger); }
 .import-go { margin-top: 2px; }
+
+/* ---- Phrasal verbs ---- */
+.pv-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  margin-bottom: 10px; overflow: hidden; transition: border-color .15s;
+}
+.pv-card.open { border-color: var(--accent); }
+.pv-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; padding: 14px; cursor: pointer; color: var(--text); text-align: left;
+}
+.pv-verb { font-weight: 700; font-size: 1.05rem; flex: 1; }
+.pv-count { color: var(--muted); font-size: 0.82rem; }
+.pv-chev { color: var(--muted); font-size: 1.1rem; }
+.pv-body { padding: 0 14px 14px; }
+.pv-item { display: flex; flex-direction: column; padding: 10px 0; border-top: 1px solid var(--border); }
+.pv-word { font-weight: 700; color: var(--accent-strong); font-size: 0.98rem; }
+.pv-def { color: var(--text); font-size: 0.9rem; margin-top: 2px; }
+.pv-example { color: var(--muted); font-size: 0.85rem; font-style: italic; margin-top: 3px; }
+.pv-actions { display: flex; gap: 8px; margin-top: 14px; }
+.pv-actions .btn { flex: 1; }

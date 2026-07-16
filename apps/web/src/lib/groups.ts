@@ -3,6 +3,7 @@ import type { KeyedWord, Progress, Word } from "../types";
 import {
   customLabelForKey, customListKeys, customWordsForKey, isCustomKey,
 } from "./customLists";
+import { isPhrasalKey, phrasalLabelForKey, phrasalWordsForKey } from "./phrasalVerbs";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -68,6 +69,7 @@ export function keyParts(key: string) {
 
 export function keyLabel(key: string) {
   if (isCustomKey(key)) return customLabelForKey(key);
+  if (isPhrasalKey(key)) return phrasalLabelForKey(key);
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
   return level > 1 ? `${name} · ${level}` : name;
@@ -75,6 +77,7 @@ export function keyLabel(key: string) {
 
 export function wordsForKey(key: string): Word[] {
   if (isCustomKey(key)) return customWordsForKey(key);
+  if (isPhrasalKey(key)) return phrasalWordsForKey(key);
   return wgData[keyParts(key).name] || [];
 }
 
