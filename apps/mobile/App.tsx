@@ -22,6 +22,7 @@ import {
   CustomList, addCustomList, deleteCustomList, getCustomLists, loadCustomLists, parseWords,
 } from "./src/customLists";
 import ImportListModal from "./src/ImportListModal";
+import CrystalToast from "./src/CrystalToast";
 import GroupsScreen from "./src/GroupsScreen";
 import FlashcardsScreen from "./src/FlashcardsScreen";
 import QuizScreen from "./src/QuizScreen";
@@ -67,6 +68,7 @@ function Main() {
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [studyOrigin, setStudyOrigin] = useState<"phrasal" | null>(null);
+  const [crystalGain, setCrystalGain] = useState(0);
 
   const COURSE_KEY = "wordup-course-lang";
   const setCourseLang = (l: CourseLang) => {
@@ -124,11 +126,11 @@ function Main() {
     if (screen.name === "groups") refreshGame();
   }, [screen.name]);
 
-  // Award crystals whenever a group becomes fully mastered.
+  // Award crystals whenever a group becomes fully mastered, with a toast.
   useEffect(() => {
     if (!content) return;
     const { state, gained } = awardMastery(crystalsRef.current, content, progress);
-    if (gained) { setCrystals(state); saveCrystals(state); }
+    if (gained) { setCrystals(state); saveCrystals(state); setCrystalGain(gained); }
   }, [progress, content]);
 
   const onUnlock = (topic: string): boolean => {
@@ -317,6 +319,7 @@ function Main() {
 
       <WordContextModal word={ctxWord} onClose={() => setCtxWord(null)} onPickWord={setCtxWord} />
       <ImportListModal visible={showImport} onClose={() => setShowImport(false)} onImport={importList} />
+      {crystalGain > 0 && <CrystalToast amount={crystalGain} onDone={() => setCrystalGain(0)} />}
     </SafeAreaView>
   );
 }

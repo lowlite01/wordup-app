@@ -6,6 +6,7 @@ import { Colors, useTheme } from "./theme";
 import { AppContent, keyLabel, wordsForKey } from "./api";
 import { Progress, setWordState } from "./storage";
 import { cachedEntry, fetchDict, pronounce } from "./dict";
+import Confetti from "./Confetti";
 
 interface Props {
   content: AppContent;
@@ -116,6 +117,7 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
   if (!card) {
     return (
       <View style={styles.container}>
+        <Confetti />
         <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
         <View style={styles.done}>
           <Text style={styles.doneEmoji}>🎉</Text>
