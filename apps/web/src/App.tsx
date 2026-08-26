@@ -74,10 +74,17 @@ export default function App() {
   const crystalsRef = useRef(crystals);
   crystalsRef.current = crystals;
 
-  // Award crystals whenever a group becomes fully mastered.
+  // Award crystals whenever a group becomes fully mastered, with a toast.
+  const [crystalGain, setCrystalGain] = useState(0);
   useEffect(() => {
     const { state, gained } = awardMastery(crystalsRef.current, progress);
-    if (gained) { setCrystals(state); saveCrystals(state); }
+    if (gained) {
+      setCrystals(state);
+      saveCrystals(state);
+      setCrystalGain(gained);
+      const id = setTimeout(() => setCrystalGain(0), 2600);
+      return () => clearTimeout(id);
+    }
   }, [progress, contentVersion]);
   const statsRef = useRef(stats);
   statsRef.current = stats;
@@ -409,6 +416,10 @@ export default function App() {
           word={ctxWord}
           onClose={() => setCtxWord(null)}
         />
+      )}
+
+      {crystalGain > 0 && (
+        <div className="crystal-toast" role="status">🎉 +{crystalGain} 💎</div>
       )}
     </AppContext.Provider>
   );

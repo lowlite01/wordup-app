@@ -6,6 +6,7 @@ import {
   collectWords, filteredLevelWords, keyLabel, knownSet, nextLevelKey,
 } from "../lib/groups";
 import { pronounceWord, useIpa, youglishUrl } from "../lib/dict";
+import Confetti from "./Confetti";
 
 interface Props {
   mode: FlashMode;
@@ -136,6 +137,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
       <section>
         <button className="back-btn" onClick={onBack}>{t.back}</button>
         <div className="result-box">
+          <Confetti />
           <h2>{t.deckComplete}</h2>
           <p className="muted">
             {nextKey ? t.deckCompleteNext(keyLabel(nextKey)) : t.deckCompleteAll}

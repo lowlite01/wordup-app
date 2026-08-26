@@ -1078,3 +1078,35 @@ button { font-family: inherit; }
 .pv-example { color: var(--muted); font-size: 0.85rem; font-style: italic; margin-top: 3px; }
 .pv-actions { display: flex; gap: 8px; margin-top: 14px; }
 .pv-actions .btn { flex: 1; }
+
+/* ---- Celebrations ---- */
+.result-box { position: relative; overflow: hidden; }
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+.confetti-piece {
+  position: absolute; top: -16px; width: 8px; height: 14px; border-radius: 2px; opacity: 0.95;
+  animation-name: confetti-fall; animation-timing-function: ease-in;
+  animation-iteration-count: 1; animation-fill-mode: forwards;
+}
+@keyframes confetti-fall {
+  0% { top: -16px; opacity: 1; }
+  100% { top: 115%; opacity: 0; }
+}
+.result-box > *:not(.confetti) { position: relative; z-index: 2; }
+
+.crystal-toast {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%);
+  background: var(--card); color: var(--text); border: 1px solid var(--accent);
+  border-radius: 999px; padding: 12px 22px; font-weight: 800; font-size: 1.05rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35); z-index: 100;
+  animation: toast-pop 2.6s ease forwards;
+}
+@keyframes toast-pop {
+  0% { opacity: 0; transform: translate(-50%, 16px) scale(0.9); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+  22% { transform: translate(-50%, 0) scale(1); }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -10px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece, .crystal-toast { animation-duration: 0.01ms; }
+}
