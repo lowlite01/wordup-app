@@ -48,26 +48,58 @@ export async function fetchDict(word: string): Promise<DictEntry | null> {
   }
 }
 
+// ---- Text-to-speech fallback ----
+// Setting lang="en-US" alone isn't enough: on a phone whose system language
+// is Russian, iOS/Telegram keeps the Russian voice and reads "appetite" as
+// "апетите". So we pick an English voice explicitly.
+let englishVoice: SpeechSynthesisVoice | null = null;
+function pickEnglishVoice() {
+  if (!("speechSynthesis" in window)) return;
+  const voices = speechSynthesis.getVoices();
+  const en = voices.filter(v => v.lang.toLowerCase().replace("_", "-").startsWith("en"));
+  englishVoice =
+    en.find(v => /en-us/i.test(v.lang.replace("_", "-")) && /samantha|google us|aria|jenny|ava/i.test(v.name)) ||
+    en.find(v => /en-us/i.test(v.lang.replace("_", "-"))) ||
+    en.find(v => /en-gb/i.test(v.lang.replace("_", "-"))) ||
+    en[0] || null;
+}
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  pickEnglishVoice();
+  // voices load asynchronously in most browsers
+  speechSynthesis.addEventListener?.("voiceschanged", pickEnglishVoice);
+}
+
 export function speakWord(word: string) {
   if (!("speechSynthesis" in window)) return;
+  if (!englishVoice) pickEnglishVoice();
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(word);
-  u.lang = "en-US";
+  u.lang = englishVoice?.lang || "en-US";
+  if (englishVoice) u.voice = englishVoice;
   u.rate = 0.9;
   speechSynthesis.speak(u);
 }
 
-export async function pronounceWord(word: string) {
-  const d = await fetchDict(word);
-  if (d && d.audio) {
-    try {
-      await new Audio(d.audio).play();
-      return;
-    } catch {
-      // fall back to TTS
-    }
+function playAudio(url: string): Promise<void> {
+  const a = new Audio(url.startsWith("//") ? "https:" + url : url);
+  return a.play();
+}
+
+// Plays the real recording when we have one, otherwise English TTS.
+// iPhones only allow sound that starts *immediately* inside the tap, so when
+// the recording is already cached (flashcards pre-fetch it) we start it
+// right away without awaiting anything first.
+export function pronounceWord(word: string): Promise<void> {
+  const cached = dictEntry(word);
+  if (cached) {
+    if (cached.audio) return playAudio(cached.audio).catch(() => speakWord(word));
+    speakWord(word);
+    return Promise.resolve();
   }
+  // Not looked up yet: speak now (still inside the tap), and cache the
+  // recording for the next time.
   speakWord(word);
+  return fetchDict(word).then(() => undefined);
 }
 
 export function youglishUrl(phrase: string) {
