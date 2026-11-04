@@ -20,6 +20,7 @@ import {
 } from "./lib/customLists";
 import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
+import Emoji from "./components/Emoji";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
 import QuizScreen from "./components/QuizScreen";
@@ -391,28 +392,18 @@ export default function App() {
               onClick={() => setRoute({ s: "groups" })}
               title={t.streakWord}
             >
-              <span className="streak-flame">🔥</span>
+              <Emoji char="🔥" className="streak-flame" />
               <b>{liveStreak(streak)}</b>
             </button>
-            {gamification && (
-              <button className="xp-pill" onClick={() => setRoute({ s: "profile" })} title={t.profileTitle}>
-                <span className="xp-lvl">{t.levelShort} {gamification.level}</span>
-              </button>
-            )}
-            <button
-              className={"avatar-btn" + (route.s === "profile" ? " active" : "")}
-              title={t.profileTitle}
-              onClick={() => setRoute({ s: "profile" })}
-            >
-              {user?.avatarUrl
-                ? <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" />
-                : <span>👤</span>}
-            </button>
+            {/* Account lives inside Settings; the gear shows your avatar when signed in */}
             <button
               className={"icon-btn gear" + (route.s === "settings" ? " active" : "")}
               title={t.settingsTooltip}
               onClick={() => setRoute({ s: "settings" })}
-            >⚙️</button>
+            >
+              <Emoji char="⚙️" className="gear-icon" />
+              {user?.avatarUrl && <img className="gear-avatar" src={user.avatarUrl} alt="" referrerPolicy="no-referrer" />}
+            </button>
           </div>
         </div>
         <nav className="tab-bar">
@@ -423,13 +414,14 @@ export default function App() {
               onClick={() => setRoute({ s: tb.id } as Route)}
             >
               {tb.label}
-              {tb.badge ? <span className="badge">{tb.badge}</span> : null}
+              {tb.badge ? <span className="badge" key={tb.badge}>{tb.badge}</span> : null}
             </button>
           ))}
         </nav>
       </header>
 
-      <main className="app-main">
+      {/* keyed by screen so the slide-in animation replays on every navigation */}
+      <main className="app-main" key={route.s}>
         {route.s === "groups" && (
           <GroupsScreen
             onStart={(key, mode) => startGroup(key, mode, "home")}

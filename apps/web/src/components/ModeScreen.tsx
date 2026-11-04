@@ -4,6 +4,7 @@ import {
   LEVELS, POS_CATS, filteredLevelWords, isKeyComplete, isKeyUnlocked, keyLabel,
   knownSet, learningSet, matchesPos, topicLevelKeys, wordsForKey,
 } from "../lib/groups";
+import Emoji from "./Emoji";
 
 interface Props {
   topic: string;
@@ -79,15 +80,15 @@ export default function ModeScreen(props: Props) {
 
       <div className="mode-buttons">
         <button className="mode-btn" onClick={() => onStart("flashcards")}>
-          <span className="mode-icon">🗂️</span>
+          <Emoji char="🗂️" className="mode-icon" />
           <span>{t.flashcards}</span>
         </button>
         <button className="mode-btn" onClick={() => onStart("quiz")}>
-          <span className="mode-icon">❓</span>
+          <Emoji char="❓" className="mode-icon" />
           <span>{t.quiz}</span>
         </button>
         <button className="mode-btn" onClick={() => onStart("list")}>
-          <span className="mode-icon">📋</span>
+          <Emoji char="📋" className="mode-icon" />
           <span>{t.wordList}</span>
         </button>
       </div>

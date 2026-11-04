@@ -8,6 +8,7 @@ import {
 import { pronounceWord, useIpa, youglishUrl } from "../lib/dict";
 import { liveStreak, planDeck } from "../lib/dailyPlan";
 import Confetti from "./Confetti";
+import Emoji from "./Emoji";
 
 interface Props {
   mode: FlashMode;
@@ -153,7 +154,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
         <button className="back-btn" onClick={onBack}>{t.back}</button>
         <div className="result-box plan-done">
           {plan.completed && <Confetti />}
-          <div className="plan-done-flame">🔥</div>
+          <Emoji char="🔥" className="plan-done-flame" />
           <div className="plan-done-count">{n}</div>
           <h2>{plan.completed ? t.planDoneTitle : t.planEmptyTitle}</h2>
           <p className="muted">{plan.completed ? t.planDoneSub(n) : t.planEmptySub}</p>
@@ -215,7 +216,8 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
         </div>
       )}
 
-      <div className="card-stage">
+      {/* keyed by word so every new card plays its fly-in animation */}
+      <div className="card-stage" key={current.key + "|" + current.word}>
         <div
           className={"flashcard" + (flipped ? " flipped" : "")}
           onClick={() => setFlipped(f => !f)}
@@ -234,13 +236,13 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
                 className="round-btn"
                 title={t.playTooltip}
                 onClick={e => { e.stopPropagation(); pronounceWord(current.word); }}
-              >🔊</button>
+              ><Emoji char="🔊" /></button>
               {hasMic && (
                 <button
                   className={"round-btn" + (mic.status === "listening" ? " listening" : "")}
                   title={t.micTooltip}
                   onClick={e => { e.stopPropagation(); startMic(); }}
-                >🎤</button>
+                ><Emoji char="🎤" /></button>
               )}
             </div>
             <div className={"mic-feedback " + micClass}>{micText}</div>

@@ -1,6 +1,7 @@
 import { useApp } from "../context";
 import { useT, type Dict } from "../i18n";
 import type { CourseLang, Lang, ThemeName } from "../types";
+import ProfileScreen from "./ProfileScreen";
 
 const THEME_META: { id: ThemeName; name: (t: Dict) => string; desc: (t: Dict) => string; swatches: string[] }[] = [
   {
@@ -47,6 +48,8 @@ export default function SettingsScreen() {
   return (
     <section>
       <h2 className="screen-title">{t.settingsTitle}</h2>
+
+      <ProfileScreen embedded />
 
       <h3 className="settings-group">{t.courseSection}</h3>
       <div className="level-chips">

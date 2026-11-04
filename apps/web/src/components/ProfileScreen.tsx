@@ -3,10 +3,17 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import { GOOGLE_CLIENT_ID, type LeaderRow } from "../lib/api";
+import { liveStreak } from "../lib/dailyPlan";
+import Emoji from "./Emoji";
 
-export default function ProfileScreen() {
-  const { user, gamification, loginWithGoogle, logout, loadLeaderboard } = useApp();
+// Account block. Shown at the top of Settings (embedded) — the header only
+// keeps the streak and the settings gear.
+export default function ProfileScreen({ embedded = false }: { embedded?: boolean }) {
+  const { user, gamification, loginWithGoogle, logout, loadLeaderboard, streak } = useApp();
   const t = useT();
+  const Title = () => embedded
+    ? <h3 className="settings-group">{t.accountSection}</h3>
+    : <h2 className="screen-title">{t.profileTitle}</h2>;
   const [board, setBoard] = useState<LeaderRow[] | null>(null);
   const [error, setError] = useState("");
 
@@ -17,7 +24,7 @@ export default function ProfileScreen() {
   if (!user) {
     return (
       <section>
-        <h2 className="screen-title">{t.profileTitle}</h2>
+        <Title />
         <p className="muted">{t.loginPitch}</p>
         {GOOGLE_CLIENT_ID ? (
           <div className="login-box">
@@ -44,12 +51,12 @@ export default function ProfileScreen() {
   const g = gamification;
   return (
     <section>
-      <h2 className="screen-title">{t.profileTitle}</h2>
+      <Title />
 
       <div className="profile-head">
         {user.avatarUrl
           ? <img className="profile-avatar" src={user.avatarUrl} alt="" referrerPolicy="no-referrer" />
-          : <div className="profile-avatar placeholder">👤</div>}
+          : <div className="profile-avatar placeholder"><Emoji char="👤" /></div>}
         <div>
           <div className="profile-name">{user.name || user.email}</div>
           <div className="muted">{user.email}</div>
@@ -69,7 +76,7 @@ export default function ProfileScreen() {
               <span className="stat-label">XP</span>
             </div>
             <div className="stat-card">
-              <span className="stat-num">🔥 {g.streak}</span>
+              <span className="stat-num"><Emoji char="🔥" /> {liveStreak(streak)}</span>
               <span className="stat-label">{t.streakWord}</span>
             </div>
             <div className="stat-card">

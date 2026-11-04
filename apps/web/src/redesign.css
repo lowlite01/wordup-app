@@ -383,3 +383,142 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
   .today-flame, .plan-done-flame, .app-main { animation: none; }
   .ring-fg, .plan-bar span, .flashcard { transition: none; }
 }
+
+/* ======================================================================
+   Fixes + motion pass
+   ====================================================================== */
+
+/* Gradient fills behind a transparent border used to repeat the gradient
+   under the 1px border, leaving a thin stripe on the edges. Paint the
+   gradient across the border box instead. */
+.tab.active, .btn.primary, .today-go, .logo-mark, .week-day.lit .week-dot {
+  background-origin: border-box;
+  border-color: transparent;
+}
+/* Gradient text gets clipped at the glyph edges; give it a little room. */
+.logo, .today-num, .plan-done-count {
+  display: inline-block;
+  padding: 0 0.08em;
+  margin: 0 -0.08em;
+}
+
+/* ---- 3D emoji (Microsoft Fluent Emoji images) ---- */
+.emoji-3d {
+  display: inline-block;
+  vertical-align: -0.16em;
+  object-fit: contain;
+  user-select: none;
+}
+.week-dot .emoji-3d { width: 1.15rem !important; height: 1.15rem !important; }
+.mode-icon { font-size: 2.6rem; background: none; width: auto; height: auto; }
+.mode-btn:hover .mode-icon { animation: wiggle .5s ease; }
+.gear { position: relative; display: inline-grid; place-items: center; width: 42px; height: 42px; padding: 0; }
+.gear-icon { font-size: 1.35rem; transition: transform .5s ease; }
+.gear:hover .gear-icon { transform: rotate(90deg); }
+.gear-avatar {
+  position: absolute; right: -3px; bottom: -3px;
+  width: 18px; height: 18px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--bg);
+}
+.crystal-big { animation: float 3.2s ease-in-out infinite; }
+.topic-lock .emoji-3d, .journey-unlock .emoji-3d { width: 1.05em !important; height: 1.05em !important; }
+
+/* ---- Screen transitions: every screen slides in (main is re-keyed per route) ---- */
+.app-main { animation: rise .4s cubic-bezier(.2, .8, .2, 1) backwards; }
+
+/* ---- Staggered entrance for lists and cards ---- */
+.word-row, .journey-row, .topic-card, .gram-card, .pv-card, .stat-card, .ach-card,
+.leader-row, .my-list, .recent-chip, .theme-card, .mode-btn, .quiz-option,
+.daily-card, .crystal-card, .levels-link, .today, .lang-card {
+  animation: pop-in .45s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+:is(.word-row, .journey-row, .topic-card, .gram-card, .pv-card, .stat-card, .ach-card,
+    .leader-row, .my-list, .recent-chip, .theme-card, .mode-btn, .quiz-option, .lang-card):nth-child(2) { animation-delay: .04s; }
+:is(.word-row, .journey-row, .topic-card, .gram-card, .pv-card, .stat-card, .ach-card,
+    .leader-row, .my-list, .recent-chip, .theme-card, .mode-btn, .quiz-option, .lang-card):nth-child(3) { animation-delay: .08s; }
+:is(.word-row, .journey-row, .topic-card, .gram-card, .pv-card, .stat-card, .ach-card,
+    .leader-row, .my-list, .recent-chip, .theme-card, .mode-btn, .quiz-option, .lang-card):nth-child(4) { animation-delay: .12s; }
+:is(.word-row, .journey-row, .topic-card, .gram-card, .pv-card, .stat-card, .ach-card,
+    .leader-row, .my-list, .recent-chip, .theme-card, .mode-btn, .quiz-option, .lang-card):nth-child(5) { animation-delay: .16s; }
+:is(.word-row, .journey-row, .topic-card, .gram-card, .pv-card, .stat-card, .ach-card,
+    .leader-row, .my-list, .recent-chip, .theme-card, .mode-btn, .quiz-option, .lang-card):nth-child(n+6) { animation-delay: .2s; }
+.daily-card { animation-delay: .06s; }
+.crystal-card { animation-delay: .1s; }
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-5px) rotate(4deg); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-12deg) scale(1.1); }
+  75% { transform: rotate(10deg) scale(1.1); }
+}
+
+/* Progress bars fill up from the left when they appear */
+.journey-track span, .topic-bar span, .stat-track span, .xp-bar span, .g-progress span {
+  transform-origin: left center;
+  animation: grow .9s cubic-bezier(.2, .8, .2, 1) .15s backwards;
+}
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Tabs press in; the counter badge bumps when its number changes */
+.tab:active { transform: scale(.95); }
+.badge { display: inline-block; animation: bump .45s ease; }
+@keyframes bump {
+  0% { transform: scale(.6); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* Flashcards: each new card flies in; buttons react */
+.card-stage { animation: card-in .45s cubic-bezier(.2, .8, .2, 1) backwards; }
+@keyframes card-in {
+  from { opacity: 0; transform: translateX(40px) rotate(3deg) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+.round-btn { transition: transform .15s, border-color .15s; }
+.round-btn:hover { transform: scale(1.1); }
+.round-btn:active { transform: scale(.92); }
+.round-btn .emoji-3d { width: 1.4rem !important; height: 1.4rem !important; }
+
+/* Quiz: the right answer pops, a wrong one shakes */
+.quiz-option.correct { animation: correct-pop .45s ease both; }
+.quiz-option.wrong { animation: shake .45s ease both; }
+@keyframes correct-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.04); box-shadow: 0 0 0 6px color-mix(in srgb, var(--success) 25%, transparent); }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.quiz-feedback:not(:empty) { animation: pop-in .3s ease both; }
+
+/* Grammar & phrasal accordions: chevrons spin, bodies slide down */
+.pv-body { animation: rise .25s ease both; }
+.gram-head:hover .gram-chev, .pv-head:hover .pv-chev { transform: translateY(2px); }
+
+/* Result / deck complete boxes bounce in */
+.result-box { animation: result-in .6s cubic-bezier(.2, 1.4, .4, 1) backwards; }
+@keyframes result-in {
+  from { opacity: 0; transform: scale(.85) translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Settings: theme cards and chips feel tactile */
+.level-chip { transition: transform .12s, background .15s, color .15s, border-color .15s; }
+.level-chip:active:not(:disabled) { transform: scale(.94); }
+.theme-card:active { transform: scale(.98); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

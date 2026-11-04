@@ -185,6 +185,7 @@ const EN = {
   adminSaved: "Saved",
 
   profileTitle: "Profile",
+  accountSection: "Account",
   levelShort: "Lv",
   levelWord: "Level",
   streakWord: "Day streak",
@@ -414,6 +415,7 @@ const RU: Dict = {
   adminSaved: "Сохранено",
 
   profileTitle: "Профиль",
+  accountSection: "Аккаунт",
   levelShort: "Ур.",
   levelWord: "Уровень",
   streakWord: "Дней подряд",
@@ -640,6 +642,7 @@ const DE: Dict = {
   adminSaved: "Gespeichert",
 
   profileTitle: "Profil",
+  accountSection: "Konto",
   levelShort: "St.",
   levelWord: "Stufe",
   streakWord: "Tage-Serie",

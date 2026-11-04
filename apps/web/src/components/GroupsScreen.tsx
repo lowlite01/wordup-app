@@ -9,6 +9,7 @@ import { customKey, listToJson, listToText } from "../lib/customLists";
 import { topicEmoji } from "../lib/topicIcons";
 import { itemId, lastWeek, liveStreak, today } from "../lib/dailyPlan";
 import WordRow from "./WordRow";
+import Emoji from "./Emoji";
 import ImportListModal from "./ImportListModal";
 
 type Mode = "flashcards" | "quiz" | "list";
@@ -38,10 +39,10 @@ function TopicCard({ topic, level, onStart, onUnlock }: {
       style={{ "--tint": LEVEL_COLORS[level] } as React.CSSProperties}
       onClick={() => (locked ? onUnlock(topic) : onStart(topic, "flashcards"))}
     >
-      <span className="topic-emoji">{topicEmoji(topic)}</span>
+      <Emoji char={topicEmoji(topic)} className="topic-emoji" />
       <span className="topic-name">{keyLabel(topic)}</span>
       {locked ? (
-        <span className="topic-lock">🔒 {unlockCost(topic)} 💎</span>
+        <span className="topic-lock"><Emoji char="🔒" /> {unlockCost(topic)} <Emoji char="💎" /></span>
       ) : (
         <>
           <span className="topic-count">{pct === 100 ? "✓ " : ""}{t.topicCount(known, total)}</span>
@@ -72,7 +73,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
     <div className={"today" + (plan.completed ? " done" : "") + (n === 0 ? " cold" : "")}>
       <div className="today-top">
         <div className="today-streak">
-          <span className="today-flame" aria-hidden>🔥</span>
+          <Emoji char="🔥" className="today-flame" />
           <div>
             <div className="today-num">{n}</div>
             <div className="today-label">{t.streakDays(n)}</div>
@@ -97,7 +98,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
           const label = new Date(d + "T12:00:00").toLocaleDateString(locale, { weekday: "short" });
           return (
             <div key={d} className={"week-day" + (lit ? " lit" : "") + (isToday ? " now" : "")}>
-              <span className="week-dot">{lit ? "🔥" : ""}</span>
+              <span className="week-dot">{lit ? <Emoji char="🔥" /> : ""}</span>
               <span className="week-name">{label.slice(0, 2)}</span>
             </div>
           );
@@ -203,7 +204,7 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels }: Pro
               ) : null;
             })()}
             <div className="crystal-card">
-              <span className="crystal-big">💎</span>
+              <Emoji char="💎" className="crystal-big" />
               <span className="crystal-num">{crystals.crystals}</span>
               <span className="crystal-cap">{t.crystalsCap}</span>
             </div>
@@ -255,7 +256,7 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels }: Pro
                 return (
                   <div className="my-list" key={list.id}>
                     <button className="my-list-main" onClick={() => onStart(customKey(list.id), "flashcards")}>
-                      <span className="my-list-badge">📝</span>
+                      <span className="my-list-badge"><Emoji char="📝" /></span>
                       <span className="my-list-mid">
                         <span className="my-list-name">{list.name}</span>
                         <span className="my-list-sum">{known} / {total}</span>

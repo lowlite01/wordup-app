@@ -114,3 +114,7 @@ Everything auto-deploys from `main`:
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Credits
+
+3D icons: [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), loaded from jsDelivr.

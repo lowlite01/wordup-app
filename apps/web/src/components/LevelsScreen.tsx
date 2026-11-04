@@ -7,6 +7,7 @@ import {
 } from "../lib/groups";
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { topicEmoji } from "../lib/topicIcons";
+import Emoji from "./Emoji";
 
 type Mode = "flashcards" | "quiz" | "list";
 
@@ -29,13 +30,13 @@ function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStar
     return (
       <div className="journey-sub locked">
         <button className="journey-sub-main" onClick={onUnlock}>
-          <span className="journey-sub-badge">🔒</span>
+          <span className="journey-sub-badge"><Emoji char="🔒" /></span>
           <span className="journey-sub-mid">
             <span className="journey-sub-title">{label}</span>
             <span className="journey-sub-sum">{total} words · tap to unlock</span>
           </span>
         </button>
-        <span className="journey-unlock">{cost} 💎</span>
+        <span className="journey-unlock">{cost} <Emoji char="💎" /></span>
       </div>
     );
   }
@@ -43,14 +44,14 @@ function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStar
   return (
     <div className="journey-sub">
       <button className="journey-sub-main" onClick={() => onStart(groupKey, "flashcards")}>
-        <span className={"journey-sub-badge" + (emoji ? " emoji" : "")}>{emoji || letter}</span>
+        <span className={"journey-sub-badge" + (emoji ? " emoji" : "")}>{emoji ? <Emoji char={emoji} /> : letter}</span>
         <span className="journey-sub-mid">
           <span className="journey-sub-title">{label}</span>
           <span className="journey-sub-sum">{known} / {total}{pct ? ` · ${pct}%` : ""}</span>
         </span>
       </button>
-      <button className="journey-sub-mode" title="Quiz" onClick={() => onStart(groupKey, "quiz")}>❓</button>
-      <button className="journey-sub-mode" title="Word list" onClick={() => onStart(groupKey, "list")}>📋</button>
+      <button className="journey-sub-mode" title="Quiz" onClick={() => onStart(groupKey, "quiz")}><Emoji char="❓" /></button>
+      <button className="journey-sub-mode" title="Word list" onClick={() => onStart(groupKey, "list")}><Emoji char="📋" /></button>
     </div>
   );
 }
