@@ -4,28 +4,33 @@ import { Colors, useTheme } from "./theme";
 
 interface Props {
   amount: number;
+  text?: string; // custom message (e.g. "🔥 3 · +5 💎"); defaults to "🎉 +N 💎"
   onDone: () => void;
 }
 
 // Floating "+N 💎" toast shown when crystals are earned. Fades in, holds, fades
 // out, then calls onDone so the parent can drop it.
-export default function CrystalToast({ amount, onDone }: Props) {
+export default function CrystalToast({ amount, text, onDone }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const v = useRef(new Animated.Value(0)).current;
 
+  // Run once per toast. (onDone is a new function on every parent render, so
+  // depending on it would restart the animation.)
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
   useEffect(() => {
     Animated.sequence([
       Animated.timing(v, { toValue: 1, duration: 260, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }),
       Animated.delay(1900),
       Animated.timing(v, { toValue: 0, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-    ]).start(() => onDone());
-  }, [v, onDone]);
+    ]).start(() => doneRef.current());
+  }, [v]);
 
   const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
   return (
     <Animated.View style={[styles.toast, { opacity: v, transform: [{ translateY }] }]} pointerEvents="none">
-      <Text style={styles.text}>🎉 +{amount} 💎</Text>
+      <Text style={styles.text}>{text ?? `🎉 +${amount} 💎`}</Text>
     </Animated.View>
   );
 }

@@ -3,10 +3,13 @@ import {
   Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { Colors, useTheme } from "./theme";
-import { AppContent, keyLabel, wordsForKey } from "./api";
+import { AppContent, KeyedWord, keyLabel, wordsForKey } from "./api";
 import { Progress, setWordState } from "./storage";
 import { cachedEntry, fetchDict, pronounce } from "./dict";
 import Confetti from "./Confetti";
+import Emoji from "./Emoji";
+
+type DeckCard = KeyedWord & { kind?: "new" | "review" };
 
 interface Props {
   content: AppContent;
@@ -14,17 +17,28 @@ interface Props {
   progress: Progress;
   onChangeProgress: (p: Progress) => void;
   onBack: () => void;
+  // Daily-plan mode: a fixed deck from several groups. Both answers count the
+  // card as done for today.
+  plan?: {
+    deck: DeckCard[];
+    done: number;
+    total: number;
+    completed: boolean;
+    streak: number;
+    onAnswer: (key: string, word: string) => void;
+  };
 }
 
 const SWIPE_THRESHOLD = 110;
 
-export default function FlashcardsScreen({ content, groupKey, progress, onChangeProgress, onBack }: Props) {
+export default function FlashcardsScreen({ content, groupKey, progress, onChangeProgress, onBack, plan }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const known = progress.known[groupKey] || [];
-  const [deck, setDeck] = useState(() =>
-    wordsForKey(content, groupKey).filter(w => !known.includes(w.word)));
+  const [deck, setDeck] = useState<DeckCard[]>(() =>
+    plan ? plan.deck
+      : wordsForKey(content, groupKey).filter(w => !known.includes(w.word)).map(w => ({ ...w, key: groupKey })));
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
@@ -76,10 +90,17 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
   cardRef.current = card;
   const actRef = useRef({ advanceLearning, removeKnown });
   actRef.current = { advanceLearning, removeKnown };
+  const isPlanRef = useRef(!!plan);
 
+  // Each card carries its own group key (needed in plan mode, where cards come
+  // from several groups).
   const mark = (state: "known" | "learning", word: string) => {
-    onChangeProgress(setWordState(progress, groupKey, word, state));
+    const key = cardRef.current?.key ?? groupKey;
+    onChangeProgress(setWordState(progressRef.current, key, word, state));
+    if (plan) plan.onAnswer(key, word);
   };
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
   const markRef = useRef(mark);
   markRef.current = mark;
 
@@ -98,7 +119,8 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
           flyOff(1, () => actRef.current.removeKnown(w));
         } else if (g.dx < -SWIPE_THRESHOLD && w) {
           markRef.current("learning", w);
-          flyOff(-1, () => actRef.current.advanceLearning());
+          // in the daily plan a "still learning" card is also done for today
+          flyOff(-1, () => (isPlanRef.current ? actRef.current.removeKnown(w) : actRef.current.advanceLearning()));
         } else {
           if (Math.abs(g.dx) < 8 && Math.abs(g.dy) < 8) setRevealed(r => !r);
           Animated.spring(pos, { toValue: 0, friction: 6, useNativeDriver: true }).start();
@@ -114,13 +136,35 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
   const frontRotate = flip.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
   const backRotate = flip.interpolate({ inputRange: [0, 1], outputRange: ["180deg", "360deg"] });
 
+  if (!card && plan) {
+    return (
+      <View style={styles.container}>
+        {plan.completed && <Confetti />}
+        <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+        <View style={styles.done}>
+          <Emoji char="🔥" size={84} />
+          <Text style={styles.doneStreak}>{plan.streak}</Text>
+          <Text style={styles.doneTitle}>{plan.completed ? "Plan done!" : "Nothing to study today"}</Text>
+          <Text style={styles.doneText}>
+            {plan.completed
+              ? `Streak: ${plan.streak} ${plan.streak === 1 ? "day" : "days"} in a row. Come back tomorrow for a new plan.`
+              : "You've learned every word available. Unlock a new topic to get fresh words."}
+          </Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={onBack}>
+            <Text style={styles.btnPrimaryText}>Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   if (!card) {
     return (
       <View style={styles.container}>
         <Confetti />
         <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
         <View style={styles.done}>
-          <Text style={styles.doneEmoji}>🎉</Text>
+          <Emoji char="🎉" size={64} />
           <Text style={styles.doneText}>You know every word in this deck!</Text>
           <TouchableOpacity style={styles.btnPrimary} onPress={onBack}>
             <Text style={styles.btnPrimaryText}>Back</Text>
@@ -133,8 +177,15 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
-      <Text style={styles.title}>{keyLabel(groupKey)}</Text>
-      <Text style={styles.progress}>Card {Math.min(idx, deck.length - 1) + 1} / {deck.length}</Text>
+      <Text style={styles.title}>{plan ? "Today's plan" : keyLabel(groupKey)}</Text>
+      <Text style={styles.progress}>
+        {plan ? `${plan.done} / ${plan.total} today · ${keyLabel(card.key)}` : `Card ${Math.min(idx, deck.length - 1) + 1} / ${deck.length}`}
+      </Text>
+      {plan && (
+        <View style={styles.planTrack}>
+          <View style={[styles.planFill, { width: `${plan.total ? (plan.done / plan.total) * 100 : 0}%` }]} />
+        </View>
+      )}
 
       <View style={styles.stage}>
         <View style={[styles.face, styles.peek]} />
@@ -151,6 +202,11 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
 
           <Animated.View style={[styles.face, { transform: [{ perspective: 1000 }, { rotateY: frontRotate }] }]}>
             <Text style={styles.pos}>{card.pos}</Text>
+            {card.kind && (
+              <Text style={[styles.kind, card.kind === "review" && styles.kindReview]}>
+                {card.kind === "new" ? "NEW" : "REVIEW"}
+              </Text>
+            )}
             <Text style={styles.word}>{card.word}</Text>
             {ipa ? <Text style={styles.ipa}>{ipa}</Text> : null}
             <Text style={styles.hint}>Tap to flip · swipe to sort</Text>
@@ -163,13 +219,14 @@ export default function FlashcardsScreen({ content, groupKey, progress, onChange
       </View>
 
       <TouchableOpacity style={styles.speak} onPress={() => pronounce(card.word)}>
-        <Text style={styles.speakText}>🔊 Pronounce</Text>
+        <Emoji char="🔊" size={20} />
+        <Text style={styles.speakText}>Pronounce</Text>
       </TouchableOpacity>
 
       <View style={styles.row}>
         <TouchableOpacity
           style={[styles.btn, styles.btnDanger]}
-          onPress={() => { mark("learning", card.word); advanceLearning(); }}
+          onPress={() => { mark("learning", card.word); if (plan) removeKnown(card.word); else advanceLearning(); }}
         >
           <Text style={[styles.btnText, { color: colors.danger }]}>Still learning</Text>
         </TouchableOpacity>
@@ -221,7 +278,18 @@ const makeStyles = (c: Colors) => StyleSheet.create({
   speak: {
     alignSelf: "center", marginTop: 8, backgroundColor: c.accentSoft, borderColor: c.border,
     borderWidth: 1, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 18,
+    flexDirection: "row", alignItems: "center", gap: 8,
   },
+  kind: {
+    color: c.accentStrong, backgroundColor: c.accentSoft, borderRadius: 999, overflow: "hidden",
+    paddingHorizontal: 10, paddingVertical: 2, fontSize: 11, fontWeight: "800", letterSpacing: 1,
+    marginTop: -6, marginBottom: 10,
+  },
+  kindReview: { color: "#FF9A5C", backgroundColor: "#FF8C3C22" },
+  planTrack: { height: 6, backgroundColor: c.card2, borderRadius: 999, overflow: "hidden", marginBottom: 10 },
+  planFill: { height: 6, backgroundColor: "#FF7A45", borderRadius: 999 },
+  doneStreak: { color: "#FF7A45", fontSize: 56, fontWeight: "900", letterSpacing: -2, marginTop: 4 },
+  doneTitle: { color: c.text, fontSize: 22, fontWeight: "800", marginTop: 4 },
   speakText: { color: c.accentStrong, fontWeight: "600", fontSize: 14 },
   row: { flexDirection: "row", gap: 10, marginTop: 14 },
   btn: {

@@ -4,6 +4,7 @@ import {
   customLabelForKey, customListKeys, customWordsForKey, isCustomKey,
 } from "./customLists";
 import { isPhrasalKey, phrasalLabelForKey, phrasalWordsForKey } from "./phrasalVerbs";
+import { ieltsLabelForKey, ieltsWordsForKey, isIeltsKey } from "./ielts";
 
 export const API_URL = "https://wordup-api.onrender.com/api";
 
@@ -41,6 +42,7 @@ export function keyParts(key: string) {
 export function keyLabel(key: string) {
   if (isCustomKey(key)) return customLabelForKey(key);
   if (isPhrasalKey(key)) return phrasalLabelForKey(key);
+  if (isIeltsKey(key)) return ieltsLabelForKey(key);
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
   return level > 1 ? `${name} · ${level}` : name;
@@ -49,6 +51,7 @@ export function keyLabel(key: string) {
 export function wordsForKey(content: AppContent, key: string): Word[] {
   if (isCustomKey(key)) return customWordsForKey(key);
   if (isPhrasalKey(key)) return phrasalWordsForKey(key);
+  if (isIeltsKey(key)) return ieltsWordsForKey(key);
   const { name, level } = keyParts(key);
   return level === 1 ? content.wordGroups[name] || [] : content.topicLevel2[name] || [];
 }
