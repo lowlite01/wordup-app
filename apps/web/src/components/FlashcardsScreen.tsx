@@ -6,6 +6,7 @@ import {
   collectWords, filteredLevelWords, keyLabel, knownSet, nextLevelKey,
 } from "../lib/groups";
 import { pronounceWord, useIpa, youglishUrl } from "../lib/dict";
+import { liveStreak, planDeck } from "../lib/dailyPlan";
 import Confetti from "./Confetti";
 
 interface Props {
@@ -21,10 +22,11 @@ type Mic =
   | { status: "heard"; heard: string };
 
 export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, onNextLevel }: Props) {
-  const { progress, setWordState, resetKey, recordRecent, settings } = useApp();
+  const { progress, setWordState, resetKey, recordRecent, settings, plan, streak, answerPlan } = useApp();
   const t = useT();
   const progressRef = useRef(progress);
   progressRef.current = progress;
+  const isPlan = mode === "plan";
 
   const buildGroupDeck = (includeKnown: boolean): KeyedWord[] => {
     const known = knownSet(progressRef.current, groupKey);
@@ -34,7 +36,9 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
   };
 
   const [deck, setDeck] = useState<KeyedWord[]>(() =>
-    mode === "learning-mix" ? collectWords(progress, "learning") : buildGroupDeck(false));
+    isPlan ? planDeck(plan)
+    : mode === "learning-mix" ? collectWords(progress, "learning")
+    : buildGroupDeck(false));
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [studyAll, setStudyAll] = useState(false);
@@ -42,7 +46,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
   const recognizing = useRef(false);
 
   useEffect(() => {
-    if (mode !== "learning-mix") recordRecent(groupKey);
+    if (mode !== "learning-mix" && !isPlan) recordRecent(groupKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -71,9 +75,8 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
     setFlipped(false);
   };
 
-  const markKnown = () => {
+  const dropCurrent = () => {
     if (!current) return;
-    setWordState(current.key, current.word, "known");
     setDeck(d => {
       const next = d.filter(w => !(w.key === current.key && w.word === current.word));
       if (idx >= next.length) setIdx(0);
@@ -82,10 +85,22 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
     setFlipped(false);
   };
 
+  const markKnown = () => {
+    if (!current) return;
+    setWordState(current.key, current.word, "known");
+    if (isPlan) answerPlan(current.key, current.word);
+    dropCurrent();
+  };
+
+  // In the daily plan both answers count the card as done for today
+  // (otherwise the plan could never be finished).
   const markLearning = () => {
     if (!current) return;
     setWordState(current.key, current.word, "learning");
-    move(1);
+    if (isPlan) {
+      answerPlan(current.key, current.word);
+      dropCurrent();
+    } else move(1);
   };
 
   const reset = () => {
@@ -131,6 +146,23 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
 
   const hasMic = Boolean((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
+  if (!current && isPlan) {
+    const n = liveStreak(streak);
+    return (
+      <section>
+        <button className="back-btn" onClick={onBack}>{t.back}</button>
+        <div className="result-box plan-done">
+          {plan.completed && <Confetti />}
+          <div className="plan-done-flame">🔥</div>
+          <div className="plan-done-count">{n}</div>
+          <h2>{plan.completed ? t.planDoneTitle : t.planEmptyTitle}</h2>
+          <p className="muted">{plan.completed ? t.planDoneSub(n) : t.planEmptySub}</p>
+          <button className="btn primary wide" onClick={onBack}>{t.backBtn}</button>
+        </div>
+      </section>
+    );
+  }
+
   if (!current) {
     const nextKey = mode === "group" && !studyAll ? nextLevelKey(groupKey) : null;
     return (
@@ -163,9 +195,12 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
     );
   }
 
-  const counter = mode === "learning-mix"
+  const counter = isPlan
+    ? t.planProgress(plan.done.length, plan.items.length)
+    : mode === "learning-mix"
     ? t.stillLearningCount(collectWords(progress, "learning").length)
     : t.knownCount(knownSet(progress, groupKey).size);
+  const kind = isPlan ? (current as KeyedWord & { kind?: string }).kind : undefined;
 
   return (
     <section>
@@ -174,6 +209,11 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
         <span>{t.cardProgress(Math.min(idx, deck.length - 1) + 1, deck.length)}</span>
         <span>{counter}</span>
       </div>
+      {isPlan && (
+        <div className="plan-bar">
+          <span style={{ width: `${plan.items.length ? (plan.done.length / plan.items.length) * 100 : 0}%` }} />
+        </div>
+      )}
 
       <div className="card-stage">
         <div
@@ -182,8 +222,11 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
         >
           <div className="flashcard-face flashcard-front">
             <div className="pos-tag">
-              {current.pos}{mode === "learning-mix" ? ` · ${keyLabel(current.key)}` : ""}
+              {current.pos}{mode === "learning-mix" || isPlan ? ` · ${keyLabel(current.key)}` : ""}
             </div>
+            {kind && (
+              <div className={"plan-kind " + kind}>{kind === "new" ? t.planNew : t.planReview}</div>
+            )}
             <div className="fc-word">{current.word}</div>
             <div className="fc-ipa">{ipa}</div>
             <div className="fc-actions">

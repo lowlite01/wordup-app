@@ -52,4 +52,4 @@ export interface GrammarSection {
   items: GrammarItem[];
 }
 
-export type FlashMode = "group" | "all" | "learning-mix";
+export type FlashMode = "group" | "all" | "learning-mix" | "plan";

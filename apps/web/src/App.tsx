@@ -34,6 +34,9 @@ import AdminScreen from "./components/AdminScreen";
 import ContextModal from "./components/ContextModal";
 import LanguagePicker from "./components/LanguagePicker";
 import { loadContent } from "./lib/content";
+import {
+  PLAN_BONUS, completeDay, liveStreak, loadPlan, loadStreak, markPlanItem, savePlan, saveStreak, today,
+} from "./lib/dailyPlan";
 
 type Route =
   | { s: "groups" }
@@ -74,18 +77,74 @@ export default function App() {
   const crystalsRef = useRef(crystals);
   crystalsRef.current = crystals;
 
+  // Small pop-up message at the bottom (crystals earned, plan finished…).
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const showToast = (text: string) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  };
+
   // Award crystals whenever a group becomes fully mastered, with a toast.
-  const [crystalGain, setCrystalGain] = useState(0);
   useEffect(() => {
     const { state, gained } = awardMastery(crystalsRef.current, progress);
     if (gained) {
       setCrystals(state);
       saveCrystals(state);
-      setCrystalGain(gained);
-      const id = setTimeout(() => setCrystalGain(0), 2600);
-      return () => clearTimeout(id);
+      showToast(`🎉 +${gained} 💎`);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, contentVersion]);
+
+  // ---- Daily plan + streak ----
+  const courseLang = settings.courseLang ?? "en";
+  const [plan, setPlan] = useState(() => loadPlan(courseLang, progress, crystals));
+  const [streak, setStreak] = useState(loadStreak);
+  const planRef = useRef(plan);
+  planRef.current = plan;
+  const streakRef = useRef(streak);
+  streakRef.current = streak;
+
+  // Rebuild/validate the plan when content (re)loads or the course changes.
+  useEffect(() => {
+    setPlan(loadPlan(courseLang, progressRef.current, crystalsRef.current));
+  }, [contentVersion, courseLang]);
+
+  // If the tab stays open past midnight, start a new day when the user comes back.
+  useEffect(() => {
+    const check = () => {
+      if (planRef.current.date !== today()) {
+        setPlan(loadPlan(courseLang, progressRef.current, crystalsRef.current));
+        setStreak(loadStreak());
+      }
+    };
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [courseLang]);
+
+  const answerPlan = (key: string, word: string) => {
+    const prev = planRef.current;
+    const next = markPlanItem(prev, key, word);
+    if (next === prev) return;
+    planRef.current = next;
+    setPlan(next);
+    savePlan(courseLang, next);
+    if (next.completed && !prev.completed) {
+      // Day done: extend the streak and give a small crystal bonus.
+      const s = completeDay(streakRef.current);
+      setStreak(s);
+      saveStreak(s);
+      const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + PLAN_BONUS };
+      setCrystals(c);
+      saveCrystals(c);
+      showToast(`🔥 ${s.count} · +${PLAN_BONUS} 💎`);
+    }
+  };
   const statsRef = useRef(stats);
   statsRef.current = stats;
 
@@ -229,6 +288,10 @@ export default function App() {
       return true;
     },
 
+    plan,
+    streak,
+    answerPlan,
+
     customLists: getCustomLists(),
     importCustomList: (name, text) => {
       const words = parseWords(text);
@@ -247,7 +310,8 @@ export default function App() {
       renameCustomListFn(id, name);
       setCustomVersion(v => v + 1);
     },
-  }), [progress, stats, recent, settings, user, gamification, crystals, customVersion]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [progress, stats, recent, settings, user, gamification, crystals, customVersion, plan, streak]);
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
   const knownCount = useMemo(() => collectWords(progress, "known").length, [progress]);
@@ -303,14 +367,24 @@ export default function App() {
     <AppContext.Provider value={api2}>
       <header className="app-header">
         <div className="header-inner">
-          <div>
-            <h1 className="logo">WordUp</h1>
-            <p className="subtitle">{settings.courseLang === "de" ? t.subtitleDe : t.subtitle}</p>
-          </div>
+          <button className="logo-btn" onClick={() => setRoute({ s: "groups" })}>
+            <span className="logo-mark">W</span>
+            <span>
+              <h1 className="logo">WordUp</h1>
+              <p className="subtitle">{settings.courseLang === "de" ? t.subtitleDe : t.subtitle}</p>
+            </span>
+          </button>
           <div className="header-right">
+            <button
+              className={"streak-pill" + (plan.completed ? " lit" : "")}
+              onClick={() => setRoute({ s: "groups" })}
+              title={t.streakWord}
+            >
+              <span className="streak-flame">🔥</span>
+              <b>{liveStreak(streak)}</b>
+            </button>
             {gamification && (
               <button className="xp-pill" onClick={() => setRoute({ s: "profile" })} title={t.profileTitle}>
-                <span className="xp-flame">🔥 {gamification.streak}</span>
                 <span className="xp-lvl">{t.levelShort} {gamification.level}</span>
               </button>
             )}
@@ -345,7 +419,15 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        {route.s === "groups" && <GroupsScreen onStart={startGroup} />}
+        {route.s === "groups" && (
+          <GroupsScreen
+            onStart={startGroup}
+            onStartPlan={() => {
+              setNonce(n => n + 1);
+              setRoute({ s: "flash", mode: "plan" });
+            }}
+          />
+        )}
         {route.s === "mode" && (
           <ModeScreen
             topic={topic}
@@ -368,6 +450,7 @@ export default function App() {
             posFilter={posFilter}
             onBack={() => {
               if (route.mode === "learning-mix") setRoute({ s: "learning" });
+              else if (route.mode === "plan") setRoute({ s: "groups" });
               else setRoute(studyBack());
             }}
             onNextLevel={k => {
@@ -418,9 +501,7 @@ export default function App() {
         />
       )}
 
-      {crystalGain > 0 && (
-        <div className="crystal-toast" role="status">🎉 +{crystalGain} 💎</div>
-      )}
+      {toast && <div className="crystal-toast" role="status">{toast}</div>}
     </AppContext.Provider>
   );
 }

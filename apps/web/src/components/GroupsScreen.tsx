@@ -8,6 +8,7 @@ import {
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { customKey, listToJson, listToText } from "../lib/customLists";
 import { topicEmoji } from "../lib/topicIcons";
+import { itemId, lastWeek, liveStreak, today } from "../lib/dailyPlan";
 import WordRow from "./WordRow";
 import ImportListModal from "./ImportListModal";
 
@@ -15,6 +16,87 @@ type Mode = "flashcards" | "quiz" | "list";
 
 interface Props {
   onStart: (key: string, mode: Mode) => void;
+  onStartPlan: () => void;
+}
+
+// The "Today" hero: streak, the last 7 days and the daily plan.
+function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
+  const { plan, streak, gamification, settings } = useApp();
+  const t = useT();
+  const n = liveStreak(streak);
+  const total = plan.items.length;
+  const done = plan.done.length;
+  const pct = total ? done / total : 0;
+  const newCount = plan.items.filter(i => i.kind === "new").length;
+  const reviewCount = total - newCount;
+  const left = plan.items.filter(i => !plan.done.includes(itemId(i.key, i.word))).length;
+  const days = lastWeek();
+  const locale = settings.lang === "ru" ? "ru-RU" : settings.lang === "de" ? "de-DE" : "en-US";
+  const R = 34;
+  const C = 2 * Math.PI * R;
+
+  return (
+    <div className={"today" + (plan.completed ? " done" : "") + (n === 0 ? " cold" : "")}>
+      <div className="today-top">
+        <div className="today-streak">
+          <span className="today-flame" aria-hidden>🔥</span>
+          <div>
+            <div className="today-num">{n}</div>
+            <div className="today-label">{t.streakDays(n)}</div>
+          </div>
+        </div>
+        <div className="today-ring" aria-label={t.planProgress(done, total)}>
+          <svg viewBox="0 0 80 80">
+            <circle className="ring-bg" cx="40" cy="40" r={R} />
+            <circle
+              className="ring-fg" cx="40" cy="40" r={R}
+              strokeDasharray={C} strokeDashoffset={C * (1 - pct)}
+            />
+          </svg>
+          <span className="today-ring-text">{plan.completed ? "✓" : `${done}/${total}`}</span>
+        </div>
+      </div>
+
+      <div className="week">
+        {days.map(d => {
+          const lit = streak.days.includes(d);
+          const isToday = d === today();
+          const label = new Date(d + "T12:00:00").toLocaleDateString(locale, { weekday: "short" });
+          return (
+            <div key={d} className={"week-day" + (lit ? " lit" : "") + (isToday ? " now" : "")}>
+              <span className="week-dot">{lit ? "🔥" : ""}</span>
+              <span className="week-name">{label.slice(0, 2)}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="today-plan">
+        <div className="today-plan-title">{t.planTitle}</div>
+        <div className="today-plan-sub">
+          {total === 0 ? t.planEmptySub
+            : plan.completed ? t.planDoneSub(n)
+            : t.planSummary(newCount, reviewCount)}
+        </div>
+        {total > 0 && (
+          <button className={"today-go" + (plan.completed ? " ghost" : "")} onClick={onStartPlan}>
+            {plan.completed ? t.planAgain : done ? t.planContinue(left) : t.planStart}
+          </button>
+        )}
+        {!plan.completed && n > 0 && total > 0 && <div className="today-warn">{t.planKeepStreak}</div>}
+      </div>
+
+      {gamification && (
+        <div className="today-xp">
+          <span>{t.levelWord} {gamification.level}</span>
+          <div className="stat-track">
+            <span style={{ width: `${Math.round((gamification.levelXp / gamification.levelSpan) * 100)}%` }} />
+          </div>
+          <span className="muted">{gamification.levelXp}/{gamification.levelSpan} XP</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStart }: {
@@ -57,8 +139,8 @@ function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStar
   );
 }
 
-export default function GroupsScreen({ onStart }: Props) {
-  const { recent, gamification, progress, crystals, unlockTopic, customLists, removeCustomList } = useApp();
+export default function GroupsScreen({ onStart, onStartPlan }: Props) {
+  const { recent, progress, crystals, unlockTopic, customLists, removeCustomList } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
   const [openLevel, setOpenLevel] = useState<string | null>(null);
@@ -113,36 +195,26 @@ export default function GroupsScreen({ onStart }: Props) {
         </div>
       ) : (
         <>
-          <div className="crystal-bar"><span className="crystal-pill">💎 {crystals.crystals}</span></div>
+          <TodayCard onStartPlan={onStartPlan} />
 
-          {(() => {
-            const wotd = wordOfDay();
-            return wotd ? (
-              <button className="daily-card" onClick={() => onStart(wotd.key, "flashcards")}>
-                <span className="daily-top">
-                  <span className="daily-label">🎯 {t.wordOfDay}</span>
-                  <span className="daily-group">{keyLabel(wotd.key)}</span>
-                </span>
-                <span className="daily-word">{wotd.word}</span>
-                <span className="daily-pos">{wotd.pos}</span>
-                <span className="daily-def">{wotd.def}</span>
-                <span className="daily-learn">{t.learn} ›</span>
-              </button>
-            ) : null;
-          })()}
-
-          {gamification && (
-            <div className="stat-header">
-              <div className="stat-top">
-                <span className="stat-streak">🔥 <b>{gamification.streak}</b> <span>{t.streakWord.toLowerCase()}</span></span>
-                <span className="stat-level">{t.levelWord} {gamification.level}</span>
-              </div>
-              <div className="stat-xp">{gamification.levelXp} / {gamification.levelSpan} XP</div>
-              <div className="stat-track">
-                <span style={{ width: `${Math.round((gamification.levelXp / gamification.levelSpan) * 100)}%` }} />
-              </div>
+          <div className="home-row">
+            {(() => {
+              const wotd = wordOfDay();
+              return wotd ? (
+                <button className="daily-card" onClick={() => onStart(wotd.key, "flashcards")}>
+                  <span className="daily-label">✦ {t.wordOfDay}</span>
+                  <span className="daily-word">{wotd.word}</span>
+                  <span className="daily-def">{wotd.def}</span>
+                  <span className="daily-group">{keyLabel(wotd.key)} · {t.learn} ›</span>
+                </button>
+              ) : null;
+            })()}
+            <div className="crystal-card">
+              <span className="crystal-big">💎</span>
+              <span className="crystal-num">{crystals.crystals}</span>
+              <span className="crystal-cap">{t.crystalsCap}</span>
             </div>
-          )}
+          </div>
 
           {validRecent.length > 0 && (
             <>

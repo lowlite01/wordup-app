@@ -5,6 +5,7 @@ import App from "./App";
 import MobileAuthScreen from "./components/MobileAuthScreen";
 import { GOOGLE_CLIENT_ID } from "./lib/api";
 import "./styles.css";
+import "./redesign.css"; // visual layer on top of the base styles
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 

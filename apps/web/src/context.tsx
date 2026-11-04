@@ -3,6 +3,7 @@ import type { Progress, QuizStats, RecentEntry, Settings, Word, WordState } from
 import type { AuthUser, Gamification, LeaderRow } from "./lib/api";
 import type { CrystalState } from "./lib/crystals";
 import type { CustomList } from "./lib/customLists";
+import type { DailyPlan, Streak } from "./lib/dailyPlan";
 
 export interface AppApi {
   progress: Progress;
@@ -28,6 +29,11 @@ export interface AppApi {
 
   crystals: CrystalState;
   unlockTopic: (topic: string) => boolean;
+
+  // Daily plan + streak (the streak grows only when the day's plan is finished)
+  plan: DailyPlan;
+  streak: Streak;
+  answerPlan: (key: string, word: string) => void;
 
   // User-created word lists (import from Claude/anywhere, then study).
   customLists: CustomList[];
