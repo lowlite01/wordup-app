@@ -233,6 +233,9 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
   display: grid; grid-auto-flow: column; grid-auto-columns: 158px; gap: 12px;
   overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
   margin: 0 -20px; padding: 4px 20px 10px;
+  /* snap cards to the padded edge, not the very edge — otherwise rows that
+     scroll jump 20px left and the first card gets cut off */
+  scroll-padding-inline: 20px;
 }
 .shelf-row::-webkit-scrollbar { display: none; }
 .topic-card {
