@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import {
-  LEVELS, LEVEL_COLORS, LEVEL_NAMES, keyLabel, keyParts, knownSet, levelAllKeys,
-  searchWords, topicLevelKeys, topicsForLevel, wordOfDay, wordsForKey,
+  LEVELS, LEVEL_COLORS, keyLabel, knownSet, searchWords, topicsForLevel, wordOfDay, wordsForKey,
 } from "../lib/groups";
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { customKey, listToJson, listToText } from "../lib/customLists";
@@ -17,6 +16,40 @@ type Mode = "flashcards" | "quiz" | "list";
 interface Props {
   onStart: (key: string, mode: Mode) => void;
   onStartPlan: () => void;
+  onOpenLevels: () => void;
+}
+
+// A topic card on a home "shelf": big emoji, name and progress. Locked
+// topics show their crystal price instead and unlock on tap.
+function TopicCard({ topic, level, onStart, onUnlock }: {
+  topic: string; level: string;
+  onStart: (key: string, mode: Mode) => void;
+  onUnlock: (topic: string) => void;
+}) {
+  const { progress, crystals } = useApp();
+  const t = useT();
+  const total = wordsForKey(topic).length;
+  const known = knownSet(progress, topic).size;
+  const locked = isTopicLocked(crystals, topic);
+  const pct = total ? Math.round((known / total) * 100) : 0;
+  return (
+    <button
+      className={"topic-card" + (locked ? " locked" : "") + (pct === 100 ? " mastered" : "")}
+      style={{ "--tint": LEVEL_COLORS[level] } as React.CSSProperties}
+      onClick={() => (locked ? onUnlock(topic) : onStart(topic, "flashcards"))}
+    >
+      <span className="topic-emoji">{topicEmoji(topic)}</span>
+      <span className="topic-name">{keyLabel(topic)}</span>
+      {locked ? (
+        <span className="topic-lock">🔒 {unlockCost(topic)} 💎</span>
+      ) : (
+        <>
+          <span className="topic-count">{pct === 100 ? "✓ " : ""}{t.topicCount(known, total)}</span>
+          <span className="topic-bar"><span style={{ width: `${pct}%` }} /></span>
+        </>
+      )}
+    </button>
+  );
 }
 
 // The "Today" hero: streak, the last 7 days and the daily plan.
@@ -99,58 +132,18 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
   );
 }
 
-function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStart }: {
-  groupKey: string; label: string; emoji?: string; letter?: string;
-  locked?: boolean; cost?: number; onUnlock?: () => void;
-  onStart: (key: string, mode: Mode) => void;
-}) {
-  const { progress } = useApp();
-  const total = wordsForKey(groupKey).length;
-  const known = knownSet(progress, groupKey).size;
-  const pct = total ? Math.round((known / total) * 100) : 0;
-
-  if (locked) {
-    return (
-      <div className="journey-sub locked">
-        <button className="journey-sub-main" onClick={onUnlock}>
-          <span className="journey-sub-badge">🔒</span>
-          <span className="journey-sub-mid">
-            <span className="journey-sub-title">{label}</span>
-            <span className="journey-sub-sum">{total} words · tap to unlock</span>
-          </span>
-        </button>
-        <span className="journey-unlock">{cost} 💎</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="journey-sub">
-      <button className="journey-sub-main" onClick={() => onStart(groupKey, "flashcards")}>
-        <span className={"journey-sub-badge" + (emoji ? " emoji" : "")}>{emoji || letter}</span>
-        <span className="journey-sub-mid">
-          <span className="journey-sub-title">{label}</span>
-          <span className="journey-sub-sum">{known} / {total}{pct ? ` · ${pct}%` : ""}</span>
-        </span>
-      </button>
-      <button className="journey-sub-mode" title="Quiz" onClick={() => onStart(groupKey, "quiz")}>❓</button>
-      <button className="journey-sub-mode" title="Word list" onClick={() => onStart(groupKey, "list")}>📋</button>
-    </div>
-  );
-}
-
-export default function GroupsScreen({ onStart, onStartPlan }: Props) {
+// Home screen: today's plan, word of the day, topic shelves and own lists.
+// (The CEFR level staircase lives in its own "Levels" tab.)
+export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels }: Props) {
   const { recent, progress, crystals, unlockTopic, customLists, removeCustomList } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
-  const [openLevel, setOpenLevel] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const matches = useMemo(() => searchWords(query), [query]);
   const searching = query.trim().length > 0;
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
 
-  const toggle = (level: string) => setOpenLevel(l => (l === level ? null : level));
   const handleUnlock = (topic: string) => {
     if (!unlockTopic(topic)) alert(`Not enough crystals — you need ${unlockCost(topic)} 💎.`);
   };
@@ -229,6 +222,25 @@ export default function GroupsScreen({ onStart, onStartPlan }: Props) {
             </>
           )}
 
+          {/* Topic shelves: one row per level, friendly names instead of A1/B2 */}
+          {LEVELS.map(level => {
+            const topics = topicsForLevel(level).filter(tp => wordsForKey(tp).length > 0);
+            if (!topics.length) return null;
+            return (
+              <div key={level} className="shelf">
+                <div className="journey-section shelf-head">
+                  <span>{t.shelfTitle(level)}</span>
+                  <span className="shelf-level" style={{ color: LEVEL_COLORS[level] }}>{level}</span>
+                </div>
+                <div className="shelf-row">
+                  {topics.map(tp => (
+                    <TopicCard key={tp} topic={tp} level={level} onStart={onStart} onUnlock={handleUnlock} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
           <div className="journey-section list-section-head">
             <span>{t.myLists}</span>
             <button className="list-import-btn" onClick={() => setShowImport(true)}>{t.importOpen}</button>
@@ -264,54 +276,16 @@ export default function GroupsScreen({ onStart, onStartPlan }: Props) {
             </div>
           )}
 
-          <div className="journey-section">{t.yourPath}</div>
-          <div className="journey-list">
-            {LEVELS.map(level => {
-              const allKeys = levelAllKeys(level);
-              const total = allKeys.reduce((n, k) => n + wordsForKey(k).length, 0);
-              if (total === 0) return null; // hide levels with no content for this course
-              const coreCount = wordsForKey(level).length;
-              const known = allKeys.reduce((n, k) => n + knownSet(progress, k).size, 0);
-              const pct = total ? Math.round((known / total) * 100) : 0;
-              const open = openLevel === level;
-              return (
-                <div key={level} className={"journey-row" + (open ? " open" : "")}>
-                  <button className="journey-head" onClick={() => toggle(level)}>
-                    <span className="journey-badge" style={{ background: LEVEL_COLORS[level], color: "#08120e" }}>{level}</span>
-                    <span className="journey-mid">
-                      <span className="journey-title">{LEVEL_NAMES[level] || level}</span>
-                      <span className="journey-sub-count">{known} / {total} words{pct ? ` · ${pct}%` : ""}</span>
-                    </span>
-                    <span className="journey-chev">{open ? "▾" : "›"}</span>
-                  </button>
-                  <div className="journey-track"><span style={{ width: `${pct}%` }} /></div>
-                  {open && (
-                    <div className="journey-sublist">
-                      {coreCount > 0 && (
-                        <SubRow groupKey={level} label="Core vocabulary" letter={level} onStart={onStart} />
-                      )}
-                      {topicsForLevel(level).flatMap(topicLevelKeys).map(key => {
-                        const name = keyParts(key).name;
-                        const locked = isTopicLocked(crystals, name);
-                        return (
-                          <SubRow
-                            key={key}
-                            groupKey={key}
-                            label={keyLabel(key)}
-                            emoji={topicEmoji(name)}
-                            locked={locked}
-                            cost={unlockCost(name)}
-                            onUnlock={() => handleUnlock(name)}
-                            onStart={onStart}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <button className="levels-link" onClick={onOpenLevels}>
+            <span className="levels-link-badges">
+              {LEVELS.map(l => <span key={l} style={{ background: LEVEL_COLORS[l] }}>{l}</span>)}
+            </span>
+            <span className="levels-link-text">
+              <b>{t.levelsTitle}</b>
+              <span>{t.levelsLinkSub}</span>
+            </span>
+            <span className="levels-link-go">›</span>
+          </button>
         </>
       )}
 

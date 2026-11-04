@@ -19,6 +19,7 @@ import {
   parseWords, renameCustomList as renameCustomListFn,
 } from "./lib/customLists";
 import GroupsScreen from "./components/GroupsScreen";
+import LevelsScreen from "./components/LevelsScreen";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
 import QuizScreen from "./components/QuizScreen";
@@ -40,6 +41,7 @@ import {
 
 type Route =
   | { s: "groups" }
+  | { s: "levels" }
   | { s: "mode" }
   | { s: "flash"; mode: FlashMode }
   | { s: "quiz" }
@@ -52,6 +54,8 @@ type Route =
   | { s: "settings" }
   | { s: "profile" }
   | { s: "admin" };
+
+type Origin = "phrasal" | "levels" | "home" | null;
 
 export default function App() {
   const [progress, setProgress] = useState(loadProgress);
@@ -66,7 +70,8 @@ export default function App() {
   const [posFilter, setPosFilter] = useState("all");
   const [ctxWord, setCtxWord] = useState<Word | null>(null);
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
-  const [studyOrigin, setStudyOrigin] = useState<"phrasal" | null>(null); // where a study session returns to
+  // Which screen a study session was started from, so Back returns there.
+  const [studyOrigin, setStudyOrigin] = useState<Origin>(null);
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
   const [crystals, setCrystals] = useState(loadCrystals);
   const [customVersion, setCustomVersion] = useState(0); // bumps when custom lists change
@@ -329,7 +334,7 @@ export default function App() {
   };
 
   // Journey-path home (and the phrasal tab) start a mode directly for a key.
-  const startGroup = (key: string, mode: "flashcards" | "quiz" | "list", origin: "phrasal" | null = null) => {
+  const startGroup = (key: string, mode: "flashcards" | "quiz" | "list", origin: Origin = null) => {
     setStudyOrigin(origin);
     setTopic(keyParts(key).name);
     setGroupKey(key);
@@ -338,10 +343,15 @@ export default function App() {
     setRoute(mode === "flashcards" ? { s: "flash", mode: "group" } : { s: mode });
   };
   // Where the Back button of a study screen should land.
-  const studyBack = (): Route => (studyOrigin === "phrasal" ? { s: "phrasal" } : { s: "mode" });
+  const studyBack = (): Route =>
+    studyOrigin === "phrasal" ? { s: "phrasal" }
+    : studyOrigin === "levels" ? { s: "levels" }
+    : studyOrigin === "home" ? { s: "groups" }
+    : { s: "mode" };
 
   const tabs: { id: Route["s"]; label: string; badge?: number }[] = [
     { id: "groups", label: t.tabGroups },
+    { id: "levels", label: t.tabLevels },
     { id: "grammar", label: t.tabGrammar },
     ...(settings.courseLang === "en" ? [{ id: "phrasal" as Route["s"], label: t.tabPhrasal }] : []),
     { id: "learning", label: t.tabLearning, badge: learningCount },
@@ -350,8 +360,9 @@ export default function App() {
     ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin }] : []),
   ];
   const groupsFamily = ["groups", "mode", "flash", "quiz", "list"];
-  const activeTab = groupsFamily.includes(route.s) && !(route.s === "flash" && route.mode === "learning-mix")
-    ? "groups"
+  const inStudy = groupsFamily.includes(route.s) && !(route.s === "flash" && route.mode === "learning-mix");
+  const activeTab = inStudy
+    ? (route.s !== "groups" && studyOrigin === "levels" ? "levels" : "groups")
     : route.s === "flash" ? "learning" : route.s;
 
   // First launch: no course chosen yet — show the language picker full-screen.
@@ -421,13 +432,15 @@ export default function App() {
       <main className="app-main">
         {route.s === "groups" && (
           <GroupsScreen
-            onStart={startGroup}
+            onStart={(key, mode) => startGroup(key, mode, "home")}
+            onOpenLevels={() => setRoute({ s: "levels" })}
             onStartPlan={() => {
               setNonce(n => n + 1);
               setRoute({ s: "flash", mode: "plan" });
             }}
           />
         )}
+        {route.s === "levels" && <LevelsScreen onStart={(key, mode) => startGroup(key, mode, "levels")} />}
         {route.s === "mode" && (
           <ModeScreen
             topic={topic}
