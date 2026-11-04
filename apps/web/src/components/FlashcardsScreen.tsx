@@ -265,11 +265,12 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
         </div>
       </div>
 
+      {/* one row on every screen: ‹  [Still learning] [I know it]  › */}
       <div className="flash-controls">
-        <button className="btn" onClick={() => move(-1)}>{t.prev}</button>
-        <button className="btn danger" onClick={markLearning}>{t.stillLearningBtn}</button>
-        <button className="btn success" onClick={markKnown}>{t.knowItBtn}</button>
-        <button className="btn" onClick={() => move(1)}>{t.next}</button>
+        <button className="nav-btn" onClick={() => move(-1)} aria-label={t.prev} title={t.prev}>‹</button>
+        <button className="answer-btn learning" onClick={markLearning}>{t.stillLearningBtn}</button>
+        <button className="answer-btn known" onClick={markKnown}>{t.knowItBtn}</button>
+        <button className="nav-btn" onClick={() => move(1)} aria-label={t.next} title={t.next}>›</button>
       </div>
 
       {mode === "group" && !studyAll && (

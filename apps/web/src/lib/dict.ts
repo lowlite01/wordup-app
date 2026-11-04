@@ -72,6 +72,9 @@ if (typeof window !== "undefined" && "speechSynthesis" in window) {
 export function speakWord(word: string) {
   if (!("speechSynthesis" in window)) return;
   if (!englishVoice) pickEnglishVoice();
+  // No English voice installed (e.g. Windows with only a Russian voice):
+  // better silence than reading "appetite" as "апетите".
+  if (!englishVoice && speechSynthesis.getVoices().length > 0) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(word);
   u.lang = englishVoice?.lang || "en-US";
@@ -96,11 +99,22 @@ export function pronounceWord(word: string): Promise<void> {
     speakWord(word);
     return Promise.resolve();
   }
-  // Not looked up yet: speak now (still inside the tap), and cache the
-  // recording for the next time.
-  speakWord(word);
-  return fetchDict(word).then(() => undefined);
+  // Not looked up yet.
+  if (IS_IOS) {
+    // iOS: sound must start inside the tap, so speak now and cache the
+    // recording for next time.
+    speakWord(word);
+    return fetchDict(word).then(() => undefined);
+  }
+  // Desktop/Android may start audio after a short wait: prefer the real
+  // recording, TTS only if there is none.
+  return fetchDict(word).then(d =>
+    d?.audio ? playAudio(d.audio).catch(() => speakWord(word)) : speakWord(word));
 }
+
+const IS_IOS = typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
 export function youglishUrl(phrase: string) {
   return "https://youglish.com/pronounce/" + encodeURIComponent(phrase) + "/english";
