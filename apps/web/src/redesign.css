@@ -625,3 +625,10 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
   .ielts-hero-icon { font-size: 3rem; }
   .ielts-grid { grid-template-columns: 1fr; }
 }
+
+/* Settings live in the side menu on phones (and in Telegram's ⋯ menu),
+   so the header gear is only shown on desktop browsers. */
+@media (max-width: 640px) { .gear { display: none; } }
+.in-telegram .gear { display: none; }
+/* Inside Telegram the bot's own header shows the name; keep ours compact */
+.in-telegram .subtitle { display: none; }

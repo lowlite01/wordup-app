@@ -4,6 +4,7 @@ import { useApp } from "../context";
 import { useT } from "../i18n";
 import { GOOGLE_CLIENT_ID, type LeaderRow } from "../lib/api";
 import { liveStreak } from "../lib/dailyPlan";
+import { isTelegram } from "../lib/telegram";
 import Emoji from "./Emoji";
 
 // Account block. Shown at the top of Settings (embedded) — the header only
@@ -26,7 +27,10 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
       <section>
         <Title />
         <p className="muted">{t.loginPitch}</p>
-        {GOOGLE_CLIENT_ID ? (
+        {isTelegram ? (
+          // Google blocks sign-in inside embedded browsers like Telegram's.
+          <p className="muted">{t.telegramLoginSoon}</p>
+        ) : GOOGLE_CLIENT_ID ? (
           <div className="login-box">
             <GoogleLogin
               onSuccess={async cred => {

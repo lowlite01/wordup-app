@@ -3,6 +3,7 @@ import { useApp } from "../context";
 import { useT } from "../i18n";
 import type { Word } from "../types";
 import { filteredLevelWords, shuffle, wordsForKey } from "../lib/groups";
+import { haptic } from "../lib/telegram";
 
 interface Props {
   groupKey: string;
@@ -69,9 +70,11 @@ export default function QuizScreen({ groupKey, posFilter, onBack, onRetry, onGro
     setPicked(opt.word);
     recordQuiz(correct.word, opt.word);
     if (opt.word === correct.word) {
+      haptic("success");
       setScore(s => s + 1);
       setWordState(groupKey, correct.word, "known");
     } else {
+      haptic("error");
       setWordState(groupKey, correct.word, "learning");
     }
   };

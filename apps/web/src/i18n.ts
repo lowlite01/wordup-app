@@ -191,6 +191,7 @@ const EN = {
 
   profileTitle: "Profile",
   accountSection: "Account",
+  telegramLoginSoon: "Sign-in with Telegram is coming soon. Your progress is saved on this device for now.",
   levelShort: "Lv",
   levelWord: "Level",
   streakWord: "Day streak",
@@ -426,6 +427,7 @@ const RU: Dict = {
 
   profileTitle: "Профиль",
   accountSection: "Аккаунт",
+  telegramLoginSoon: "Вход через Telegram скоро появится. Пока прогресс сохраняется на этом устройстве.",
   levelShort: "Ур.",
   levelWord: "Уровень",
   streakWord: "Дней подряд",
@@ -658,6 +660,7 @@ const DE: Dict = {
 
   profileTitle: "Profil",
   accountSection: "Konto",
+  telegramLoginSoon: "Anmeldung mit Telegram kommt bald. Dein Fortschritt wird vorerst auf diesem Gerät gespeichert.",
   levelShort: "St.",
   levelWord: "Stufe",
   streakWord: "Tage-Serie",

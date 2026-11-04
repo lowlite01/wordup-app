@@ -7,6 +7,7 @@ import {
 } from "../lib/groups";
 import { pronounceWord, useIpa, youglishUrl } from "../lib/dict";
 import { liveStreak, planDeck } from "../lib/dailyPlan";
+import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
 
@@ -88,6 +89,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
 
   const markKnown = () => {
     if (!current) return;
+    haptic("success");
     setWordState(current.key, current.word, "known");
     if (isPlan) answerPlan(current.key, current.word);
     dropCurrent();
@@ -97,6 +99,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
   // (otherwise the plan could never be finished).
   const markLearning = () => {
     if (!current) return;
+    haptic("tap");
     setWordState(current.key, current.word, "learning");
     if (isPlan) {
       answerPlan(current.key, current.word);

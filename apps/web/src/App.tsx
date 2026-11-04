@@ -22,6 +22,7 @@ import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
 import IeltsScreen from "./components/IeltsScreen";
 import Emoji from "./components/Emoji";
+import { haptic, initTelegram, setTelegramBack, setTelegramSettings, syncTelegramColors } from "./lib/telegram";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
 import QuizScreen from "./components/QuizScreen";
@@ -151,6 +152,7 @@ export default function App() {
     setPlan(next);
     savePlan(courseLang, next);
     if (next.completed && !prev.completed) {
+      haptic("success");
       // Day done: extend the streak and give a small crystal bonus.
       const s = completeDay(streakRef.current);
       setStreak(s);
@@ -167,7 +169,15 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
     document.documentElement.lang = settings.lang;
+    syncTelegramColors(); // Telegram's header follows our theme
   }, [settings.theme, settings.lang]);
+
+  // Telegram Mini App: start up + "Settings" in the ⋯ menu.
+  useEffect(() => {
+    initTelegram();
+    syncTelegramColors();
+    setTelegramSettings(() => setRoute({ s: "settings" }));
+  }, []);
 
   // Load word content for the chosen course language (falls back to bundled
   // data offline). Re-runs when the user switches course.
@@ -379,6 +389,26 @@ export default function App() {
     ? (route.s !== "groups" && (studyOrigin === "levels" || studyOrigin === "ielts") ? studyOrigin : "groups")
     : route.s === "flash" ? "learning" : route.s;
   const go = (s: Route["s"]) => { setMenuOpen(false); setRoute({ s } as Route); };
+
+  // Where "Back" leads from the current screen — used by Telegram's native
+  // Back button (same targets as the on-screen ← buttons).
+  const backTarget = (): Route | null => {
+    if (route.s === "groups") return null;
+    if (route.s === "flash") {
+      if (route.mode === "learning-mix") return { s: "learning" };
+      if (route.mode === "plan") return { s: "groups" };
+      return studyBack();
+    }
+    if (route.s === "quiz" || route.s === "list") return studyBack();
+    return { s: "groups" };
+  };
+  const backRef = useRef(backTarget);
+  backRef.current = backTarget;
+  useEffect(() => {
+    if (menuOpen) { setTelegramBack(() => setMenuOpen(false)); return; }
+    const target = backRef.current();
+    setTelegramBack(target ? () => { const t2 = backRef.current(); if (t2) setRoute(t2); } : null);
+  }, [route, menuOpen, studyOrigin]);
 
   // First launch: no course chosen yet — show the language picker full-screen.
   if (!settings.courseLang) {
