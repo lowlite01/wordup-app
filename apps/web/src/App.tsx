@@ -20,6 +20,7 @@ import {
 } from "./lib/customLists";
 import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
+import IeltsScreen from "./components/IeltsScreen";
 import Emoji from "./components/Emoji";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
@@ -43,6 +44,7 @@ import {
 type Route =
   | { s: "groups" }
   | { s: "levels" }
+  | { s: "ielts" }
   | { s: "mode" }
   | { s: "flash"; mode: FlashMode }
   | { s: "quiz" }
@@ -56,7 +58,7 @@ type Route =
   | { s: "profile" }
   | { s: "admin" };
 
-type Origin = "phrasal" | "levels" | "home" | null;
+type Origin = "phrasal" | "levels" | "ielts" | "home" | null;
 
 export default function App() {
   const [progress, setProgress] = useState(loadProgress);
@@ -73,6 +75,7 @@ export default function App() {
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
   // Which screen a study session was started from, so Back returns there.
   const [studyOrigin, setStudyOrigin] = useState<Origin>(null);
+  const [menuOpen, setMenuOpen] = useState(false); // phone side menu
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
   const [crystals, setCrystals] = useState(loadCrystals);
   const [customVersion, setCustomVersion] = useState(0); // bumps when custom lists change
@@ -116,6 +119,13 @@ export default function App() {
   useEffect(() => {
     setPlan(loadPlan(courseLang, progressRef.current, crystalsRef.current));
   }, [contentVersion, courseLang]);
+
+  // Close the phone side menu with Escape.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // If the tab stays open past midnight, start a new day when the user comes back.
   useEffect(() => {
@@ -167,7 +177,7 @@ export default function App() {
 
   // Phrasal verbs are English-only; leave the tab if the course changes away.
   useEffect(() => {
-    if (settings.courseLang !== "en" && route.s === "phrasal") setRoute({ s: "groups" });
+    if (settings.courseLang !== "en" && (route.s === "phrasal" || route.s === "ielts")) setRoute({ s: "groups" });
   }, [settings.courseLang, route.s]);
 
   // On load: if we have a saved token, pull the authoritative state from the server.
@@ -347,24 +357,28 @@ export default function App() {
   const studyBack = (): Route =>
     studyOrigin === "phrasal" ? { s: "phrasal" }
     : studyOrigin === "levels" ? { s: "levels" }
+    : studyOrigin === "ielts" ? { s: "ielts" }
     : studyOrigin === "home" ? { s: "groups" }
     : { s: "mode" };
 
-  const tabs: { id: Route["s"]; label: string; badge?: number }[] = [
-    { id: "groups", label: t.tabGroups },
-    { id: "levels", label: t.tabLevels },
-    { id: "grammar", label: t.tabGrammar },
-    ...(settings.courseLang === "en" ? [{ id: "phrasal" as Route["s"], label: t.tabPhrasal }] : []),
-    { id: "learning", label: t.tabLearning, badge: learningCount },
-    { id: "known", label: t.tabKnown, badge: knownCount },
-    { id: "stats", label: t.tabStats },
-    ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin }] : []),
+  const isEn = settings.courseLang === "en";
+  const tabs: { id: Route["s"]; label: string; icon: string; badge?: number }[] = [
+    { id: "groups", label: t.tabGroups, icon: "🏠" },
+    { id: "levels", label: t.tabLevels, icon: "📊" },
+    ...(isEn ? [{ id: "ielts" as Route["s"], label: t.tabIelts, icon: "🎓" }] : []),
+    { id: "grammar", label: t.tabGrammar, icon: "📚" },
+    ...(isEn ? [{ id: "phrasal" as Route["s"], label: t.tabPhrasal, icon: "🧩" }] : []),
+    { id: "learning", label: t.tabLearning, icon: "🧠", badge: learningCount },
+    { id: "known", label: t.tabKnown, icon: "✅", badge: knownCount },
+    { id: "stats", label: t.tabStats, icon: "📈" },
+    ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
   ];
   const groupsFamily = ["groups", "mode", "flash", "quiz", "list"];
   const inStudy = groupsFamily.includes(route.s) && !(route.s === "flash" && route.mode === "learning-mix");
   const activeTab = inStudy
-    ? (route.s !== "groups" && studyOrigin === "levels" ? "levels" : "groups")
+    ? (route.s !== "groups" && (studyOrigin === "levels" || studyOrigin === "ielts") ? studyOrigin : "groups")
     : route.s === "flash" ? "learning" : route.s;
+  const go = (s: Route["s"]) => { setMenuOpen(false); setRoute({ s } as Route); };
 
   // First launch: no course chosen yet — show the language picker full-screen.
   if (!settings.courseLang) {
@@ -379,7 +393,11 @@ export default function App() {
     <AppContext.Provider value={api2}>
       <header className="app-header">
         <div className="header-inner">
-          <button className="logo-btn" onClick={() => setRoute({ s: "groups" })}>
+          {/* phone only: opens the side menu instead of the tab row */}
+          <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label={t.menuTitle}>
+            <span /><span /><span />
+          </button>
+          <button className="logo-btn" onClick={() => go("groups")}>
             <span className="logo-mark">W</span>
             <span>
               <h1 className="logo">WordUp</h1>
@@ -411,7 +429,7 @@ export default function App() {
             <button
               key={tb.id}
               className={"tab" + (activeTab === tb.id ? " active" : "")}
-              onClick={() => setRoute({ s: tb.id } as Route)}
+              onClick={() => go(tb.id)}
             >
               {tb.label}
               {tb.badge ? <span className="badge" key={tb.badge}>{tb.badge}</span> : null}
@@ -420,12 +438,45 @@ export default function App() {
         </nav>
       </header>
 
+      {/* Side menu (phones): same sections as the tab row, with 3D icons */}
+      <div className={"drawer-backdrop" + (menuOpen ? " open" : "")} onClick={() => setMenuOpen(false)} />
+      <aside className={"drawer" + (menuOpen ? " open" : "")} aria-hidden={!menuOpen}>
+        <div className="drawer-head">
+          <span className="logo-mark">W</span>
+          <b className="logo">WordUp</b>
+          <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close">✕</button>
+        </div>
+        <nav className="drawer-nav">
+          {tabs.map(tb => (
+            <button
+              key={tb.id}
+              className={"drawer-item" + (activeTab === tb.id ? " active" : "")}
+              onClick={() => go(tb.id)}
+              tabIndex={menuOpen ? 0 : -1}
+            >
+              <Emoji char={tb.icon} className="drawer-icon" />
+              <span>{tb.label}</span>
+              {tb.badge ? <span className="badge">{tb.badge}</span> : null}
+            </button>
+          ))}
+          <button
+            className={"drawer-item" + (route.s === "settings" ? " active" : "")}
+            onClick={() => go("settings")}
+            tabIndex={menuOpen ? 0 : -1}
+          >
+            <Emoji char="⚙️" className="drawer-icon" />
+            <span>{t.settingsTitle}</span>
+          </button>
+        </nav>
+      </aside>
+
       {/* keyed by screen so the slide-in animation replays on every navigation */}
       <main className="app-main" key={route.s}>
         {route.s === "groups" && (
           <GroupsScreen
             onStart={(key, mode) => startGroup(key, mode, "home")}
             onOpenLevels={() => setRoute({ s: "levels" })}
+            onOpenIelts={() => setRoute({ s: "ielts" })}
             onStartPlan={() => {
               setNonce(n => n + 1);
               setRoute({ s: "flash", mode: "plan" });
@@ -433,6 +484,7 @@ export default function App() {
           />
         )}
         {route.s === "levels" && <LevelsScreen onStart={(key, mode) => startGroup(key, mode, "levels")} />}
+        {route.s === "ielts" && <IeltsScreen onStart={(key, mode) => startGroup(key, mode, "ielts")} />}
         {route.s === "mode" && (
           <ModeScreen
             topic={topic}

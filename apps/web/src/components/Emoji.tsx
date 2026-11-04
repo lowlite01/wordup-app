@@ -48,6 +48,15 @@ const NAMES: Record<string, string> = {
   "✅": "Check mark button",
   "📚": "Books",
   "🎓": "Graduation cap",
+  "📊": "Bar chart",
+  "🧩": "Puzzle piece",
+  "📈": "Chart increasing",
+  "🛠️": "Hammer and wrench",
+  "🧠": "Brain",
+  "🌍": "Globe showing europe-africa",
+  "💬": "Speech balloon",
+  "💡": "Light bulb",
+  "📖": "Open book",
 };
 
 export function emojiUrl(char: string): string | null {

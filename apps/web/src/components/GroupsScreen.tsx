@@ -10,6 +10,7 @@ import { topicEmoji } from "../lib/topicIcons";
 import { itemId, lastWeek, liveStreak, today } from "../lib/dailyPlan";
 import WordRow from "./WordRow";
 import Emoji from "./Emoji";
+import { IELTS_TOPICS, ieltsKey } from "../lib/ielts";
 import ImportListModal from "./ImportListModal";
 
 type Mode = "flashcards" | "quiz" | "list";
@@ -18,29 +19,31 @@ interface Props {
   onStart: (key: string, mode: Mode) => void;
   onStartPlan: () => void;
   onOpenLevels: () => void;
+  onOpenIelts: () => void;
 }
 
 // A topic card on a home "shelf": big emoji, name and progress. Locked
 // topics show their crystal price instead and unlock on tap.
-function TopicCard({ topic, level, onStart, onUnlock }: {
+function TopicCard({ topic, level, onStart, onUnlock, label, emoji, free, tint }: {
   topic: string; level: string;
   onStart: (key: string, mode: Mode) => void;
   onUnlock: (topic: string) => void;
+  label?: string; emoji?: string; free?: boolean; tint?: string; // for non-course decks (IELTS)
 }) {
   const { progress, crystals } = useApp();
   const t = useT();
   const total = wordsForKey(topic).length;
   const known = knownSet(progress, topic).size;
-  const locked = isTopicLocked(crystals, topic);
+  const locked = !free && isTopicLocked(crystals, topic);
   const pct = total ? Math.round((known / total) * 100) : 0;
   return (
     <button
       className={"topic-card" + (locked ? " locked" : "") + (pct === 100 ? " mastered" : "")}
-      style={{ "--tint": LEVEL_COLORS[level] } as React.CSSProperties}
+      style={{ "--tint": tint || LEVEL_COLORS[level] } as React.CSSProperties}
       onClick={() => (locked ? onUnlock(topic) : onStart(topic, "flashcards"))}
     >
-      <Emoji char={topicEmoji(topic)} className="topic-emoji" />
-      <span className="topic-name">{keyLabel(topic)}</span>
+      <Emoji char={emoji || topicEmoji(topic)} className="topic-emoji" />
+      <span className="topic-name">{label || keyLabel(topic)}</span>
       {locked ? (
         <span className="topic-lock"><Emoji char="🔒" /> {unlockCost(topic)} <Emoji char="💎" /></span>
       ) : (
@@ -135,8 +138,8 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
 
 // Home screen: today's plan, word of the day, topic shelves and own lists.
 // (The CEFR level staircase lives in its own "Levels" tab.)
-export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels }: Props) {
-  const { recent, progress, crystals, unlockTopic, customLists, removeCustomList } = useApp();
+export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpenIelts }: Props) {
+  const { recent, progress, crystals, unlockTopic, customLists, removeCustomList, settings } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -221,6 +224,25 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels }: Pro
                 ))}
               </div>
             </>
+          )}
+
+          {/* IELTS shelf (English course only) */}
+          {settings.courseLang === "en" && (
+            <div className="shelf">
+              <div className="journey-section shelf-head">
+                <span>{t.shelfIelts}</span>
+                <button className="shelf-more" onClick={onOpenIelts}>{t.seeAll} ›</button>
+              </div>
+              <div className="shelf-row">
+                {IELTS_TOPICS.map(x => (
+                  <TopicCard
+                    key={x.topic} topic={ieltsKey(x.topic)} level="B2"
+                    label={x.topic} emoji={x.emoji} free tint="#f59e0b"
+                    onStart={onStart} onUnlock={handleUnlock}
+                  />
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Topic shelves: one row per level, friendly names instead of A1/B2 */}

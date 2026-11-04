@@ -4,6 +4,7 @@ import {
   customLabelForKey, customListKeys, customWordsForKey, isCustomKey,
 } from "./customLists";
 import { isPhrasalKey, phrasalLabelForKey, phrasalWordsForKey } from "./phrasalVerbs";
+import { ieltsLabelForKey, ieltsWordsForKey, isIeltsKey } from "./ielts";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -70,6 +71,7 @@ export function keyParts(key: string) {
 export function keyLabel(key: string) {
   if (isCustomKey(key)) return customLabelForKey(key);
   if (isPhrasalKey(key)) return phrasalLabelForKey(key);
+  if (isIeltsKey(key)) return ieltsLabelForKey(key);
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
   return level > 1 ? `${name} · ${level}` : name;
@@ -78,6 +80,7 @@ export function keyLabel(key: string) {
 export function wordsForKey(key: string): Word[] {
   if (isCustomKey(key)) return customWordsForKey(key);
   if (isPhrasalKey(key)) return phrasalWordsForKey(key);
+  if (isIeltsKey(key)) return ieltsWordsForKey(key);
   return wgData[keyParts(key).name] || [];
 }
 
@@ -137,7 +140,10 @@ export function nextLevelKey(key: string): string | null {
 
 export function collectWords(p: Progress, kind: "known" | "learning"): KeyedWord[] {
   const out: KeyedWord[] = [];
-  allKeys().forEach(key => {
+  // Course groups + any phrasal-verb / IELTS decks the user has studied.
+  const extra = Object.keys(kind === "known" ? p.known : p.learning)
+    .filter(k => isPhrasalKey(k) || isIeltsKey(k));
+  [...allKeys(), ...extra].forEach(key => {
     const set = kind === "known" ? knownSet(p, key) : learningSet(p, key);
     wordsForKey(key).forEach(w => {
       if (set.has(w.word)) out.push({ ...w, key });
