@@ -3,7 +3,7 @@ import { useApp } from "../context";
 import { useT } from "../i18n";
 import type { FlashMode, KeyedWord } from "../types";
 import {
-  collectWords, filteredLevelWords, keyLabel, knownSet, nextLevelKey,
+  collectWords, filteredLevelWords, keyLabel, knownCount, knownSet, nextLevelKey,
 } from "../lib/groups";
 import { preloadWord, pronounceWord, useIpa, youglishUrl } from "../lib/dict";
 import { liveStreak, planDeck } from "../lib/dailyPlan";
@@ -257,7 +257,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
     ? t.planProgress(plan.done.length, plan.items.length)
     : mode === "learning-mix"
     ? t.stillLearningCount(collectWords(progress, "learning").length)
-    : t.knownCount(knownSet(progress, groupKey).size);
+    : t.knownCount(knownCount(progress, groupKey));
   const kind = isPlan ? (current as KeyedWord & { kind?: string }).kind : undefined;
 
   return (

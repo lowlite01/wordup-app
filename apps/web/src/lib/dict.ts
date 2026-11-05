@@ -22,7 +22,8 @@ export function dictEntry(word: string): DictEntry | null {
 }
 
 export async function fetchDict(word: string): Promise<DictEntry | null> {
-  const w = word.toLowerCase();
+  const w = word.toLowerCase().trim();
+  if (!w) return null; // nothing to look up (e.g. an empty deck)
   if (dictCache[w]) return dictCache[w];
   if (dictMisses.has(w)) return null;
   try {

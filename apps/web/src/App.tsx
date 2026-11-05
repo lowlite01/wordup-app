@@ -3,7 +3,7 @@ import { AppContext, type AppApi } from "./context";
 import { STRINGS } from "./i18n";
 import type { FlashMode, Word } from "./types";
 import {
-  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, resetSearchIndex, topicLevelKeys,
+  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, progressKey, resetSearchIndex, topicLevelKeys,
 } from "./lib/groups";
 import {
   clearStatsStorage, loadProgress, loadRecent, loadSettings, loadStats,
@@ -21,6 +21,13 @@ import {
 import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
 import IeltsScreen from "./components/IeltsScreen";
+import PlacementScreen from "./components/PlacementScreen";
+import LessonScreen from "./components/LessonScreen";
+import SentencesScreen from "./components/SentencesScreen";
+import RoadmapPath from "./components/RoadmapPath";
+import {
+  buildSteps, currentStepIndex, loadPath, savePath, type PathState, type Step,
+} from "./lib/roadmap";
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
 import { haptic, initTelegram, setTelegramBack, setTelegramSettings, syncTelegramColors } from "./lib/telegram";
@@ -58,9 +65,13 @@ type Route =
   | { s: "stats" }
   | { s: "settings" }
   | { s: "profile" }
-  | { s: "admin" };
+  | { s: "admin" }
+  | { s: "placement" }
+  | { s: "path" }
+  | { s: "lesson"; id: string }
+  | { s: "sentences"; id: string };
 
-type Origin = "phrasal" | "levels" | "ielts" | "home" | null;
+type Origin = "phrasal" | "levels" | "ielts" | "home" | "path" | null;
 
 export default function App() {
   const [progress, setProgress] = useState(loadProgress);
@@ -130,6 +141,27 @@ export default function App() {
       setPillBump(b => b + 1);
     }, () => setShownCrystals(now));
   }, [crystals.crystals]);
+
+  // ---- Learning path (roadmap) + placement test ----
+  const [path, setPath] = useState<PathState>(() => loadPath(settings.courseLang ?? "en"));
+  useEffect(() => { setPath(loadPath(settings.courseLang ?? "en")); }, [settings.courseLang]);
+  const updatePath = (next: PathState) => {
+    setPath(next);
+    savePath(settings.courseLang ?? "en", next);
+  };
+  const steps = useMemo(() => buildSteps(settings.courseLang !== "de"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contentVersion, settings.courseLang]);
+  const currentStep = currentStepIndex(steps, progress, path);
+  const PATH_STEP_BONUS = 3; // crystals for a finished grammar / sentence step
+  const completeStep = (id: string) => {
+    if (path.done.includes(id)) return;
+    updatePath({ ...path, done: [...path.done, id] });
+    const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + PATH_STEP_BONUS };
+    setCrystals(c);
+    saveCrystals(c);
+    haptic("success");
+  };
 
   // ---- Daily plan + streak ----
   const courseLang = settings.courseLang ?? "en";
@@ -236,7 +268,8 @@ export default function App() {
 
   const api2: AppApi = useMemo(() => ({
     progress,
-    setWordState: (key, word, state) => {
+    setWordState: (rawKey, word, state) => {
+      const key = progressKey(rawKey); // path parts store progress on their level
       setProgress(p => {
         const known = new Set(p.known[key] || []);
         const learning = new Set(p.learning[key] || []);
@@ -257,7 +290,8 @@ export default function App() {
           .catch(() => { /* offline — local copy already saved */ });
       }
     },
-    resetKey: key => setProgress(p => {
+    resetKey: rawKey => setProgress(p => {
+      const key = progressKey(rawKey);
       const next = { known: { ...p.known }, learning: { ...p.learning } };
       delete next.known[key];
       delete next.learning[key];
@@ -393,7 +427,21 @@ export default function App() {
     : studyOrigin === "levels" ? { s: "levels" }
     : studyOrigin === "ielts" ? { s: "ielts" }
     : studyOrigin === "home" ? { s: "groups" }
+    : studyOrigin === "path" ? { s: "path" }
     : { s: "mode" };
+
+  // Open a step of the learning path.
+  const openStep = (step: Step, origin: Origin) => {
+    setStudyOrigin(origin);
+    if (step.kind === "words" && step.key) startGroup(step.key, "flashcards", origin);
+    else if (step.kind === "grammar") setRoute({ s: "lesson", id: step.id });
+    else setRoute({ s: "sentences", id: step.id });
+  };
+  // First visit: offer the placement test once content is ready.
+  useEffect(() => {
+    if (contentVersion > 0 && !path.placed && !path.skippedTest && route.s === "groups") setRoute({ s: "placement" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentVersion, path.placed, path.skippedTest]);
 
   const isEn = settings.courseLang === "en";
   const tabs: { id: Route["s"]; label: string; icon: string; badge?: number }[] = [
@@ -423,7 +471,7 @@ export default function App() {
       if (route.mode === "plan") return { s: "groups" };
       return studyBack();
     }
-    if (route.s === "quiz" || route.s === "list") return studyBack();
+    if (route.s === "quiz" || route.s === "list" || route.s === "lesson" || route.s === "sentences") return studyBack();
     return { s: "groups" };
   };
   const backRef = useRef(backTarget);
@@ -538,6 +586,15 @@ export default function App() {
         {route.s === "groups" && (
           <GroupsScreen
             onStart={(key, mode) => startGroup(key, mode, "home")}
+            roadmap={steps.length > 0 && (
+              <div className="roadmap-home">
+                <div className="journey-section shelf-head">
+                  <span>{t.pathTitle}</span>
+                  <button className="shelf-more" onClick={() => setRoute({ s: "path" })}>{t.pathAll} ›</button>
+                </div>
+                <RoadmapPath steps={steps} path={path} current={currentStep} compact onOpen={st => openStep(st, "home")} />
+              </div>
+            )}
             onOpenLevels={() => setRoute({ s: "levels" })}
             onOpenIelts={() => setRoute({ s: "ielts" })}
             onStartPlan={() => {
@@ -546,6 +603,48 @@ export default function App() {
             }}
           />
         )}
+        {route.s === "placement" && (
+          <PlacementScreen
+            withGrammar={settings.courseLang !== "de"}
+            onDone={level => {
+              updatePath(level ? { ...path, placed: level, skippedTest: false } : { ...path, skippedTest: true });
+              setRoute({ s: "groups" });
+            }}
+          />
+        )}
+        {route.s === "path" && (
+          <section>
+            <button className="back-btn" onClick={() => setRoute({ s: "groups" })}>{t.back}</button>
+            <h2 className="screen-title">{t.pathTitle}</h2>
+            <p className="muted">{t.pathHint(Math.min(currentStep, steps.length), steps.length)}</p>
+            <RoadmapPath steps={steps} path={path} current={currentStep} onOpen={st => openStep(st, "path")} />
+            <button className="btn wide" onClick={() => setRoute({ s: "placement" })}>{t.retakeTest}</button>
+          </section>
+        )}
+        {route.s === "lesson" && (() => {
+          const st = steps.find(x => x.id === route.id);
+          return st?.grammar ? (
+            <LessonScreen
+              key={st.id}
+              topic={st.grammar}
+              alreadyDone={path.done.includes(st.id)}
+              onComplete={() => completeStep(st.id)}
+              onBack={() => setRoute(studyBack())}
+            />
+          ) : null;
+        })()}
+        {route.s === "sentences" && (() => {
+          const st = steps.find(x => x.id === route.id);
+          return st?.sourceKeys ? (
+            <SentencesScreen
+              key={st.id}
+              sourceKeys={st.sourceKeys}
+              alreadyDone={path.done.includes(st.id)}
+              onComplete={() => completeStep(st.id)}
+              onBack={() => setRoute(studyBack())}
+            />
+          ) : null;
+        })()}
         {route.s === "levels" && <LevelsScreen onStart={(key, mode) => startGroup(key, mode, "levels")} />}
         {route.s === "ielts" && <IeltsScreen onStart={(key, mode) => startGroup(key, mode, "ielts")} />}
         {route.s === "mode" && (

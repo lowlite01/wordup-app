@@ -8,6 +8,20 @@ import { ieltsLabelForKey, ieltsWordsForKey, isIeltsKey } from "./ielts";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
+// Path ("roadmap") steps study a level's core words in small parts:
+// "part:A1:2" is the 3rd group of 12 A1 words. Progress is stored on the level
+// itself ("A1"), so it counts on the shelves, in Levels and in the daily plan.
+export const PART_SIZE = 12;
+export const isPartKey = (k: string) => k.startsWith("part:");
+export const partKey = (base: string, n: number) => `part:${base}:${n}`;
+export function progressKey(key: string): string {
+  return isPartKey(key) ? key.split(":")[1] : key;
+}
+function partInfo(key: string) {
+  const [, base, n] = key.split(":");
+  return { base, n: parseInt(n, 10) };
+}
+
 // Per-level accent colours for the journey-path badges.
 export const LEVEL_COLORS: Record<string, string> = {
   A1: "#4ADE80", A2: "#2DD4BF", B1: "#3B82F6", B2: "#60A5FA", C1: "#A78BFA", C2: "#F472B6",
@@ -71,6 +85,7 @@ export function keyParts(key: string) {
 export function keyLabel(key: string) {
   if (isCustomKey(key)) return customLabelForKey(key);
   if (isPhrasalKey(key)) return phrasalLabelForKey(key);
+  if (isPartKey(key)) { const { base, n } = partInfo(key); return `${base} · ${n + 1}`; }
   if (isIeltsKey(key)) return ieltsLabelForKey(key);
   const { name, level } = keyParts(key);
   if (LEVELS.includes(name)) return name;
@@ -80,6 +95,10 @@ export function keyLabel(key: string) {
 export function wordsForKey(key: string): Word[] {
   if (isCustomKey(key)) return customWordsForKey(key);
   if (isPhrasalKey(key)) return phrasalWordsForKey(key);
+  if (isPartKey(key)) {
+    const { base, n } = partInfo(key);
+    return wordsForKey(base).slice(n * PART_SIZE, (n + 1) * PART_SIZE);
+  }
   if (isIeltsKey(key)) return ieltsWordsForKey(key);
   return wgData[keyParts(key).name] || [];
 }
@@ -113,10 +132,15 @@ export function filteredLevelWords(key: string, posFilter: string): Word[] {
 }
 
 export function knownSet(p: Progress, key: string) {
-  return new Set(p.known[key] || []);
+  return new Set(p.known[progressKey(key)] || []);
 }
 export function learningSet(p: Progress, key: string) {
-  return new Set(p.learning[key] || []);
+  return new Set(p.learning[progressKey(key)] || []);
+}
+/** How many words of this group are known (works for parts too). */
+export function knownCount(p: Progress, key: string): number {
+  const known = knownSet(p, key);
+  return wordsForKey(key).filter(w => known.has(w.word)).length;
 }
 
 export function isKeyComplete(p: Progress, key: string) {

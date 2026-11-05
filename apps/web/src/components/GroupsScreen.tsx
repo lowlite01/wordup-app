@@ -20,6 +20,7 @@ interface Props {
   onStartPlan: () => void;
   onOpenLevels: () => void;
   onOpenIelts: () => void;
+  roadmap?: React.ReactNode; // the learning-path preview shown under "Today"
 }
 
 // A topic card on a home "shelf": big emoji, name and progress. Locked
@@ -138,7 +139,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
 
 // Home screen: today's plan, word of the day, topic shelves and own lists.
 // (The CEFR level staircase lives in its own "Levels" tab.)
-export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpenIelts }: Props) {
+export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpenIelts, roadmap }: Props) {
   const { recent, progress, crystals, unlockTopic, customLists, removeCustomList, settings } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
@@ -193,6 +194,8 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
       ) : (
         <>
           <TodayCard onStartPlan={onStartPlan} />
+
+          {roadmap}
 
           <div className="home-row">
             {(() => {
