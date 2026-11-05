@@ -13,14 +13,14 @@ export async function loadContent(lang: "en" | "de" = "en"): Promise<void> {
   const cacheKey = CACHE_PREFIX + lang;
   try {
     const cached = JSON.parse(localStorage.getItem(cacheKey) as string);
-    if (cached?.wordGroups) setContent(cached.wordGroups, cached.topicLevel2 || {});
+    if (cached?.wordGroups) setContent(cached.wordGroups, cached.topicLevel2 || {}, lang);
   } catch {
     // no/invalid cache — ignore
   }
   try {
     const c = await api.getContent(lang);
     if (c?.wordGroups) {
-      setContent(c.wordGroups, c.topicLevel2 || {});
+      setContent(c.wordGroups, c.topicLevel2 || {}, lang);
       localStorage.setItem(cacheKey, JSON.stringify(c));
     }
   } catch {

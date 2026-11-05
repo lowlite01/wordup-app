@@ -5,6 +5,8 @@ import {
 } from "./customLists";
 import { isPhrasalKey, phrasalLabelForKey, phrasalWordsForKey } from "./phrasalVerbs";
 import { ieltsLabelForKey, ieltsWordsForKey, isIeltsKey } from "./ielts";
+import { EXTRA_TOPICS } from "./extraTopics";
+import { RU } from "./translationsRu";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -42,6 +44,10 @@ export const TOPIC_LEVEL: Record<string, string> = {
   Museum: "C2", Law: "C2",
 };
 
+// Built-in extra topics (beginner basics + more for every level) have their
+// own level.
+for (const [name, x] of Object.entries(EXTRA_TOPICS)) TOPIC_LEVEL[name] = x.level;
+
 export function topicsForLevel(level: string): string[] {
   return TOPICS.filter(t => (TOPIC_LEVEL[t] || "B1") === level);
 }
@@ -65,11 +71,26 @@ function mergeLevels(wg: Record<string, Word[]>, t2: Record<string, Word[]>): Re
   return out;
 }
 
-let wgData: Record<string, Word[]> = mergeLevels(STATIC_WG, STATIC_T2);
+// English course: add the built-in extra topics (listed before the server's
+// topics so the beginner basics come first) and Russian translations.
+function enrich(wg: Record<string, Word[]>, lang: string): Record<string, Word[]> {
+  if (lang !== "en") return wg;
+  const out: Record<string, Word[]> = {};
+  for (const lvl of LEVELS) if (wg[lvl]) out[lvl] = wg[lvl];
+  for (const [name, x] of Object.entries(EXTRA_TOPICS)) if (!wg[name]) out[name] = x.words;
+  for (const [name, words] of Object.entries(wg)) if (!(name in out)) out[name] = words;
+  for (const [name, words] of Object.entries(out)) {
+    if (EXTRA_TOPICS[name]) continue; // already translated
+    out[name] = words.map(w => (w.ru || !RU[w.word] ? w : { ...w, ru: RU[w.word] }));
+  }
+  return out;
+}
+
+let wgData: Record<string, Word[]> = enrich(mergeLevels(STATIC_WG, STATIC_T2), "en");
 export const TOPICS: string[] = Object.keys(wgData).filter(g => !LEVELS.includes(g));
 
-export function setContent(wordGroups: Record<string, Word[]>, topicLevel2: Record<string, Word[]>) {
-  wgData = mergeLevels(wordGroups, topicLevel2);
+export function setContent(wordGroups: Record<string, Word[]>, topicLevel2: Record<string, Word[]>, lang = "en") {
+  wgData = enrich(mergeLevels(wordGroups, topicLevel2), lang);
   TOPICS.length = 0;
   TOPICS.push(...Object.keys(wgData).filter(g => !LEVELS.includes(g)));
   searchIndex = null; // rebuilt lazily from the new content

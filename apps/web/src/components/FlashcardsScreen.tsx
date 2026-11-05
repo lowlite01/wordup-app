@@ -323,6 +323,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
             <div className="flip-hint">{t.clickToFlip}</div>
           </div>
           <div className="flashcard-face flashcard-back">
+            {settings.lang === "ru" && current.ru && <div className="fc-ru">{current.ru}</div>}
             <div className="fc-def">{current.def}</div>
             <div className="fc-example">{current.example}</div>
             <a

@@ -22,6 +22,7 @@ import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
 import IeltsScreen from "./components/IeltsScreen";
 import ReviewScreen from "./components/ReviewScreen";
+import WordLessonScreen from "./components/WordLessonScreen";
 import { clearWordTimes, touchWord } from "./lib/wordTimes";
 import PlacementScreen from "./components/PlacementScreen";
 import LessonScreen from "./components/LessonScreen";
@@ -70,6 +71,7 @@ type Route =
   | { s: "admin" }
   | { s: "placement" }
   | { s: "review" }
+  | { s: "wordlesson"; key: string }
   | { s: "path" }
   | { s: "lesson"; id: string }
   | { s: "sentences"; id: string };
@@ -467,7 +469,7 @@ export default function App() {
       }
       return;
     }
-    if (step.kind === "words" && step.key) startGroup(step.key, "flashcards", origin);
+    if (step.kind === "words" && step.key) setRoute({ s: "wordlesson", key: step.key }); // Duolingo-style lesson
     else if (step.kind === "grammar") setRoute({ s: "lesson", id: step.id });
     else setRoute({ s: "sentences", id: step.id });
   };
@@ -504,7 +506,7 @@ export default function App() {
       if (route.mode === "plan") return { s: "groups" };
       return studyBack();
     }
-    if (route.s === "quiz" || route.s === "list" || route.s === "lesson" || route.s === "sentences") return studyBack();
+    if (route.s === "quiz" || route.s === "list" || route.s === "lesson" || route.s === "sentences" || route.s === "wordlesson") return studyBack();
     return { s: "groups" };
   };
   const backRef = useRef(backTarget);
@@ -635,6 +637,9 @@ export default function App() {
               setRoute({ s: "flash", mode: "plan" });
             }}
           />
+        )}
+        {route.s === "wordlesson" && (
+          <WordLessonScreen key={route.key} groupKey={route.key} onBack={() => setRoute(studyBack())} />
         )}
         {route.s === "review" && (
           <ReviewScreen

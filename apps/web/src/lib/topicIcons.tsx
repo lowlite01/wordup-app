@@ -1,3 +1,4 @@
+import { EXTRA_TOPICS } from "./extraTopics";
 import {
   GraduationCap, Cpu, Landmark, Plane, Briefcase, Leaf, Utensils, Dumbbell,
   Smile, Building2, CloudSun, Shirt, Music, PawPrint, Scale, HeartPulse,
@@ -37,5 +38,6 @@ const EMOJI: Record<string, string> = {
 };
 
 export function topicEmoji(name: string): string {
+  if (EXTRA_TOPICS[name]) return EXTRA_TOPICS[name].emoji;
   return EMOJI[name] || "📘";
 }
