@@ -17,5 +17,9 @@ services:
         sync: false
       - key: WEB_ORIGIN
         sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: SUPPORT_CONTACT
+        sync: false
       - key: JWT_SECRET
         generateValue: true

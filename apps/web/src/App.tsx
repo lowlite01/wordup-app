@@ -13,7 +13,12 @@ import {
   api, getToken, isLoggedIn, progressToEntries, setToken,
   type AuthUser, type Gamification,
 } from "./lib/api";
-import { awardMastery, loadCrystals, saveCrystals, unlockTopic as unlockTopicFn } from "./lib/crystals";
+import { awardMastery, loadCrystals, saveCrystals, setProUnlock, unlockTopic as unlockTopicFn } from "./lib/crystals";
+import { FREE_IELTS, buy, claimGems, fetchPro, isProActive, loadPro, type ProductId } from "./lib/pro";
+import { REFILL_COST, fullHearts, loadHearts, loseOne, regen, saveHearts } from "./lib/hearts";
+import { IELTS_TOPICS, ieltsKey } from "./lib/ielts";
+import ProScreen from "./components/ProScreen";
+import HeartsModal from "./components/HeartsModal";
 import {
   addCustomList, deleteCustomList as deleteCustomListFn, getCustomLists,
   parseWords, renameCustomList as renameCustomListFn,
@@ -33,7 +38,7 @@ import {
 } from "./lib/roadmap";
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
-import { haptic, initTelegram, setTelegramBack, setTelegramSettings, syncTelegramColors } from "./lib/telegram";
+import { askConfirm, haptic, initTelegram, setTelegramBack, setTelegramSettings, showMessage, syncTelegramColors } from "./lib/telegram";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
 import QuizScreen from "./components/QuizScreen";
@@ -50,7 +55,8 @@ import ContextModal from "./components/ContextModal";
 import LanguagePicker from "./components/LanguagePicker";
 import { loadContent } from "./lib/content";
 import {
-  PLAN_BONUS, completeDay, liveStreak, loadPlan, loadStreak, markPlanItem, savePlan, saveStreak, today,
+  FREEZE_COST, MAX_FREEZES, PLAN_BONUS, applyFreezes, completeDay, liveStreak, loadPlan, loadStreak, markPlanItem,
+  savePlan, saveStreak, today,
 } from "./lib/dailyPlan";
 
 type Route =
@@ -74,7 +80,8 @@ type Route =
   | { s: "wordlesson"; key: string }
   | { s: "path" }
   | { s: "lesson"; id: string }
-  | { s: "sentences"; id: string };
+  | { s: "sentences"; id: string }
+  | { s: "pro" };
 
 type Origin = "phrasal" | "levels" | "ielts" | "home" | "path" | null;
 
@@ -105,6 +112,30 @@ export default function App() {
   const crystalsRef = useRef(crystals);
   crystalsRef.current = crystals;
 
+  // ---- WordUp Pro + hearts ----
+  const [pro, setPro] = useState(loadPro);
+  const isPro = isProActive(pro);
+  setProUnlock(isPro); // Pro opens every topic
+  const mult = isPro ? 2 : 1; // Pro: double crystals
+  const [hearts, setHearts] = useState(loadHearts);
+  const heartsRef = useRef(hearts);
+  heartsRef.current = hearts;
+  const [heartsModal, setHeartsModal] = useState(false);
+  const addGems = (n: number) => {
+    const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + n };
+    crystalsRef.current = c;
+    setCrystals(c);
+    saveCrystals(c);
+  };
+  // hearts grow back over time
+  useEffect(() => {
+    const id = setInterval(() => {
+      const r = regen(heartsRef.current);
+      if (r !== heartsRef.current) { saveHearts(r); setHearts(r); }
+    }, 30000);
+    return () => clearInterval(id);
+  }, []);
+
   // Small pop-up message at the bottom (crystals earned, plan finished…).
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -118,9 +149,11 @@ export default function App() {
   useEffect(() => {
     const { state, gained } = awardMastery(crystalsRef.current, progress);
     if (gained) {
-      setCrystals(state);
-      saveCrystals(state);
-      showToast(`🎉 +${gained} 💎`);
+      const total = gained * mult;
+      const next = { ...state, crystals: state.crystals + total - gained };
+      setCrystals(next);
+      saveCrystals(next);
+      showToast(`🎉 +${total} 💎`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, contentVersion]);
@@ -164,7 +197,7 @@ export default function App() {
     if (path.done.includes(id)) return;
     updatePath({ ...path, done: [...path.done, id] });
     const kind = steps.find(st => st.id === id)?.kind;
-    const bonus = (kind && STEP_REWARD[kind]) || 3;
+    const bonus = ((kind && STEP_REWARD[kind]) || 3) * mult;
     const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + bonus };
     setCrystals(c);
     saveCrystals(c);
@@ -221,10 +254,11 @@ export default function App() {
       const s = completeDay(streakRef.current);
       setStreak(s);
       saveStreak(s);
-      const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + PLAN_BONUS };
-      setCrystals(c);
-      saveCrystals(c);
-      showToast(`🔥 ${s.count} · +${PLAN_BONUS} 💎`);
+      addGems(PLAN_BONUS * mult);
+      // finishing the plan also refills the hearts
+      const hadAll = heartsRef.current.count >= 5;
+      if (!hadAll) { const h = fullHearts(); saveHearts(h); setHearts(h); }
+      showToast(`🔥 ${s.count} · +${PLAN_BONUS * mult} 💎${hadAll || isPro ? "" : " · ❤️"}`);
     }
   };
   const statsRef = useRef(stats);
@@ -273,6 +307,61 @@ export default function App() {
   }, []);
 
   const t = STRINGS[settings.lang] ?? STRINGS.en;
+
+  // ---- Pro status from the server (Telegram only) + bought crystals ----
+  const refreshPro = async (): Promise<{ active: boolean; gems: number }> => {
+    try {
+      const r = await fetchPro();
+      if (!r) return { active: false, gems: 0 };
+      setPro(r.status);
+      let gems = 0;
+      if (r.gemCredit > 0) {
+        gems = await claimGems();
+        if (gems > 0) addGems(gems);
+      }
+      return { active: isProActive(r.status), gems };
+    } catch {
+      return { active: false, gems: 0 };
+    }
+  };
+  useEffect(() => {
+    refreshPro().then(r => { if (r.gems) showToast(`+${r.gems} 💎`); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const purchase = async (product: ProductId) => {
+    let status: string;
+    try {
+      status = await buy(product);
+    } catch {
+      showMessage(t.payError);
+      return;
+    }
+    if (status === "cancelled") return;
+    if (status !== "paid" && status !== "pending") { showMessage(t.payFailed); return; }
+    haptic("success");
+    // Telegram tells our server a moment later — wait for it.
+    let gems = 0;
+    for (let i = 0; i < 10; i++) {
+      await new Promise(res => setTimeout(res, 1500));
+      const r = await refreshPro();
+      gems += r.gems;
+      const done = product.startsWith("gems") ? gems > 0 : r.active && (product !== "pro_month" || gems > 0 || i >= 3);
+      if (done) break;
+    }
+    showToast(product.startsWith("gems") ? `+${gems} 💎` : t.proThanks);
+  };
+
+  // Streak freezes cover missed days (checked on start and when a new day begins).
+  useEffect(() => {
+    const { streak: s, used } = applyFreezes(streakRef.current, isPro);
+    if (s !== streakRef.current) {
+      setStreak(s);
+      saveStreak(s);
+      if (used) showToast(t.freezeSaved(used));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro, plan.date]);
 
   const api2: AppApi = useMemo(() => ({
     progress,
@@ -405,6 +494,40 @@ export default function App() {
     streak,
     answerPlan,
 
+    pro,
+    isPro,
+    openPro: () => { setMenuOpen(false); setRoute({ s: "pro" }); },
+    purchase,
+    hearts,
+    loseHeart: () => {
+      if (isPro) return;
+      const h = loseOne(heartsRef.current);
+      heartsRef.current = h;
+      saveHearts(h);
+      setHearts(h);
+      if (h.count === 0) setHeartsModal(true);
+    },
+    refillHearts: () => {
+      if (crystalsRef.current.crystals < REFILL_COST) return false;
+      addGems(-REFILL_COST);
+      const h = fullHearts();
+      saveHearts(h);
+      setHearts(h);
+      showToast(t.heartsRefilled);
+      return true;
+    },
+    buyFreeze: () => {
+      const s = streakRef.current;
+      if ((s.freezes ?? 0) >= MAX_FREEZES) { showMessage(t.shopFreezeFull); return false; }
+      if (crystalsRef.current.crystals < FREEZE_COST) { showMessage(t.notEnoughCrystals(FREEZE_COST)); return false; }
+      addGems(-FREEZE_COST);
+      const next = { ...s, freezes: (s.freezes ?? 0) + 1 };
+      setStreak(next);
+      saveStreak(next);
+      showToast(t.shopFreezeBought);
+      return true;
+    },
+
     customLists: getCustomLists(),
     importCustomList: (name, text) => {
       const words = parseWords(text);
@@ -424,7 +547,7 @@ export default function App() {
       setCustomVersion(v => v + 1);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [progress, stats, recent, settings, user, gamification, crystals, customVersion, plan, streak]);
+  }), [progress, stats, recent, settings, user, gamification, crystals, customVersion, plan, streak, pro, hearts]);
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
 
@@ -442,6 +565,14 @@ export default function App() {
 
   // Journey-path home (and the phrasal tab) start a mode directly for a key.
   const startGroup = (key: string, mode: "flashcards" | "quiz" | "list", origin: Origin = null) => {
+    // IELTS: the first topics are free, the rest come with Pro
+    if (!isPro && key.startsWith("ielts:")) {
+      const idx = IELTS_TOPICS.findIndex(x => ieltsKey(x.topic) === key);
+      if (idx >= FREE_IELTS) {
+        askConfirm(t.proLockedIelts).then(ok => { if (ok) setRoute({ s: "pro" }); });
+        return;
+      }
+    }
     setStudyOrigin(origin);
     setTopic(keyParts(key).name);
     setGroupKey(key);
@@ -469,6 +600,8 @@ export default function App() {
       }
       return;
     }
+    // lessons need at least one heart (Pro: unlimited)
+    if (!isPro && regen(heartsRef.current).count === 0) { setHeartsModal(true); return; }
     if (step.kind === "words" && step.key) setRoute({ s: "wordlesson", key: step.key }); // Duolingo-style lesson
     else if (step.kind === "grammar") setRoute({ s: "lesson", id: step.id });
     else setRoute({ s: "sentences", id: step.id });
@@ -489,6 +622,7 @@ export default function App() {
     { id: "review", label: t.reviewTitle, icon: "🧠", badge: learningCount },
     { id: "stats", label: t.tabStats, icon: "📈" },
     ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
+    { id: "pro", label: t.proMenu, icon: "👑" },
   ];
   const groupsFamily = ["groups", "mode", "flash", "quiz", "list"];
   const inStudy = groupsFamily.includes(route.s) && !(route.s === "flash" && (route.mode === "learning-mix" || route.mode === "review"));
@@ -554,7 +688,7 @@ export default function App() {
               ref={crystalPillRef}
               className="crystal-pill-h"
               title={t.crystalsCap}
-              onClick={() => go("levels")}
+              onClick={() => go("pro")}
             >
               <Emoji char="💎" className="crystal-pill-icon" />
               <b key={pillBump} className={pillBump ? "bump" : ""}>{shownCrystals}</b>
@@ -628,6 +762,16 @@ export default function App() {
                   <button className="shelf-more" onClick={() => setRoute({ s: "path" })}>{t.pathAll} ›</button>
                 </div>
                 <RoadmapPath steps={steps} path={path} current={currentStep} compact onOpen={st => openStep(st, "home")} />
+                {!isPro && (
+                  <button className="pro-promo" onClick={() => setRoute({ s: "pro" })}>
+                    <Emoji char="👑" className="pro-promo-icon" />
+                    <span>
+                      <b>{t.proPromoTitle}</b>
+                      <small>{pro.introUsed ? t.proPromoSub2 : t.proPromoSub(pro.prices.pro_week)}</small>
+                    </span>
+                    <span className="pro-promo-go">›</span>
+                  </button>
+                )}
               </div>
             )}
             onOpenLevels={() => setRoute({ s: "levels" })}
@@ -759,7 +903,20 @@ export default function App() {
         {route.s === "settings" && <SettingsScreen />}
         {route.s === "profile" && <ProfileScreen />}
         {route.s === "admin" && <AdminScreen />}
+        {route.s === "pro" && <ProScreen onBack={() => setRoute({ s: "groups" })} />}
       </main>
+
+      {heartsModal && (
+        <HeartsModal
+          onRefilled={() => setHeartsModal(false)}
+          onPro={() => { setHeartsModal(false); setRoute({ s: "pro" }); }}
+          onPractice={() => { setHeartsModal(false); setRoute({ s: "review" }); }}
+          onClose={() => {
+            setHeartsModal(false);
+            if (route.s === "wordlesson" || route.s === "lesson" || route.s === "sentences") setRoute(studyBack());
+          }}
+        />
+      )}
 
       {ctxWord && (
         <ContextModal

@@ -6,6 +6,8 @@ import { shuffle } from "../lib/groups";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
+import { HeartsBadge } from "./ProScreen";
+import { useApp } from "../context";
 
 const PASS = 4; // of 5
 
@@ -19,6 +21,7 @@ interface Props {
 // Grammar step on the path: the rule first, then a short practice quiz.
 export default function LessonScreen({ topic, alreadyDone, onComplete, onBack }: Props) {
   const t = useT();
+  const { loseHeart } = useApp();
   const rule = useMemo(() => GRAMMAR.flatMap(s => s.items).find(i => i.title === topic), [topic]);
   const [phase, setPhase] = useState<"rule" | "quiz" | "done">("rule");
   const [round, setRound] = useState(0);
@@ -36,6 +39,7 @@ export default function LessonScreen({ topic, alreadyDone, onComplete, onBack }:
     const ok = k === q.answer;
     haptic(ok ? "success" : "error");
     if (ok) setScore(s => s + 1);
+    else loseHeart();
   };
   const next = () => {
     setPicked(null);
@@ -96,7 +100,7 @@ export default function LessonScreen({ topic, alreadyDone, onComplete, onBack }:
   return (
     <section>
       <button className="back-btn" onClick={onBack}>{t.back}</button>
-      <div className="progress-row"><span>{topic}</span><span>{i + 1} / {qs.length}</span></div>
+      <div className="progress-row"><span>{topic}</span><span className="progress-right">{i + 1} / {qs.length} <HeartsBadge /></span></div>
       <div className="plan-bar"><span style={{ width: `${(i / qs.length) * 100}%` }} /></div>
       <div className="quiz-question" key={round + ":" + i}>
         <p className="muted">{t.placementQGrammar}</p>

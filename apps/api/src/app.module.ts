@@ -8,6 +8,7 @@ import { StatsModule } from "./stats/stats.module";
 import { GamificationModule } from "./gamification/gamification.module";
 import { AuthModule } from "./auth/auth.module";
 import { ContentModule } from "./content/content.module";
+import { TelegramModule } from "./telegram/telegram.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ContentModule } from "./content/content.module";
     StatsModule,
     GamificationModule,
     ContentModule,
+    TelegramModule,
   ],
   controllers: [HealthController],
 })

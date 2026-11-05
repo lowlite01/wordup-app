@@ -8,7 +8,7 @@ import {
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { topicEmoji } from "../lib/topicIcons";
 import Emoji from "./Emoji";
-import { showMessage } from "../lib/telegram";
+import { askConfirm } from "../lib/telegram";
 
 type Mode = "flashcards" | "quiz" | "list";
 
@@ -60,13 +60,13 @@ function SubRow({ groupKey, label, emoji, letter, locked, cost, onUnlock, onStar
 // "Levels" tab: the CEFR staircase A1 → C2. Each level opens to its core
 // vocabulary and the topics that belong to it.
 export default function LevelsScreen({ onStart }: Props) {
-  const { progress, crystals, unlockTopic } = useApp();
+  const { progress, crystals, unlockTopic, openPro } = useApp();
   const t = useT();
   const [openLevel, setOpenLevel] = useState<string | null>(null);
 
   const toggle = (level: string) => setOpenLevel(l => (l === level ? null : level));
   const handleUnlock = (topic: string) => {
-    if (!unlockTopic(topic)) showMessage(t.notEnoughCrystals(unlockCost(topic)));
+    if (!unlockTopic(topic)) askConfirm(t.notEnoughCrystalsPro(unlockCost(topic))).then(ok => { if (ok) openPro(); });
   };
 
   return (

@@ -10,6 +10,8 @@ const BASE =
 
 // emoji character -> Fluent asset folder name
 const NAMES: Record<string, string> = {
+  "❤️": "Red heart",
+  "❄️": "Snowflake",
   "🔥": "Fire",
   "💎": "Gem stone",
   "🔒": "Locked",

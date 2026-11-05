@@ -12,7 +12,7 @@ import WordRow from "./WordRow";
 import Emoji from "./Emoji";
 import { IELTS_TOPICS, ieltsKey } from "../lib/ielts";
 import ImportListModal from "./ImportListModal";
-import { askConfirm, showMessage } from "../lib/telegram";
+import { askConfirm } from "../lib/telegram";
 
 type Mode = "flashcards" | "quiz" | "list";
 
@@ -99,11 +99,12 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
       <div className="week">
         {days.map(d => {
           const lit = streak.days.includes(d);
+          const frozen = !lit && (streak.frozen ?? []).includes(d);
           const isToday = d === today();
           const label = new Date(d + "T12:00:00").toLocaleDateString(locale, { weekday: "short" });
           return (
-            <div key={d} className={"week-day" + (lit ? " lit" : "") + (isToday ? " now" : "")}>
-              <span className="week-dot">{lit ? <Emoji char="🔥" /> : ""}</span>
+            <div key={d} className={"week-day" + (lit ? " lit" : "") + (frozen ? " frozen" : "") + (isToday ? " now" : "")}>
+              <span className="week-dot">{lit ? <Emoji char="🔥" /> : frozen ? <Emoji char="❄️" /> : ""}</span>
               <span className="week-name">{label.slice(0, 2)}</span>
             </div>
           );
@@ -141,7 +142,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
 // Home screen: today's plan, word of the day, topic shelves and own lists.
 // (The CEFR level staircase lives in its own "Levels" tab.)
 export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpenIelts, roadmap }: Props) {
-  const { recent, progress, crystals, unlockTopic, customLists, removeCustomList, settings } = useApp();
+  const { recent, progress, crystals, unlockTopic, customLists, removeCustomList, settings, openPro } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -151,7 +152,7 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
 
   const handleUnlock = (topic: string) => {
-    if (!unlockTopic(topic)) showMessage(t.notEnoughCrystals(unlockCost(topic)));
+    if (!unlockTopic(topic)) askConfirm(t.notEnoughCrystalsPro(unlockCost(topic))).then(ok => { if (ok) openPro(); });
   };
 
   const downloadList = (list: (typeof customLists)[number]) => {

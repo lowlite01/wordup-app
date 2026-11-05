@@ -3,12 +3,13 @@ import { useT } from "../i18n";
 import { knownSet } from "../lib/groups";
 import { IELTS_TOPICS, ieltsKey } from "../lib/ielts";
 import Emoji from "./Emoji";
+import { FREE_IELTS } from "../lib/pro";
 
 type Mode = "flashcards" | "quiz" | "list";
 
 // IELTS tab: exam-focused topic decks (English course only).
 export default function IeltsScreen({ onStart }: { onStart: (key: string, mode: Mode) => void }) {
-  const { progress } = useApp();
+  const { progress, isPro } = useApp();
   const t = useT();
   const total = IELTS_TOPICS.reduce((n, x) => n + x.items.length, 0);
   const known = IELTS_TOPICS.reduce((n, x) => n + knownSet(progress, ieltsKey(x.topic)).size, 0);
@@ -25,12 +26,14 @@ export default function IeltsScreen({ onStart }: { onStart: (key: string, mode: 
       </div>
 
       <div className="ielts-grid">
-        {IELTS_TOPICS.map(x => {
+        {IELTS_TOPICS.map((x, idx) => {
+          const proOnly = !isPro && idx >= FREE_IELTS;
           const key = ieltsKey(x.topic);
           const k = knownSet(progress, key).size;
           const pct = Math.round((k / x.items.length) * 100);
           return (
-            <div key={x.topic} className={"topic-card ielts-card" + (pct === 100 ? " mastered" : "")}>
+            <div key={x.topic} className={"topic-card ielts-card" + (pct === 100 ? " mastered" : "") + (proOnly ? " pro-only" : "")}>
+              {proOnly && <span className="pro-chip"><Emoji char="👑" /> Pro</span>}
               <button className="ielts-card-main" onClick={() => onStart(key, "flashcards")}>
                 <Emoji char={x.emoji} className="topic-emoji" />
                 <span className="topic-name">{x.topic}</span>

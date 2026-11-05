@@ -1,4 +1,6 @@
 import { createContext, useContext } from "react";
+import type { ProStatus, ProductId } from "./lib/pro";
+import type { Hearts } from "./lib/hearts";
 import type { Progress, QuizStats, RecentEntry, Settings, Word, WordState } from "./types";
 import type { AuthUser, Gamification, LeaderRow } from "./lib/api";
 import type { CrystalState } from "./lib/crystals";
@@ -29,6 +31,16 @@ export interface AppApi {
 
   crystals: CrystalState;
   unlockTopic: (topic: string) => boolean;
+
+  // WordUp Pro (Telegram Stars), hearts and the shop
+  pro: ProStatus;
+  isPro: boolean;
+  openPro: () => void;
+  purchase: (product: ProductId) => Promise<void>;
+  hearts: Hearts;
+  loseHeart: () => void;      // a mistake in a path lesson
+  refillHearts: () => boolean; // for crystals
+  buyFreeze: () => boolean;    // streak freeze for crystals
 
   // Daily plan + streak (the streak grows only when the day's plan is finished)
   plan: DailyPlan;

@@ -19,7 +19,12 @@ export function unlockCost(topic: string): number {
   return COST[TOPIC_LEVEL[topic] || "B1"] ?? 20;
 }
 
+// WordUp Pro opens every topic; App keeps this flag in sync.
+let proUnlocksAll = false;
+export function setProUnlock(on: boolean) { proUnlocksAll = on; }
+
 export function isTopicLocked(state: CrystalState, topic: string): boolean {
+  if (proUnlocksAll) return false;
   if ((TOPIC_LEVEL[topic] || "B1") === "A1") return false;
   return !state.unlocked.includes(topic);
 }

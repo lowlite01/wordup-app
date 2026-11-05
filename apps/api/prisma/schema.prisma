@@ -112,3 +112,25 @@ model WordEntry {
 
   @@index([groupKey])
 }
+
+// ---- Telegram Mini App: WordUp Pro (paid with Telegram Stars) ----
+// One row per Telegram user who opened the paywall or paid.
+model TgAccount {
+  telegramId   BigInt    @id
+  premiumUntil DateTime?
+  introUsed    Boolean   @default(false) // the one-time "newcomer week" offer
+  gemCredit    Int       @default(0)     // bought crystals not yet added in the app
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// Every successful Stars payment (chargeId makes processing idempotent).
+model StarPayment {
+  chargeId   String   @id
+  telegramId BigInt
+  product    String
+  stars      Int
+  createdAt  DateTime @default(now())
+
+  @@index([telegramId])
+}

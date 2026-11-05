@@ -23,6 +23,8 @@ interface TgWebApp {
   disableVerticalSwipes?(): void;
   showConfirm?(message: string, cb: (ok: boolean) => void): void;
   showAlert?(message: string, cb?: () => void): void;
+  openInvoice?(url: string, cb: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
+  openTelegramLink?(url: string): void;
   BackButton: TgButton;
   SettingsButton?: TgButton;
   HapticFeedback?: {
@@ -109,4 +111,16 @@ export function askConfirm(message: string): Promise<boolean> {
 export function showMessage(message: string) {
   if (tg?.showAlert && tg.isVersionAtLeast("6.2")) tg.showAlert(message);
   else window.alert(message);
+}
+
+/** Telegram's payment sheet for an invoice link (Stars). */
+export function openInvoice(url: string): Promise<string> {
+  if (!tg?.openInvoice || !tg.isVersionAtLeast("6.1")) return Promise.resolve("failed");
+  return new Promise(resolve => tg.openInvoice!(url, status => resolve(status)));
+}
+
+/** Open a t.me link (inside Telegram without leaving the app). */
+export function openTelegramLink(url: string) {
+  if (tg?.openTelegramLink && tg.isVersionAtLeast("6.1")) tg.openTelegramLink(url);
+  else window.open(url, "_blank", "noopener");
 }

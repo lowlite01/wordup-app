@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import type { Word } from "../types";
-import { keyLabel, knownSet, progressKey, shuffle, wordsForKey } from "../lib/groups";
+import { knownSet, progressKey, shuffle, wordsForKey } from "../lib/groups";
 import { preloadWord, pronounceWord, useIpa } from "../lib/dict";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
+import { HeartsBadge } from "./ProScreen";
 
 // Duolingo-style word lesson used by the "words" steps of the path:
 // new words are introduced in groups of four (word + sound + translation +
@@ -22,7 +23,7 @@ type Ex =
 const CHUNK = 4;
 
 export default function WordLessonScreen({ groupKey, onBack }: { groupKey: string; onBack: () => void }) {
-  const { progress, setWordState, settings } = useApp();
+  const { progress, setWordState, settings, loseHeart } = useApp();
   const t = useT();
   const ru = settings.lang === "ru";
   // translation shown to the learner: Russian when available, otherwise the English definition
@@ -97,6 +98,7 @@ export default function WordLessonScreen({ groupKey, onBack }: { groupKey: strin
     else {
       haptic("error");
       setMistakes(m => m + 1);
+      loseHeart();
       // try it again at the end of the lesson
       setQueue(q => [...q, { ...ex, options: optionsFor(ex.w) }]);
     }
@@ -127,7 +129,7 @@ export default function WordLessonScreen({ groupKey, onBack }: { groupKey: strin
       <div className="wl-top">
         <button className="wl-close" onClick={onBack} aria-label={t.back}>✕</button>
         <div className="plan-bar wl-bar"><span style={{ width: `${progressPct}%` }} /></div>
-        <span className="wl-count">{keyLabel(groupKey)}</span>
+        <HeartsBadge />
       </div>
 
       <div className="wl-body" key={pos}>
@@ -166,7 +168,7 @@ export default function WordLessonScreen({ groupKey, onBack }: { groupKey: strin
 
         {ex.type === "match" && (
           <Match words={ex.words} tr={tr} title={t.lessonMatch} onDone={advance}
-            onMistake={() => { setMistakes(m => m + 1); setAnswered(a => a + 1); }}
+            onMistake={() => { setMistakes(m => m + 1); setAnswered(a => a + 1); loseHeart(); }}
             onHit={() => setAnswered(a => a + 1)} />
         )}
       </div>

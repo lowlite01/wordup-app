@@ -4,6 +4,8 @@ import { buildSentenceExercises } from "../lib/roadmap";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
+import { HeartsBadge } from "./ProScreen";
+import { useApp } from "../context";
 
 interface Props {
   sourceKeys: string[];
@@ -18,6 +20,7 @@ const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}' ]/gu, "").rep
 // the example sentences of the words learned in the previous steps.
 export default function SentencesScreen({ sourceKeys, alreadyDone, onComplete, onBack }: Props) {
   const t = useT();
+  const { loseHeart } = useApp();
   const [round, setRound] = useState(0);
   const exercises = useMemo(() => buildSentenceExercises(sourceKeys),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,7 +75,7 @@ export default function SentencesScreen({ sourceKeys, alreadyDone, onComplete, o
   return (
     <section>
       <button className="back-btn" onClick={onBack}>{t.back}</button>
-      <div className="progress-row"><span>{t.sentencesTitle}</span><span>{i + 1} / {exercises.length}</span></div>
+      <div className="progress-row"><span>{t.sentencesTitle}</span><span className="progress-right">{i + 1} / {exercises.length} <HeartsBadge /></span></div>
       <div className="plan-bar"><span style={{ width: `${(i / exercises.length) * 100}%` }} /></div>
 
       <div className="sent-card" key={round + ":" + i}>
@@ -100,6 +103,7 @@ export default function SentencesScreen({ sourceKeys, alreadyDone, onComplete, o
                     const ok = norm(o) === norm(ex.answer);
                     haptic(ok ? "success" : "error");
                     if (ok) setScore(s => s + 1);
+                    else loseHeart();
                   }}
                 >{o}</button>
               ))}
@@ -129,6 +133,7 @@ export default function SentencesScreen({ sourceKeys, alreadyDone, onComplete, o
                   setChecked(ok);
                   haptic(ok ? "success" : "error");
                   if (ok) setScore(s => s + 1);
+                  else loseHeart();
                 }}>{t.check}</button>
             )}
           </>

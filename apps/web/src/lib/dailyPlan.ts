@@ -25,6 +25,9 @@ export interface Streak {
   best: number;
   lastDate: string | null; // last day the plan was finished
   days: string[];         // recent finished days (for the week dots)
+  freezes?: number;       // streak freezes in stock (max 2)
+  frozen?: string[];      // missed days covered by a freeze (shown as ❄️)
+  proMonth?: string;      // "YYYY-MM" when Pro last topped the freezes up
 }
 
 // ---- dates (local time, not UTC, so "today" matches the user's clock) ----
@@ -159,4 +162,36 @@ export function completeDay(s: Streak): Streak {
   const count = s.lastDate === yesterday() ? s.count + 1 : 1;
   const days = [...s.days.filter(d => d >= shiftDay(-30)), t];
   return { count, best: Math.max(s.best, count), lastDate: t, days };
+}
+
+// ---- streak freezes ----
+export const MAX_FREEZES = 2;
+export const FREEZE_COST = 50; // crystals
+
+// Cover missed days with freezes so the streak survives. Pro tops the stock
+// up to 2 at the start of every month.
+export function applyFreezes(s: Streak, pro: boolean): { streak: Streak; used: number } {
+  let next = s;
+  const month = today().slice(0, 7);
+  if (pro && s.proMonth !== month) {
+    next = { ...next, freezes: Math.max(next.freezes ?? 0, MAX_FREEZES), proMonth: month };
+  }
+  const have = next.freezes ?? 0;
+  if (!next.lastDate || next.count === 0 || have === 0) return { streak: next, used: 0 };
+  const missed: string[] = [];
+  for (let i = 1; i <= 60; i++) {
+    const d = shiftDay(-i);
+    if (d <= next.lastDate) break;
+    missed.push(d);
+  }
+  if (missed.length === 0 || missed.length > have) return { streak: next, used: 0 };
+  return {
+    streak: {
+      ...next,
+      freezes: have - missed.length,
+      frozen: [...(next.frozen ?? []).filter(d => d >= shiftDay(-30)), ...missed],
+      lastDate: yesterday(), // the streak goes on from yesterday
+    },
+    used: missed.length,
+  };
 }

@@ -1039,3 +1039,143 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .today .today-go { margin-top: 8px; padding: 12px 16px; border-radius: 14px; font-size: .95rem; }
 .today .today-warn { margin-top: 6px; }
 .today .today-xp { margin-top: 10px; padding-top: 10px; }
+
+/* ======================================================================
+   WordUp Pro, shop, hearts
+   ====================================================================== */
+:root { --gold: #fbbf24; --gold-2: #f97316; }
+.pro { max-width: 560px; margin: 0 auto; }
+.pro-hero {
+  position: relative; text-align: center; padding: 26px 18px 20px; border-radius: 26px; margin-bottom: 14px;
+  background:
+    radial-gradient(240px 160px at 50% 0%, color-mix(in srgb, var(--gold) 34%, transparent), transparent 75%),
+    radial-gradient(300px 200px at 100% 100%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%),
+    var(--card);
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--border));
+  box-shadow: var(--shadow);
+}
+.pro-gift-badge {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  padding: 5px 14px; border-radius: 999px; white-space: nowrap;
+  background: linear-gradient(135deg, var(--gold), var(--gold-2)); color: #2a1300;
+  font-weight: 800; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+  box-shadow: 0 6px 16px rgba(249, 115, 22, .35);
+}
+.pro-crown { font-size: 4.2rem; display: block; margin: 0 auto 6px; animation: float 3.6s ease-in-out infinite;
+  filter: drop-shadow(0 10px 22px rgba(251, 191, 36, .45)); }
+.pro-hero h2 { font-family: var(--font-display); font-size: 1.55rem; margin: 2px 0 6px; letter-spacing: -0.02em; }
+.pro-hero p { color: var(--muted); margin: 0; line-height: 1.45; }
+
+.pro-benefits { display: grid; gap: 8px; margin-bottom: 16px; }
+.pro-benefit {
+  display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center;
+  padding: 10px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--border);
+  animation: rise .4s ease backwards;
+}
+.pro-benefit-icon { grid-row: span 2; font-size: 2.1rem; justify-self: center; }
+.pro-benefit b { font-family: var(--font-display); font-size: .98rem; }
+.pro-benefit span { color: var(--muted); font-size: .82rem; }
+
+.pro-plans { display: grid; gap: 12px; margin-bottom: 14px; }
+.pro-plan {
+  position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  width: 100%; padding: 16px; border-radius: 18px; cursor: pointer; text-align: left; font: inherit; color: var(--text);
+  background: var(--card); border: 2px solid var(--border); transition: border-color .15s, transform .1s;
+}
+.pro-plan:active { transform: scale(.99); }
+.pro-plan.sel { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 9%, var(--card)); }
+.pro-plan-tag {
+  position: absolute; top: -10px; right: 14px; padding: 3px 10px; border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444, #ec4899); color: #fff; font-weight: 800; font-size: .66rem;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.pro-radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; }
+.pro-plan.sel .pro-radio { border-color: var(--gold); background: var(--gold); box-shadow: inset 0 0 0 4px var(--card); }
+.pro-plan-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pro-plan-text b { font-family: var(--font-display); font-size: 1.02rem; }
+.pro-plan-text small { color: var(--muted); font-size: .78rem; line-height: 1.3; }
+.pro-price { display: flex; align-items: center; gap: 3px; font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; white-space: nowrap; }
+.pro-price small { color: var(--muted); font-size: .7rem; font-weight: 700; margin-left: 2px; }
+
+.today-go.pro-pay {
+  background: linear-gradient(135deg, var(--gold), var(--gold-2) 55%, #ec4899); color: #2a1300;
+  box-shadow: 0 10px 26px rgba(249, 115, 22, .35);
+}
+.today-go.pro-pay:disabled { opacity: .6; cursor: progress; }
+.pro-note { color: var(--muted); font-size: .74rem; text-align: center; margin: 10px 6px 0; line-height: 1.4; }
+
+.pro-shop-title { font-family: var(--font-display); font-size: 1.1rem; margin: 26px 0 12px; }
+.pro-shop { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pro-pack {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 16px 10px 12px; border-radius: 18px; cursor: pointer; font: inherit; color: var(--text);
+  background: var(--card); border: 1px solid var(--border); box-shadow: 0 3px 0 var(--border);
+  transition: transform .1s;
+}
+.pro-pack:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.pro-pack:disabled { opacity: .55; cursor: default; }
+.pro-pack-icon { font-size: 2.4rem; }
+.pro-pack b { font-family: var(--font-display); font-size: 1.15rem; }
+.pro-pack small { color: var(--muted); font-size: .74rem; text-align: center; line-height: 1.3; }
+.pro-pack-price {
+  display: inline-flex; align-items: center; gap: 3px; margin-top: 4px; padding: 5px 12px; border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 16%, transparent); color: var(--gold); font-weight: 800; font-size: .9rem;
+}
+.pro-pack.freeze { grid-column: span 2; }
+.pro-pack.freeze .pro-pack-price { background: color-mix(in srgb, #38bdf8 16%, transparent); color: #38bdf8; }
+
+/* home promo under the path */
+.pro-promo {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 14px 16px;
+  border-radius: 20px; cursor: pointer; font: inherit; color: var(--text); text-align: left;
+  background:
+    radial-gradient(200px 120px at 0% 0%, color-mix(in srgb, var(--gold) 30%, transparent), transparent 75%),
+    color-mix(in srgb, var(--gold) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.pro-promo-icon { font-size: 2.3rem; flex-shrink: 0; animation: float 3.6s ease-in-out infinite; }
+.pro-promo span { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pro-promo b { font-family: var(--font-display); font-size: 1rem; }
+.pro-promo small { color: var(--muted); font-size: .8rem; }
+.pro-promo-go { flex: 0 0 auto !important; font-size: 1.6rem; color: var(--gold); }
+
+/* hearts */
+.hearts-badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
+  background: color-mix(in srgb, #ef4444 14%, transparent); color: #f87171; font-weight: 800; font-size: .9rem;
+  flex-shrink: 0;
+}
+.hearts-badge b { animation: pop-in .35s ease backwards; }
+.hearts-badge.low { animation: shake .5s ease 2; }
+.progress-right { display: inline-flex; align-items: center; gap: 8px; }
+.hearts-backdrop {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: end center; padding: 16px;
+  background: rgba(0, 0, 0, .55); backdrop-filter: blur(4px); animation: rise .2s ease backwards;
+}
+.hearts-modal {
+  position: relative; width: 100%; max-width: 440px; padding: 24px 20px max(20px, env(safe-area-inset-bottom));
+  border-radius: 26px; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow);
+  text-align: center; animation: rise .3s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+@media (min-width: 700px) { .hearts-backdrop { place-items: center; } }
+.hearts-close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; }
+.hearts-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
+.hearts-row-icon { font-size: 2rem; }
+.hearts-row-icon.empty { filter: grayscale(1) opacity(.3); }
+.hearts-modal h2 { font-family: var(--font-display); margin: 4px 0 6px; }
+.hearts-modal p { margin: 0 0 14px; line-height: 1.45; font-size: .9rem; }
+.hearts-modal .btn.wide { margin-top: 10px; }
+.hearts-refill:disabled { opacity: .5; }
+.ghost-btn { background: none !important; border-color: transparent !important; color: var(--muted) !important; }
+
+/* streak freeze on the week strip */
+.week-day.frozen .week-dot { background: color-mix(in srgb, #38bdf8 22%, transparent); box-shadow: 0 4px 14px rgba(56, 189, 248, .25); }
+
+/* IELTS cards that need Pro */
+.ielts-card.pro-only { position: relative; }
+.ielts-card.pro-only .ielts-card-main, .ielts-card.pro-only .ielts-card-actions { opacity: .6; }
+.pro-chip {
+  position: absolute; top: 10px; right: 10px; z-index: 1; display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 999px; font-size: .72rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), var(--gold-2)); color: #2a1300;
+}
