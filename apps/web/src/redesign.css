@@ -884,3 +884,45 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
   .roadmap-deco.on-left { right: calc(100% + 4px); }
   .roadmap-deco.on-right { left: calc(100% + 4px); }
 }
+
+/* ---- Review tab ---- */
+.review-status { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 4px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); margin-bottom: 12px; }
+.review-seg {
+  border: none; background: none; color: var(--muted); font: inherit; font-weight: 700; font-size: .85rem;
+  padding: 9px 4px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.review-seg span { font-family: var(--font-display); font-size: 1rem; color: var(--text); }
+.review-seg.active { background: var(--grad); color: var(--on-accent); }
+.review-seg.active span { color: var(--on-accent); }
+.review-tools { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 10px; }
+.review-search, .review-sort {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text);
+  padding: 11px 14px; font: inherit; font-size: .92rem; outline: none; min-width: 0;
+}
+.review-search:focus, .review-sort:focus { border-color: var(--accent); }
+.review-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; margin-bottom: 8px; }
+.review-chips::-webkit-scrollbar { display: none; }
+.review-chips .level-chip { flex: 0 0 auto; }
+.review-go { margin: 6px 0 14px; }
+.review-go:disabled { opacity: .5; cursor: default; }
+.review-list { display: flex; flex-direction: column; gap: 8px; }
+.review-row {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px;
+  padding: 10px 10px 10px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+}
+.review-row.learning { border-left-color: var(--accent-2); }
+.review-row.known { border-left-color: var(--success); }
+.review-word { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: none; border: none; padding: 0; color: var(--text); text-align: left; cursor: pointer; min-width: 0; font: inherit; }
+.review-word b { font-size: 1rem; }
+.review-def { color: var(--muted); font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.review-meta { display: flex; align-items: center; gap: 6px; }
+.review-tag { font-size: .7rem; font-weight: 700; color: var(--muted); background: var(--card-2); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.review-wrong { font-size: .75rem; font-weight: 800; color: var(--danger); }
+.review-dot { width: 9px; height: 9px; border-radius: 50%; }
+.review-dot.learning { background: var(--accent-2); }
+.review-dot.known { background: var(--success); }
+.review-speak { background: var(--card-2); border: 1px solid var(--border); border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: grid; place-items: center; font-size: 1.1rem; }
+.review-empty { text-align: center; padding: 30px 10px; }
+.review-empty-icon { font-size: 4rem; }
+@media (max-width: 520px) { .review-tag { display: none; } }

@@ -3,6 +3,7 @@ export interface Word {
   pos: string;
   def: string;
   example: string;
+  ru?: string; // Russian translation (beginner words), shown when the UI is Russian
 }
 
 export interface KeyedWord extends Word {
@@ -52,4 +53,4 @@ export interface GrammarSection {
   items: GrammarItem[];
 }
 
-export type FlashMode = "group" | "all" | "learning-mix" | "plan";
+export type FlashMode = "group" | "all" | "learning-mix" | "plan" | "review";

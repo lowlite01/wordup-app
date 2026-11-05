@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppContext, type AppApi } from "./context";
 import { STRINGS } from "./i18n";
-import type { FlashMode, Word } from "./types";
+import type { FlashMode, KeyedWord, Word } from "./types";
 import {
   LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, progressKey, resetSearchIndex, topicLevelKeys,
 } from "./lib/groups";
@@ -21,6 +21,8 @@ import {
 import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
 import IeltsScreen from "./components/IeltsScreen";
+import ReviewScreen from "./components/ReviewScreen";
+import { clearWordTimes, touchWord } from "./lib/wordTimes";
 import PlacementScreen from "./components/PlacementScreen";
 import LessonScreen from "./components/LessonScreen";
 import SentencesScreen from "./components/SentencesScreen";
@@ -67,6 +69,7 @@ type Route =
   | { s: "profile" }
   | { s: "admin" }
   | { s: "placement" }
+  | { s: "review" }
   | { s: "path" }
   | { s: "lesson"; id: string }
   | { s: "sentences"; id: string };
@@ -89,6 +92,7 @@ export default function App() {
   // Which screen a study session was started from, so Back returns there.
   const [studyOrigin, setStudyOrigin] = useState<Origin>(null);
   const [menuOpen, setMenuOpen] = useState(false); // phone side menu
+  const [reviewDeck, setReviewDeck] = useState<KeyedWord[]>([]); // words picked in the Review tab
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
   const [crystals, setCrystals] = useState(loadCrystals);
   const [customVersion, setCustomVersion] = useState(0); // bumps when custom lists change
@@ -272,6 +276,7 @@ export default function App() {
     progress,
     setWordState: (rawKey, word, state) => {
       const key = progressKey(rawKey); // path parts store progress on their level
+      if (state !== "none") touchWord(key, word);
       setProgress(p => {
         const known = new Set(p.known[key] || []);
         const learning = new Set(p.learning[key] || []);
@@ -323,6 +328,7 @@ export default function App() {
       setPlan(loadPlan(lang, next, freshCrystals));
       saveRecent([]);
       setRecent([]);
+      clearWordTimes();
       setRoute({ s: "placement" });
     },
     stats,
@@ -419,7 +425,6 @@ export default function App() {
   }), [progress, stats, recent, settings, user, gamification, crystals, customVersion, plan, streak]);
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
-  const knownCount = useMemo(() => collectWords(progress, "known").length, [progress]);
 
   const openGroup = (name: string, preferredKey?: string) => {
     setStudyOrigin(null);
@@ -479,16 +484,15 @@ export default function App() {
     ...(isEn ? [{ id: "ielts" as Route["s"], label: t.tabIelts, icon: "🎓" }] : []),
     { id: "grammar", label: t.tabGrammar, icon: "📚" },
     ...(isEn ? [{ id: "phrasal" as Route["s"], label: t.tabPhrasal, icon: "🧩" }] : []),
-    { id: "learning", label: t.tabLearning, icon: "🧠", badge: learningCount },
-    { id: "known", label: t.tabKnown, icon: "✅", badge: knownCount },
+    { id: "review", label: t.reviewTitle, icon: "🧠", badge: learningCount },
     { id: "stats", label: t.tabStats, icon: "📈" },
     ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
   ];
   const groupsFamily = ["groups", "mode", "flash", "quiz", "list"];
-  const inStudy = groupsFamily.includes(route.s) && !(route.s === "flash" && route.mode === "learning-mix");
+  const inStudy = groupsFamily.includes(route.s) && !(route.s === "flash" && (route.mode === "learning-mix" || route.mode === "review"));
   const activeTab = inStudy
     ? (route.s !== "groups" && (studyOrigin === "levels" || studyOrigin === "ielts") ? studyOrigin : "groups")
-    : route.s === "flash" ? "learning" : route.s;
+    : route.s === "flash" ? "review" : route.s;
   const go = (s: Route["s"]) => { setMenuOpen(false); setRoute({ s } as Route); };
 
   // Where "Back" leads from the current screen — used by Telegram's native
@@ -496,7 +500,7 @@ export default function App() {
   const backTarget = (): Route | null => {
     if (route.s === "groups") return null;
     if (route.s === "flash") {
-      if (route.mode === "learning-mix") return { s: "learning" };
+      if (route.mode === "learning-mix" || route.mode === "review") return { s: "review" };
       if (route.mode === "plan") return { s: "groups" };
       return studyBack();
     }
@@ -632,6 +636,15 @@ export default function App() {
             }}
           />
         )}
+        {route.s === "review" && (
+          <ReviewScreen
+            onPractice={words => {
+              setReviewDeck(words);
+              setNonce(n => n + 1);
+              setRoute({ s: "flash", mode: "review" });
+            }}
+          />
+        )}
         {route.s === "placement" && (
           <PlacementScreen
             withGrammar={settings.courseLang !== "de"}
@@ -697,10 +710,11 @@ export default function App() {
             groupKey={groupKey}
             posFilter={posFilter}
             onBack={() => {
-              if (route.mode === "learning-mix") setRoute({ s: "learning" });
+              if (route.mode === "learning-mix" || route.mode === "review") setRoute({ s: "review" });
               else if (route.mode === "plan") setRoute({ s: "groups" });
               else setRoute(studyBack());
             }}
+            customDeck={route.mode === "review" ? reviewDeck : undefined}
             onNextLevel={k => {
               setGroupKey(k);
               setNonce(n => n + 1);

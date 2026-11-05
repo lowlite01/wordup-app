@@ -17,13 +17,14 @@ interface Props {
   posFilter: string;
   onBack: () => void;
   onNextLevel: (key: string) => void;
+  customDeck?: KeyedWord[]; // "review" mode: practise exactly these words
 }
 
 type Mic =
   | { status: "idle" | "listening" | "good" | "blocked" | "fail" }
   | { status: "heard"; heard: string };
 
-export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, onNextLevel }: Props) {
+export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, onNextLevel, customDeck }: Props) {
   const { progress, setWordState, resetKey, recordRecent, settings, plan, streak, answerPlan } = useApp();
   const t = useT();
   const progressRef = useRef(progress);
@@ -39,6 +40,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
 
   const [deck, setDeck] = useState<KeyedWord[]>(() =>
     isPlan ? planDeck(plan)
+    : mode === "review" ? [...(customDeck ?? [])]
     : mode === "learning-mix" ? collectWords(progress, "learning")
     : buildGroupDeck(false));
   const [idx, setIdx] = useState(0);
@@ -48,7 +50,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
   const recognizing = useRef(false);
 
   useEffect(() => {
-    if (mode !== "learning-mix" && !isPlan) recordRecent(groupKey);
+    if (mode !== "learning-mix" && mode !== "review" && !isPlan) recordRecent(groupKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -237,7 +239,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
               {t.startNextLevel}
             </button>
           )}
-          {mode !== "learning-mix" && (
+          {mode !== "learning-mix" && mode !== "review" && (
             <button
               className="btn wide"
               onClick={() => {
@@ -296,7 +298,7 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
         <div className={"flashcard" + (flipped ? " flipped" : "")}>
           <div className="flashcard-face flashcard-front">
             <div className="pos-tag">
-              {current.pos}{mode === "learning-mix" || isPlan ? ` · ${keyLabel(current.key)}` : ""}
+              {current.pos}{mode === "learning-mix" || mode === "review" || isPlan ? ` · ${keyLabel(current.key)}` : ""}
             </div>
             {kind && (
               <div className={"plan-kind " + kind}>{kind === "new" ? t.planNew : t.planReview}</div>
