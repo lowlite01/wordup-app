@@ -6,9 +6,10 @@ import { PRODUCTS, TelegramService } from "./telegram.service";
 // ADMIN_TELEGRAM_IDS env var can use them (checked by the controller).
 
 const DAY = 24 * 60 * 60 * 1000;
-const COMMANDS = ["/admin", "/stats", "/user", "/givepro", "/takepro", "/gems", "/payments", "/refund"];
+const COMMANDS = ["/help", "/admin", "/stats", "/user", "/givepro", "/takepro", "/gems", "/payments", "/refund"];
 
 export const ADMIN_COMMAND_LIST = [
+  { command: "help", description: "Список всех команд" },
   { command: "stats", description: "Статистика продаж и пользователей" },
   { command: "user", description: "Инфо о пользователе: /user <id>" },
   { command: "givepro", description: "Выдать Pro: /givepro <id> <дней>" },
@@ -16,7 +17,6 @@ export const ADMIN_COMMAND_LIST = [
   { command: "gems", description: "Выдать кристаллы: /gems <id> <кол-во>" },
   { command: "payments", description: "Последние платежи" },
   { command: "refund", description: "Вернуть звёзды: /refund <chargeId>" },
-  { command: "admin", description: "Список админ-команд" },
 ];
 
 const HELP = [
@@ -29,8 +29,14 @@ const HELP = [
   "/gems <id> <кол-во> — подарить кристаллы",
   "/payments [N] — последние платежи (с chargeId)",
   "/refund <chargeId> — вернуть звёзды и забрать покупку",
+  "/help — этот список",
   "",
-  "ID пользователя он может узнать командой /myid.",
+  "Скрытые (не видны в меню, работают у всех):",
+  "/myid — показать свой Telegram ID",
+  "/paysupport — помощь с оплатой",
+  "/terms — условия Pro",
+  "",
+  "Как узнать ID пользователя: попроси его отправить боту /myid, или посмотри в /payments.",
 ].join("\n");
 
 const fmtDate = (d: Date | null | undefined) => (d ? d.toLocaleDateString("ru-RU") : "—");
@@ -64,6 +70,7 @@ export class TelegramAdminService {
 
   private async exec(cmd: string, args: string[]): Promise<string> {
     switch (cmd) {
+      case "/help":
       case "/admin": return HELP;
       case "/stats": return this.stats();
       case "/user": return this.user(parseId(args[0]));

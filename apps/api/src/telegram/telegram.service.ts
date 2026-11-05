@@ -81,12 +81,9 @@ export class TelegramService implements OnModuleInit {
 
   // The "/" menu in the bot: public commands for everyone, plus admin ones in admins' chats.
   private async setCommands() {
-    const base = [
-      { command: "start", description: "Открыть WordUp" },
-      { command: "myid", description: "Мой Telegram ID" },
-      { command: "paysupport", description: "Помощь с оплатой" },
-      { command: "terms", description: "Условия Pro" },
-    ];
+    // Everyone sees only /start. /myid, /paysupport and /terms still work, just
+    // aren't listed; admins additionally see their commands (incl. /help).
+    const base = [{ command: "start", description: "Открыть WordUp" }];
     await this.call("setMyCommands", { commands: base }).catch(() => {});
     const { ADMIN_COMMAND_LIST } = await import("./telegram-admin.service");
     for (const id of this.adminIds) {
