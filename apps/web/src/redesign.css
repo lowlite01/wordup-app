@@ -1187,3 +1187,33 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .header-right { flex-shrink: 0; }
 @media (max-width: 360px) { .logo-btn .logo { display: none; } }
 .screen-loading { min-height: 50vh; }
+
+/* ---- Desktop tabs: main sections + "More" dropdown; Pro button in the header ---- */
+.tab-row { display: flex; align-items: flex-start; gap: 4px; margin-top: 14px; }
+.tab-row .tab-bar { margin-top: 0; min-width: 0; }
+.tab-more-wrap { position: relative; flex-shrink: 0; padding-bottom: 12px; }
+.tab-more-caret { display: inline-block; margin-left: 4px; font-size: .75em; transition: transform .2s; }
+.tab-more.open .tab-more-caret { transform: rotate(180deg); }
+.tab-menu-backdrop { position: fixed; inset: 0; z-index: 59; }
+.tab-menu {
+  position: absolute; left: 0; top: calc(100% - 6px); z-index: 60; min-width: 220px;
+  display: flex; flex-direction: column; gap: 2px; padding: 6px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow);
+  animation: rise .18s ease backwards;
+}
+.tab-menu button {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 11px;
+  background: none; border: none; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-align: left;
+}
+.tab-menu button:hover { background: var(--card-2); }
+.tab-menu button.active { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.tab-menu-icon { font-size: 1.3rem; }
+.pro-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  border: none; font: inherit; font-weight: 800; font-size: .92rem; color: #2a1300;
+  background: linear-gradient(135deg, var(--gold, #fbbf24), var(--gold-2, #f97316));
+  box-shadow: 0 6px 16px rgba(249, 115, 22, .3); transition: transform .15s;
+}
+.pro-btn:hover { transform: translateY(-1px); }
+.pro-btn.on { background: color-mix(in srgb, #fbbf24 16%, var(--card)); color: #fbbf24; box-shadow: none; border: 1px solid color-mix(in srgb, #fbbf24 45%, transparent); }
+@media (max-width: 640px) { .tab-row, .pro-btn { display: none; } }

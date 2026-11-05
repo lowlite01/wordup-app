@@ -91,6 +91,7 @@ export default function App() {
   // Which screen a study session was started from, so Back returns there.
   const [studyOrigin, setStudyOrigin] = useState<Origin>(null);
   const [menuOpen, setMenuOpen] = useState(false); // phone side menu
+  const [moreOpen, setMoreOpen] = useState(false); // desktop "More" dropdown
   const [reviewDeck, setReviewDeck] = useState<KeyedWord[]>([]); // words picked in the Review tab
   const [contentVersion, setContentVersion] = useState(0); // bumps on content (re)load
   const [crystals, setCrystals] = useState(loadCrystals);
@@ -598,7 +599,12 @@ export default function App() {
   const activeTab = inStudy
     ? (route.s !== "groups" && (studyOrigin === "levels" || studyOrigin === "ielts") ? studyOrigin : "groups")
     : route.s === "flash" ? "review" : route.s;
-  const go = (s: Route["s"]) => { setMenuOpen(false); setRoute({ s } as Route); };
+  const go = (s: Route["s"]) => { setMenuOpen(false); setMoreOpen(false); setRoute({ s } as Route); };
+  // Desktop tab row: the main sections; the rest sit in a "More" dropdown,
+  // Pro has its own button in the header.
+  const PRIMARY: Route["s"][] = ["groups", "levels", "ielts", "review"];
+  const primaryTabs = tabs.filter(tb => PRIMARY.includes(tb.id));
+  const moreTabs = tabs.filter(tb => !PRIMARY.includes(tb.id) && tb.id !== "pro");
 
   // Where "Back" leads from the current screen — used by Telegram's native
   // Back button (same targets as the on-screen ← buttons).
@@ -636,6 +642,10 @@ export default function App() {
             </span>
           </button>
           <div className="header-right">
+            <button className={"pro-btn" + (isPro ? " on" : "")} onClick={() => go("pro")} title={t.proMenu}>
+              <Emoji char="👑" />
+              <span>Pro</span>
+            </button>
             <button
               className={"streak-pill" + (plan.completed ? " lit" : "")}
               onClick={() => setRoute({ s: "groups" })}
@@ -664,18 +674,42 @@ export default function App() {
             </button>
           </div>
         </div>
-        <nav className="tab-bar">
-          {tabs.map(tb => (
+        <div className="tab-row">
+          <nav className="tab-bar">
+            {primaryTabs.map(tb => (
+              <button
+                key={tb.id}
+                className={"tab" + (activeTab === tb.id ? " active" : "")}
+                onClick={() => go(tb.id)}
+              >
+                {tb.label}
+                {tb.badge ? <span className="badge" key={tb.badge}>{tb.badge}</span> : null}
+              </button>
+            ))}
+          </nav>
+          <div className="tab-more-wrap">
             <button
-              key={tb.id}
-              className={"tab" + (activeTab === tb.id ? " active" : "")}
-              onClick={() => go(tb.id)}
+              className={"tab tab-more" + (moreTabs.some(tb => tb.id === activeTab) ? " active" : "") + (moreOpen ? " open" : "")}
+              onClick={() => setMoreOpen(o => !o)}
+              aria-expanded={moreOpen}
             >
-              {tb.label}
-              {tb.badge ? <span className="badge" key={tb.badge}>{tb.badge}</span> : null}
+              {moreTabs.find(tb => tb.id === activeTab)?.label ?? t.tabMore} <span className="tab-more-caret">▾</span>
             </button>
-          ))}
-        </nav>
+            {moreOpen && (
+              <>
+                <div className="tab-menu-backdrop" onClick={() => setMoreOpen(false)} />
+                <div className="tab-menu" role="menu">
+                  {moreTabs.map(tb => (
+                    <button key={tb.id} role="menuitem" className={activeTab === tb.id ? "active" : ""} onClick={() => go(tb.id)}>
+                      <Emoji char={tb.icon} className="tab-menu-icon" />
+                      <span>{tb.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* Side menu (phones): same sections as the tab row, with 3D icons */}
