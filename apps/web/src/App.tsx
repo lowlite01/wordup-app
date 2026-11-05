@@ -591,7 +591,7 @@ export default function App() {
     { id: "phrasal", label: t.tabPhrasal, icon: "🧩" },
     { id: "review", label: t.reviewTitle, icon: "🧠", badge: learningCount },
     { id: "stats", label: t.tabStats, icon: "📈" },
-    ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
+    ...(user?.role === "ADMIN" || pro.admin ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
     { id: "pro", label: t.proMenu, icon: "👑" },
   ];
   const groupsFamily = ["groups", "flash", "quiz", "list"];

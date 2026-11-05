@@ -38,7 +38,7 @@ export default function ProScreen({ onBack }: { onBack: () => void }) {
         {introOpen && <span className="pro-gift-badge">{t.proGiftBadge}</span>}
         <Emoji char="👑" className="pro-crown" />
         <h2>{isPro ? t.proActiveTitle : introOpen ? t.proHeroGift : t.proHeroTitle}</h2>
-        <p>{isPro && pro.premiumUntil
+        <p>{pro.admin ? t.proAdmin : isPro && pro.premiumUntil
           ? t.proActive(new Date(pro.premiumUntil).toLocaleDateString(locale))
           : t.proHeroSub}</p>
       </div>

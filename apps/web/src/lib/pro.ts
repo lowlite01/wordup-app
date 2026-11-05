@@ -12,6 +12,7 @@ export const BOT_LINK = "https://t.me/WordUpDailyBot";
 export const FREE_IELTS = 2; // IELTS topics open without Pro
 
 export interface ProStatus {
+  admin?: boolean; // Telegram admin: Pro for free + admin panel
   premiumUntil: string | null;
   introUsed: boolean;
   prices: Record<ProductId, number>;
@@ -43,8 +44,8 @@ async function tgFetch<T>(path: string, body?: object): Promise<T> {
 /** Ask the server for the current status (+ crystals waiting). Telegram only. */
 export async function fetchPro(): Promise<{ status: ProStatus; gemCredit: number } | null> {
   if (!isTelegram) return null;
-  const r = await tgFetch<{ premiumUntil: string | null; introUsed: boolean; gemCredit: number; prices: Record<ProductId, number> }>("/tg/me");
-  const status = { premiumUntil: r.premiumUntil, introUsed: r.introUsed, prices: { ...DEFAULT_PRICES, ...r.prices } };
+  const r = await tgFetch<{ admin?: boolean; premiumUntil: string | null; introUsed: boolean; gemCredit: number; prices: Record<ProductId, number> }>("/tg/me");
+  const status = { admin: Boolean(r.admin), premiumUntil: r.premiumUntil, introUsed: r.introUsed, prices: { ...DEFAULT_PRICES, ...r.prices } };
   savePro(status);
   return { status, gemCredit: r.gemCredit };
 }

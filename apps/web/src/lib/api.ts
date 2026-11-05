@@ -1,4 +1,5 @@
 import type { Progress, QuizStats } from "../types";
+import { telegramInitData } from "./telegram";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
@@ -22,7 +23,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Google sign-in token, or (inside Telegram) the signed launch data —
+      // the latter lets Telegram admins use the admin panel.
+      ...(token ? { Authorization: `Bearer ${token}` } : telegramInitData ? { Authorization: `tma ${telegramInitData}` } : {}),
       ...options.headers,
     },
   });

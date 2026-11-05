@@ -3,8 +3,7 @@ import {
 } from "@nestjs/common";
 import { ContentService } from "./content.service";
 import { CreateGroupDto, CreateWordDto, UpdateGroupDto, UpdateWordDto } from "./dto";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { AdminGuard } from "../auth/admin.guard";
+import { AdminAccessGuard } from "../telegram/admin-access.guard";
 
 // Public content used by the app to render groups and words.
 @Controller("content")
@@ -18,7 +17,7 @@ export class ContentController {
 }
 
 // Everything here is admin-only.
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminAccessGuard)
 @Controller("admin/content")
 export class AdminContentController {
   constructor(private readonly content: ContentService) {}

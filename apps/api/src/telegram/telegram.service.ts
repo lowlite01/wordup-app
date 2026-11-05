@@ -52,7 +52,12 @@ export class TelegramService implements OnModuleInit {
     this.webAppUrl = config.get<string>("WEB_APP_URL") || "https://wordup-app-api.vercel.app";
     this.publicUrl = config.get<string>("PUBLIC_API_URL") || config.get<string>("RENDER_EXTERNAL_URL") || "";
     this.support = config.get<string>("SUPPORT_CONTACT") || "";
+    // Telegram user IDs with admin rights (comma separated), e.g. "123456789,987654321"
+    this.adminIds = new Set((config.get<string>("ADMIN_TELEGRAM_IDS") || "")
+      .split(",").map(s => Number(s.trim())).filter(n => n > 0));
   }
+  private readonly adminIds: Set<number>;
+  isAdmin(id?: number): boolean { return id !== undefined && this.adminIds.has(Number(id)); }
   private readonly publicUrl: string;
   private readonly support: string; // e.g. "@yourname" — who answers payment questions
 
@@ -68,8 +73,27 @@ export class TelegramService implements OnModuleInit {
         allowed_updates: ["message", "pre_checkout_query"],
       });
       this.log.log("Webhook set");
+      await this.setCommands();
     } catch (e) {
       this.log.error(`setWebhook failed: ${(e as Error).message}`);
+    }
+  }
+
+  // The "/" menu in the bot: public commands for everyone, plus admin ones in admins' chats.
+  private async setCommands() {
+    const base = [
+      { command: "start", description: "Открыть WordUp" },
+      { command: "myid", description: "Мой Telegram ID" },
+      { command: "paysupport", description: "Помощь с оплатой" },
+      { command: "terms", description: "Условия Pro" },
+    ];
+    await this.call("setMyCommands", { commands: base }).catch(() => {});
+    const { ADMIN_COMMAND_LIST } = await import("./telegram-admin.service");
+    for (const id of this.adminIds) {
+      await this.call("setMyCommands", {
+        commands: [...base, ...ADMIN_COMMAND_LIST],
+        scope: { type: "chat", chat_id: id },
+      }).catch(() => { /* the admin hasn't opened the bot yet */ });
     }
   }
 
@@ -110,9 +134,17 @@ export class TelegramService implements OnModuleInit {
 
   // ---- Status for the app ----
   async status(telegramId: number) {
-    const acc = await this.prisma.tgAccount.findUnique({ where: { telegramId: BigInt(telegramId) } });
-    const until = acc?.premiumUntil ?? null;
+    // remember everyone who opens the app (for /stats); creates the row on first visit
+    const acc = await this.prisma.tgAccount.upsert({
+      where: { telegramId: BigInt(telegramId) },
+      create: { telegramId: BigInt(telegramId) },
+      update: {},
+    });
+    const admin = this.isAdmin(telegramId);
+    // admins always have Pro (to test everything without buying)
+    const until = admin ? new Date("2099-12-31T00:00:00Z") : acc.premiumUntil;
     return {
+      admin,
       pro: Boolean(until && until.getTime() > Date.now()),
       premiumUntil: until ? until.toISOString() : null,
       introUsed: acc?.introUsed ?? false,
@@ -167,6 +199,9 @@ export class TelegramService implements OnModuleInit {
     }
     const text: string = msg.text || "";
     if (text.startsWith("/start")) return this.welcome(msg.chat.id);
+    if (text.startsWith("/myid")) {
+      return { method: "sendMessage", chat_id: msg.chat.id, text: `Твой Telegram ID: ${msg.from?.id}` };
+    }
     if (text.startsWith("/paysupport")) {
       return { method: "sendMessage", chat_id: msg.chat.id, text: this.support
         ? `💬 Проблема с оплатой? Напиши ${this.support} и приложи скрин — разберёмся и, если нужно, вернём звёзды.`

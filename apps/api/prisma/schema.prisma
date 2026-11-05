@@ -131,6 +131,7 @@ model StarPayment {
   product    String
   stars      Int
   createdAt  DateTime @default(now())
+  refundedAt DateTime? // set by the /refund admin command
 
   @@index([telegramId])
 }
