@@ -8,7 +8,10 @@ import { GRAMMAR_DRILLS, LEVEL_GRAMMAR } from "./grammarDrills";
 //   sentences — fill gaps / build sentences from the examples of recent words
 // A placement test sets a starting level; everything below it counts as done.
 
-export type StepKind = "words" | "grammar" | "sentences";
+export type StepKind = "words" | "grammar" | "sentences" | "chest" | "trophy";
+
+// Crystals for reward steps: a chest every few steps, a trophy per level.
+export const STEP_REWARD: Partial<Record<StepKind, number>> = { grammar: 3, sentences: 3, chest: 5, trophy: 15 };
 
 export interface Step {
   id: string;          // stable id, also used to remember finished steps
@@ -43,13 +46,22 @@ export function savePath(lang: string, s: PathState) {
 /** Build the whole path for the current course content. */
 export function buildSteps(withGrammar: boolean): Step[] {
   const steps: Step[] = [];
+  let sinceChest = 0;
+  // every 5 learning steps a treasure chest
+  const push = (st: Step) => {
+    steps.push(st);
+    if (++sinceChest === 5) {
+      sinceChest = 0;
+      steps.push({ id: `c:${st.id}`, kind: "chest", level: st.level, title: "Chest", emoji: "🎁" });
+    }
+  };
   for (const level of LEVELS) {
     const total = wordsForKey(level).length;
     if (!total) continue;
     const parts = Math.ceil(total / PART_SIZE);
     const grammar = withGrammar ? [...LEVEL_GRAMMAR[level]].filter(g => GRAMMAR_DRILLS[g]) : [];
     for (let i = 0; i < parts; i++) {
-      steps.push({
+      push({
         id: `w:${level}:${i}`, kind: "words", level, key: partKey(level, i),
         title: `${level} · ${i + 1}`, emoji: "📘",
       });
@@ -57,9 +69,9 @@ export function buildSteps(withGrammar: boolean): Step[] {
       const pairEnd = i % 2 === 1 || i === parts - 1;
       if (pairEnd) {
         const g = grammar.shift();
-        if (g) steps.push({ id: `g:${g}`, kind: "grammar", level, grammar: g, title: g, emoji: "💡" });
+        if (g) push({ id: `g:${g}`, kind: "grammar", level, grammar: g, title: g, emoji: "💡" });
         const from = i % 2 === 1 ? i - 1 : i;
-        steps.push({
+        push({
           id: `s:${level}:${i}`, kind: "sentences", level,
           sourceKeys: Array.from({ length: i - from + 1 }, (_, k) => partKey(level, from + k)),
           title: "Sentences", emoji: "💬",
@@ -67,7 +79,10 @@ export function buildSteps(withGrammar: boolean): Step[] {
       }
     }
     // any grammar topics left for this level go at its end
-    for (const g of grammar) steps.push({ id: `g:${g}`, kind: "grammar", level, grammar: g, title: g, emoji: "💡" });
+    for (const g of grammar) push({ id: `g:${g}`, kind: "grammar", level, grammar: g, title: g, emoji: "💡" });
+    // level finished: a trophy
+    steps.push({ id: `t:${level}`, kind: "trophy", level, title: level, emoji: "🏆" });
+    sinceChest = 0;
   }
   return steps;
 }

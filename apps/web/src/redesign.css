@@ -834,3 +834,53 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .sent-built.ok { border-color: var(--success); border-style: solid; }
 .sent-built.bad { border-color: var(--danger); border-style: solid; animation: shake .45s ease; }
 .sent-placeholder { color: var(--muted); align-self: center; font-size: .9rem; }
+
+/* ---- Path: unit banners, rewards, decorations ---- */
+.roadmap-unit {
+  --lvl: var(--accent);
+  align-self: stretch; margin: 10px 0 18px; padding: 16px 18px; border-radius: 20px;
+  background:
+    radial-gradient(260px 120px at 100% 0%, color-mix(in srgb, var(--lvl) 35%, transparent), transparent 70%),
+    color-mix(in srgb, var(--lvl) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--lvl) 40%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+.roadmap-unit-top { display: flex; align-items: center; gap: 10px; }
+.roadmap-unit-badge {
+  background: var(--lvl); color: #08120e; border-radius: 10px; padding: 3px 10px;
+  font-family: var(--font-display); font-weight: 800; font-size: .85rem;
+}
+.roadmap-unit-name { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; flex: 1; }
+.roadmap-unit-count { font-weight: 800; font-size: .82rem; color: var(--muted); }
+.roadmap-unit-desc { color: var(--muted); font-size: .88rem; margin: 8px 0 12px; line-height: 1.4; }
+.roadmap-unit-bar { height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.roadmap-unit-bar span { display: block; height: 100%; border-radius: 999px; background: var(--lvl); }
+.roadmap-level { display: none; } /* replaced by .roadmap-unit */
+
+.roadmap-deco {
+  position: absolute; top: 4px; font-size: 3.6rem; opacity: .95; pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, .35));
+  animation: float 4s ease-in-out infinite;
+}
+.roadmap-deco.on-left { right: calc(100% + 18px); }
+.roadmap-deco.on-right { left: calc(100% + 18px); }
+
+/* reward nodes: chest / trophy */
+.roadmap-node.chest, .roadmap-node.trophy {
+  background: linear-gradient(160deg, #fcd34d, #f59e0b);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .2), 0 8px 20px rgba(245, 158, 11, .35);
+}
+.roadmap-node.chest.locked, .roadmap-node.trophy.locked { background: var(--card-2); box-shadow: inset 0 -6px 0 rgba(0,0,0,.25); }
+.roadmap-node.chest.done, .roadmap-node.trophy.done { opacity: .5; filter: saturate(.5); cursor: default; }
+.roadmap-node.chest.current, .roadmap-node.trophy.current { animation: node-pulse 1.6s ease-in-out infinite, wobble 2.4s ease-in-out infinite; }
+.roadmap-node.trophy { width: 84px; height: 84px; }
+@keyframes wobble { 0%, 85%, 100% { rotate: 0deg; } 88% { rotate: -8deg; } 92% { rotate: 8deg; } 96% { rotate: -4deg; } }
+.roadmap-reward {
+  display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;
+  color: #f5a524; font-weight: 800;
+}
+@media (max-width: 420px) {
+  .roadmap-deco { font-size: 2.8rem; }
+  .roadmap-deco.on-left { right: calc(100% + 4px); }
+  .roadmap-deco.on-right { left: calc(100% + 4px); }
+}

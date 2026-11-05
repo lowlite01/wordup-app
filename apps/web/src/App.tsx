@@ -26,7 +26,7 @@ import LessonScreen from "./components/LessonScreen";
 import SentencesScreen from "./components/SentencesScreen";
 import RoadmapPath from "./components/RoadmapPath";
 import {
-  buildSteps, currentStepIndex, loadPath, savePath, type PathState, type Step,
+  STEP_REWARD, buildSteps, currentStepIndex, loadPath, savePath, type PathState, type Step,
 } from "./lib/roadmap";
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
@@ -153,11 +153,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [contentVersion, settings.courseLang]);
   const currentStep = currentStepIndex(steps, progress, path);
-  const PATH_STEP_BONUS = 3; // crystals for a finished grammar / sentence step
+  // Finish a lesson / sentence / chest / trophy step and pay its crystals.
   const completeStep = (id: string) => {
     if (path.done.includes(id)) return;
     updatePath({ ...path, done: [...path.done, id] });
-    const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + PATH_STEP_BONUS };
+    const kind = steps.find(st => st.id === id)?.kind;
+    const bonus = (kind && STEP_REWARD[kind]) || 3;
+    const c = { ...crystalsRef.current, crystals: crystalsRef.current.crystals + bonus };
     setCrystals(c);
     saveCrystals(c);
     haptic("success");
@@ -452,6 +454,14 @@ export default function App() {
   // Open a step of the learning path.
   const openStep = (step: Step, origin: Origin) => {
     setStudyOrigin(origin);
+    if (step.kind === "chest" || step.kind === "trophy") {
+      // reward steps open right where they are; gems fly into the counter
+      if (!path.done.includes(step.id)) {
+        completeStep(step.id);
+        showToast(step.kind === "trophy" ? t.trophyToast(step.level) : t.chestToast);
+      }
+      return;
+    }
     if (step.kind === "words" && step.key) startGroup(step.key, "flashcards", origin);
     else if (step.kind === "grammar") setRoute({ s: "lesson", id: step.id });
     else setRoute({ s: "sentences", id: step.id });

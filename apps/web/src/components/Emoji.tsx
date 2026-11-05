@@ -57,6 +57,21 @@ const NAMES: Record<string, string> = {
   "💬": "Speech balloon",
   "💡": "Light bulb",
   "📖": "Open book",
+  "🦉": "Owl",
+  "🎧": "Headphone",
+  "☕": "Hot beverage",
+  "🎁": "Wrapped gift",
+  "🏆": "Trophy",
+  "⭐": "Star",
+  "🌟": "Glowing star",
+  "👑": "Crown",
+  "✏️": "Pencil",
+  "🌱": "Seedling",
+  "⛰️": "Mountain",
+  "🍎": "Red apple",
+  "🎶": "Musical notes",
+  "📷": "Camera",
+  "🎒": "Backpack",
 };
 
 export function emojiUrl(char: string): string | null {
