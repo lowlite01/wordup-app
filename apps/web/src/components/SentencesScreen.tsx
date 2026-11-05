@@ -4,7 +4,7 @@ import { buildSentenceExercises } from "../lib/roadmap";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
-import { HeartsBadge } from "./ProScreen";
+import HeartsBadge from "./HeartsBadge";
 import { useApp } from "../context";
 
 interface Props {

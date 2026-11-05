@@ -44,7 +44,7 @@ export function savePath(lang: string, s: PathState) {
 }
 
 /** Build the whole path for the current course content. */
-export function buildSteps(withGrammar: boolean): Step[] {
+export function buildSteps(): Step[] {
   const steps: Step[] = [];
   let sinceChest = 0;
   // every 5 learning steps a treasure chest
@@ -59,7 +59,7 @@ export function buildSteps(withGrammar: boolean): Step[] {
     const total = wordsForKey(level).length;
     if (!total) continue;
     const parts = Math.ceil(total / PART_SIZE);
-    const grammar = withGrammar ? [...LEVEL_GRAMMAR[level]].filter(g => GRAMMAR_DRILLS[g]) : [];
+    const grammar = [...(LEVEL_GRAMMAR[level] || [])].filter(g => GRAMMAR_DRILLS[g]);
     for (let i = 0; i < parts; i++) {
       push({
         id: `w:${level}:${i}`, kind: "words", level, key: partKey(level, i),
@@ -162,16 +162,16 @@ export interface PlacementQ {
 }
 
 // 3 questions per level: 2 "what does this word mean?" + 1 grammar (if any).
-export function placementQuestions(level: string, withGrammar: boolean): PlacementQ[] {
+export function placementQuestions(level: string): PlacementQ[] {
   const words = wordsForKey(level).filter(w => w.def);
   const qs: PlacementQ[] = [];
-  const picks = shuffle([...words]).slice(0, withGrammar && LEVEL_GRAMMAR[level]?.length ? 2 : 3);
+  const picks = shuffle([...words]).slice(0, LEVEL_GRAMMAR[level]?.length ? 2 : 3);
   for (const w of picks) {
     const wrong = shuffle(words.filter(o => o.word !== w.word && o.def !== w.def)).slice(0, 3).map(o => o.def);
     const options = shuffle([w.def, ...wrong]);
     qs.push({ level, prompt: w.word, kind: "word", options, answer: options.indexOf(w.def) });
   }
-  const g = withGrammar ? LEVEL_GRAMMAR[level]?.[0] : undefined;
+  const g = LEVEL_GRAMMAR[level]?.[0];
   if (g) {
     const drill = shuffle([...GRAMMAR_DRILLS[g]])[0];
     qs.push({ level, prompt: drill.q, kind: "grammar", options: drill.options, answer: drill.answer });

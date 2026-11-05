@@ -33,6 +33,8 @@ export const saveRecent = (r: RecentEntry[]) => save(RECENT_KEY, r);
 const SETTINGS_KEY = "wordup-settings-v1";
 const DEFAULT_SETTINGS: Settings = { theme: "midnight", lang: "ru", autoSpeak: false };
 export function loadSettings(): Settings {
-  return { ...DEFAULT_SETTINGS, ...load<Partial<Settings>>(SETTINGS_KEY, {}) };
+  const s = { ...DEFAULT_SETTINGS, ...load<Partial<Settings>>(SETTINGS_KEY, {}) };
+  if (s.lang !== "en" && s.lang !== "ru") s.lang = DEFAULT_SETTINGS.lang; // German UI was removed
+  return s;
 }
 export const saveSettings = (s: Settings) => save(SETTINGS_KEY, s);

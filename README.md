@@ -1,17 +1,16 @@
 # WordUp
 
-A full-stack language-learning app with **two courses — English and German** — on both **web and mobile**. Learn vocabulary by CEFR level and topic with flashcards, quizzes, pronunciation and speaking practice, a grammar guide, your own imported word lists, gamification and a leaderboard.
+A full-stack app for learning **English** vocabulary — on the web and as a **Telegram Mini App**. Learn vocabulary by CEFR level and topic with flashcards, quizzes, pronunciation and speaking practice, a grammar guide, your own imported word lists, gamification and a leaderboard.
 
 The same NestJS API and PostgreSQL database serve a React web app and an Expo (React Native) mobile app, so words, progress and sign-in are shared across every device.
 
 ## Features
 
 **Learning**
-- **Two courses — English & German** — chosen on first launch and switchable in settings; each course has its own content, grammar and progress.
 - **Vocabulary by CEFR level (A1–C2) and topic** (Food, Travel, Nature, …), with per-level unlocking.
 - **Flashcards** with a 3D flip, swipe gestures, spaced review of unknown words and progress tracking.
 - **Quizzes** with mistake statistics ("which words you confuse").
-- **Grammar guide** tailored per course — English tenses, or German alphabet, articles (der/die/das), word order, question words, verb conjugation and cases.
+- **Grammar guide** — English tenses and core rules.
 - **Phrasal verbs** tab (English) — common phrasal verbs grouped by base verb, browsable and studyable.
 - **Your own word lists** — paste or upload a list (plain text or JSON) and study it as flashcards; export any list back out (copy / download / share).
 - **Pronunciation**: IPA transcription and audio (Free Dictionary API) with a text-to-speech fallback.
@@ -26,7 +25,7 @@ The same NestJS API and PostgreSQL database serve a React web app and an Expo (R
 - **Google sign-in** with avatar; progress syncs to the server across web and mobile.
 
 **Polish**
-- **4 themes** and a **Russian / English / German** interface, chosen in settings.
+- **4 themes** and a **Russian / English** interface, chosen in settings.
 - **Admin panel** (role-gated) for managing word groups and entries.
 
 ## Tech stack
@@ -107,7 +106,7 @@ Everything auto-deploys from `main`:
 6. [x] Expo React Native app (Android/iOS via Expo Go)
 7. [x] Deploy (web + API + database)
 8. [x] Crystals economy & topic unlocking, word of the day
-9. [x] Second course — German (levels, topics, grammar) + multi-language UI
+9. [x] Russian / English interface
 10. [x] Custom word lists (import / export) and a phrasal verbs section
 11. [ ] Standalone store builds (EAS)
 

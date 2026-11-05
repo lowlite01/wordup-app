@@ -1,4 +1,3 @@
-import { WORD_GROUPS as STATIC_WG, TOPIC_LEVEL2 as STATIC_T2 } from "../data/words";
 import type { KeyedWord, Progress, Word } from "../types";
 import {
   customLabelForKey, customListKeys, customWordsForKey, isCustomKey,
@@ -59,10 +58,10 @@ export function levelAllKeys(level: string): string[] {
   return keys;
 }
 
-// Content starts as the bundled static data (instant + offline), then gets
-// replaced by the server's copy via setContent() once /content loads, so
-// admin edits appear in the app. TOPICS is mutated in place so existing
-// imports keep pointing at the live list.
+// Content starts as the cached copy from the last visit (instant + offline),
+// then gets replaced by the server's copy via setContent() once /content
+// loads. TOPICS is mutated in place so existing imports keep pointing at the
+// live list.
 // Merge each topic's level-2 words into the topic itself, so the whole app
 // treats a topic as one group (no "Level 1 / Level 2" split anywhere).
 function mergeLevels(wg: Record<string, Word[]>, t2: Record<string, Word[]>): Record<string, Word[]> {
@@ -71,10 +70,9 @@ function mergeLevels(wg: Record<string, Word[]>, t2: Record<string, Word[]>): Re
   return out;
 }
 
-// English course: add the built-in extra topics (listed before the server's
-// topics so the beginner basics come first) and Russian translations.
-function enrich(wg: Record<string, Word[]>, lang: string): Record<string, Word[]> {
-  if (lang !== "en") return wg;
+// Add the built-in extra topics (listed before the server's topics so the
+// beginner basics come first) and Russian translations.
+function enrich(wg: Record<string, Word[]>): Record<string, Word[]> {
   const out: Record<string, Word[]> = {};
   for (const lvl of LEVELS) if (wg[lvl]) out[lvl] = wg[lvl];
   for (const [name, x] of Object.entries(EXTRA_TOPICS)) if (!wg[name]) out[name] = x.words;
@@ -86,11 +84,21 @@ function enrich(wg: Record<string, Word[]>, lang: string): Record<string, Word[]
   return out;
 }
 
-let wgData: Record<string, Word[]> = enrich(mergeLevels(STATIC_WG, STATIC_T2), "en");
+export const CONTENT_CACHE_KEY = "wordup-content-en";
+function cachedContent(): { wordGroups: Record<string, Word[]>; topicLevel2?: Record<string, Word[]> } | null {
+  try {
+    const c = JSON.parse(localStorage.getItem(CONTENT_CACHE_KEY) as string);
+    return c?.wordGroups ? c : null;
+  } catch { return null; }
+}
+const cached = cachedContent();
+/** True when words from a previous visit are available right away. */
+export const hasCachedContent = cached !== null;
+let wgData: Record<string, Word[]> = enrich(mergeLevels(cached?.wordGroups ?? {}, cached?.topicLevel2 ?? {}));
 export const TOPICS: string[] = Object.keys(wgData).filter(g => !LEVELS.includes(g));
 
-export function setContent(wordGroups: Record<string, Word[]>, topicLevel2: Record<string, Word[]>, lang = "en") {
-  wgData = enrich(mergeLevels(wordGroups, topicLevel2), lang);
+export function setContent(wordGroups: Record<string, Word[]>, topicLevel2: Record<string, Word[]>) {
+  wgData = enrich(mergeLevels(wordGroups, topicLevel2));
   TOPICS.length = 0;
   TOPICS.push(...Object.keys(wgData).filter(g => !LEVELS.includes(g)));
   searchIndex = null; // rebuilt lazily from the new content

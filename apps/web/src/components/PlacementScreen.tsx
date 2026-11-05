@@ -7,14 +7,13 @@ import Confetti from "./Confetti";
 import Emoji from "./Emoji";
 
 interface Props {
-  withGrammar: boolean;                 // English course: also ask grammar
   onDone: (level: string | null) => void; // null = "start from scratch"
 }
 
 // Short adaptive placement test: 3 questions per level, easiest first.
 // A level counts as passed with 2 of 3 right; the first failed level is
 // where the learner starts (passing everything up to C1 → start at C2).
-export default function PlacementScreen({ withGrammar, onDone }: Props) {
+export default function PlacementScreen({ onDone }: Props) {
   const t = useT();
   const [phase, setPhase] = useState<"intro" | "quiz" | "result">("intro");
   const [levelIdx, setLevelIdx] = useState(0);
@@ -26,7 +25,7 @@ export default function PlacementScreen({ withGrammar, onDone }: Props) {
 
   const level = PLACEMENT_LEVELS[levelIdx];
   const questions: PlacementQ[] = useMemo(
-    () => placementQuestions(level, withGrammar),
+    () => placementQuestions(level),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [level],
   );

@@ -108,7 +108,7 @@ export const api = {
   leaderboard: () => request<LeaderRow[]>("/leaderboard"),
 
   // Content (public read; admin write). `lang` picks the course (en | de).
-  getContent: (lang: string = "en") => request<AppContent>(`/content?lang=${lang}`),
+  getContent: () => request<AppContent>("/content?lang=en"),
   adminGroups: () => request<AdminGroup[]>("/admin/content/groups"),
   adminCreateGroup: (key: string, category: "level" | "topic", order?: number) =>
     request<AdminGroup>("/admin/content/groups", {

@@ -1,29 +1,29 @@
 import { api } from "./api";
-import { setContent } from "./groups";
+import { CONTENT_CACHE_KEY, hasCachedContent, setContent } from "./groups";
 
-// Loads word content from the server so admin edits show up in the app.
-// Applies any cached copy immediately, then refreshes from the API. If the
-// API is unreachable, the bundled static data (already in groups.ts) stays.
-// setContent() merges topic level-2 words into the topic, so the app shows a
-// single entry per topic. Content is cached per course language so switching
-// between English and German is instant.
-const CACHE_PREFIX = "wordup-content-";
-
-export async function loadContent(lang: "en" | "de" = "en"): Promise<void> {
-  const cacheKey = CACHE_PREFIX + lang;
-  try {
-    const cached = JSON.parse(localStorage.getItem(cacheKey) as string);
-    if (cached?.wordGroups) setContent(cached.wordGroups, cached.topicLevel2 || {}, lang);
-  } catch {
-    // no/invalid cache — ignore
+// Word content comes from the server (so admin edits show up) and is cached
+// on the device; groups.ts applies that cache synchronously at start-up.
+// Only on the very first launch (no cache yet) the bundled word list is
+// fetched — as a separate chunk, so it doesn't weigh down every start.
+export async function loadContent(onUpdate: () => void): Promise<void> {
+  let fromServer = false;
+  if (hasCachedContent) onUpdate();
+  else {
+    import("../data/words")
+      .then(m => { if (!fromServer) { setContent(m.WORD_GROUPS, m.TOPIC_LEVEL2); onUpdate(); } })
+      .catch(() => { /* offline and no cache: built-in topics only */ });
   }
+  // leftovers of the removed German course
+  for (const k of ["wordup-content-de", "wordup-plan-v1-de", "wordup-path-v1-de"]) localStorage.removeItem(k);
   try {
-    const c = await api.getContent(lang);
+    const c = await api.getContent();
     if (c?.wordGroups) {
-      setContent(c.wordGroups, c.topicLevel2 || {}, lang);
-      localStorage.setItem(cacheKey, JSON.stringify(c));
+      fromServer = true;
+      setContent(c.wordGroups, c.topicLevel2 || {});
+      localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(c));
+      onUpdate();
     }
   } catch {
-    // offline — keep cache/static
+    // offline — keep the cache / bundled copy
   }
 }

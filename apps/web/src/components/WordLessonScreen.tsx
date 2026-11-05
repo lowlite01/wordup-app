@@ -7,7 +7,7 @@ import { preloadWord, pronounceWord, useIpa } from "../lib/dict";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
-import { HeartsBadge } from "./ProScreen";
+import HeartsBadge from "./HeartsBadge";
 
 // Duolingo-style word lesson used by the "words" steps of the path:
 // new words are introduced in groups of four (word + sound + translation +

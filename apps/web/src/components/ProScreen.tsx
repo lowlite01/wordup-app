@@ -14,7 +14,7 @@ export default function ProScreen({ onBack }: { onBack: () => void }) {
   const introOpen = !pro.introUsed && !isPro;
   const [plan, setPlan] = useState<ProductId>(introOpen ? "pro_week" : "pro_month");
   const [busy, setBusy] = useState(false);
-  const locale = settings.lang === "ru" ? "ru-RU" : settings.lang === "de" ? "de-DE" : "en-US";
+  const locale = settings.lang === "ru" ? "ru-RU" : "en-US";
 
   const pay = async (p: ProductId) => {
     if (!isTelegram) { openTelegramLink(BOT_LINK); return; }
@@ -100,16 +100,5 @@ export default function ProScreen({ onBack }: { onBack: () => void }) {
         </button>
       </div>
     </section>
-  );
-}
-
-// "❤️ 4" in lesson headers (∞ with Pro).
-export function HeartsBadge() {
-  const { hearts, isPro } = useApp();
-  return (
-    <span className={"hearts-badge" + (!isPro && hearts.count <= 1 ? " low" : "")}>
-      <Emoji char="❤️" />
-      <b key={hearts.count}>{isPro ? "∞" : hearts.count}</b>
-    </span>
   );
 }

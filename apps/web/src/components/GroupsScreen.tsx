@@ -70,7 +70,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
   const reviewCount = total - newCount;
   const left = plan.items.filter(i => !plan.done.includes(itemId(i.key, i.word))).length;
   const days = lastWeek();
-  const locale = settings.lang === "ru" ? "ru-RU" : settings.lang === "de" ? "de-DE" : "en-US";
+  const locale = settings.lang === "ru" ? "ru-RU" : "en-US";
   const R = 34;
   const C = 2 * Math.PI * R;
 
@@ -142,7 +142,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
 // Home screen: today's plan, word of the day, topic shelves and own lists.
 // (The CEFR level staircase lives in its own "Levels" tab.)
 export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpenIelts, roadmap }: Props) {
-  const { recent, progress, crystals, unlockTopic, customLists, removeCustomList, settings, openPro } = useApp();
+  const { recent, progress, unlockTopic, customLists, removeCustomList, openPro } = useApp();
   const t = useT();
   const [query, setQuery] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -226,8 +226,8 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
             </>
           )}
 
-          {/* IELTS shelf (English course only) */}
-          {settings.courseLang === "en" && (
+          {/* IELTS shelf */}
+          {(
             <div className="shelf">
               <div className="journey-section shelf-head">
                 <span>{t.shelfIelts}</span>

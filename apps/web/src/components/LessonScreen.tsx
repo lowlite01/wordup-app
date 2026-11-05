@@ -6,7 +6,7 @@ import { shuffle } from "../lib/groups";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
-import { HeartsBadge } from "./ProScreen";
+import HeartsBadge from "./HeartsBadge";
 import { useApp } from "../context";
 
 const PASS = 4; // of 5

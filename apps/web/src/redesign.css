@@ -1179,3 +1179,11 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
   padding: 3px 9px; border-radius: 999px; font-size: .72rem; font-weight: 800;
   background: linear-gradient(135deg, var(--gold), var(--gold-2)); color: #2a1300;
 }
+
+/* ---- Header in narrow windows (Telegram Desktop): the name shrinks, never slides under the pills ---- */
+.logo-btn { min-width: 0; }
+.logo-btn > span { min-width: 0; }
+.logo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-right { flex-shrink: 0; }
+@media (max-width: 360px) { .logo-btn .logo { display: none; } }
+.screen-loading { min-height: 50vh; }

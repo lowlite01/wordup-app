@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { useApp } from "../context";
 import { useT } from "../i18n";
 import { GRAMMAR } from "../data/grammar";
-import { GRAMMAR_DE } from "../data/grammar-de";
 
 export default function GrammarScreen() {
   const t = useT();
-  const { settings } = useApp();
-  const grammar = settings.courseLang === "de" ? GRAMMAR_DE : GRAMMAR;
+  const grammar = GRAMMAR;
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   const toggle = (id: string) => {

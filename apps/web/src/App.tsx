@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { AppContext, type AppApi } from "./context";
 import { STRINGS } from "./i18n";
 import type { FlashMode, KeyedWord, Word } from "./types";
 import {
-  LEVELS, collectWords, isKeyComplete, isKeyUnlocked, keyParts, progressKey, resetSearchIndex, topicLevelKeys,
+  collectWords, progressKey, resetSearchIndex,
 } from "./lib/groups";
 import {
   clearStatsStorage, loadProgress, loadRecent, loadSettings, loadStats,
@@ -17,7 +17,7 @@ import { awardMastery, loadCrystals, saveCrystals, setProUnlock, unlockTopic as 
 import { FREE_IELTS, buy, claimGems, fetchPro, isProActive, loadPro, type ProductId } from "./lib/pro";
 import { REFILL_COST, fullHearts, loadHearts, loseOne, regen, saveHearts } from "./lib/hearts";
 import { IELTS_TOPICS, ieltsKey } from "./lib/ielts";
-import ProScreen from "./components/ProScreen";
+const ProScreen = lazy(() => import("./components/ProScreen"));
 import HeartsModal from "./components/HeartsModal";
 import {
   addCustomList, deleteCustomList as deleteCustomListFn, getCustomLists,
@@ -29,7 +29,7 @@ import IeltsScreen from "./components/IeltsScreen";
 import ReviewScreen from "./components/ReviewScreen";
 import WordLessonScreen from "./components/WordLessonScreen";
 import { clearWordTimes, touchWord } from "./lib/wordTimes";
-import PlacementScreen from "./components/PlacementScreen";
+const PlacementScreen = lazy(() => import("./components/PlacementScreen"));
 import LessonScreen from "./components/LessonScreen";
 import SentencesScreen from "./components/SentencesScreen";
 import RoadmapPath from "./components/RoadmapPath";
@@ -39,20 +39,15 @@ import {
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
 import { askConfirm, haptic, initTelegram, setTelegramBack, setTelegramSettings, showMessage, syncTelegramColors } from "./lib/telegram";
-import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
 import QuizScreen from "./components/QuizScreen";
 import WordListScreen from "./components/WordListScreen";
-import LearningScreen from "./components/LearningScreen";
-import KnownScreen from "./components/KnownScreen";
-import StatsScreen from "./components/StatsScreen";
-import GrammarScreen from "./components/GrammarScreen";
-import PhrasalVerbsScreen from "./components/PhrasalVerbsScreen";
-import SettingsScreen from "./components/SettingsScreen";
-import ProfileScreen from "./components/ProfileScreen";
-import AdminScreen from "./components/AdminScreen";
+const StatsScreen = lazy(() => import("./components/StatsScreen"));
+const GrammarScreen = lazy(() => import("./components/GrammarScreen"));
+const PhrasalVerbsScreen = lazy(() => import("./components/PhrasalVerbsScreen"));
+const SettingsScreen = lazy(() => import("./components/SettingsScreen"));
+const AdminScreen = lazy(() => import("./components/AdminScreen"));
 import ContextModal from "./components/ContextModal";
-import LanguagePicker from "./components/LanguagePicker";
 import { loadContent } from "./lib/content";
 import {
   FREEZE_COST, MAX_FREEZES, PLAN_BONUS, applyFreezes, completeDay, liveStreak, loadPlan, loadStreak, markPlanItem,
@@ -63,17 +58,13 @@ type Route =
   | { s: "groups" }
   | { s: "levels" }
   | { s: "ielts" }
-  | { s: "mode" }
   | { s: "flash"; mode: FlashMode }
   | { s: "quiz" }
   | { s: "list" }
   | { s: "grammar" }
   | { s: "phrasal" }
-  | { s: "learning" }
-  | { s: "known" }
   | { s: "stats" }
   | { s: "settings" }
-  | { s: "profile" }
   | { s: "admin" }
   | { s: "placement" }
   | { s: "review" }
@@ -93,9 +84,8 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [gamification, setGamification] = useState<Gamification | null>(null);
   const [route, setRoute] = useState<Route>({ s: "groups" });
-  const [topic, setTopic] = useState("");
   const [groupKey, setGroupKey] = useState("");
-  const [posFilter, setPosFilter] = useState("all");
+  const posFilter = "all"; // study screens show every part of speech
   const [ctxWord, setCtxWord] = useState<Word | null>(null);
   const [nonce, setNonce] = useState(0); // remounts flashcards/quiz on demand
   // Which screen a study session was started from, so Back returns there.
@@ -182,15 +172,14 @@ export default function App() {
   }, [crystals.crystals]);
 
   // ---- Learning path (roadmap) + placement test ----
-  const [path, setPath] = useState<PathState>(() => loadPath(settings.courseLang ?? "en"));
-  useEffect(() => { setPath(loadPath(settings.courseLang ?? "en")); }, [settings.courseLang]);
+  const [path, setPath] = useState<PathState>(() => loadPath("en"));
   const updatePath = (next: PathState) => {
     setPath(next);
-    savePath(settings.courseLang ?? "en", next);
+    savePath("en", next);
   };
-  const steps = useMemo(() => buildSteps(settings.courseLang !== "de"),
+  const steps = useMemo(() => buildSteps(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [contentVersion, settings.courseLang]);
+    [contentVersion]);
   const currentStep = currentStepIndex(steps, progress, path);
   // Finish a lesson / sentence / chest / trophy step and pay its crystals.
   const completeStep = (id: string) => {
@@ -205,7 +194,7 @@ export default function App() {
   };
 
   // ---- Daily plan + streak ----
-  const courseLang = settings.courseLang ?? "en";
+  const courseLang = "en"; // English is the only course
   const [plan, setPlan] = useState(() => loadPlan(courseLang, progress, crystals));
   const [streak, setStreak] = useState(loadStreak);
   const planRef = useRef(plan);
@@ -280,13 +269,8 @@ export default function App() {
   // Load word content for the chosen course language (falls back to bundled
   // data offline). Re-runs when the user switches course.
   useEffect(() => {
-    loadContent(settings.courseLang ?? "en").then(() => setContentVersion(v => v + 1));
-  }, [settings.courseLang]);
-
-  // Phrasal verbs are English-only; leave the tab if the course changes away.
-  useEffect(() => {
-    if (settings.courseLang !== "en" && (route.s === "phrasal" || route.s === "ielts")) setRoute({ s: "groups" });
-  }, [settings.courseLang, route.s]);
+    loadContent(() => setContentVersion(v => v + 1));
+  }, []);
 
   // On load: if we have a saved token, pull the authoritative state from the server.
   useEffect(() => {
@@ -403,7 +387,7 @@ export default function App() {
       saveProgress(next);
       setProgress(next);
       if (isLoggedIn()) api.clearProgress().then(() => api.gamification()).then(setGamification).catch(() => {});
-      const lang = settings.courseLang ?? "en";
+      const lang = "en";
       const freshPath: PathState = { placed: null, skippedTest: false, done: [] };
       savePath(lang, freshPath);
       setPath(freshPath);
@@ -480,7 +464,7 @@ export default function App() {
       setGamification(null);
     },
     loadLeaderboard: () => api.leaderboard(),
-    refreshContent: () => loadContent().then(() => setContentVersion(v => v + 1)),
+    refreshContent: () => loadContent(() => setContentVersion(v => v + 1)),
     crystals,
     unlockTopic: (topic: string) => {
       const next = unlockTopicFn(crystalsRef.current, topic);
@@ -551,18 +535,6 @@ export default function App() {
 
   const learningCount = useMemo(() => collectWords(progress, "learning").length, [progress]);
 
-  const openGroup = (name: string, preferredKey?: string) => {
-    setStudyOrigin(null);
-    setTopic(name);
-    const keys = LEVELS.includes(name) ? [name] : topicLevelKeys(name);
-    const key = preferredKey ||
-      keys.find(k => isKeyUnlocked(progress, k) && !isKeyComplete(progress, k)) ||
-      keys[keys.length - 1];
-    setGroupKey(key);
-    if (!preferredKey) setPosFilter("all");
-    setRoute({ s: "mode" });
-  };
-
   // Journey-path home (and the phrasal tab) start a mode directly for a key.
   const startGroup = (key: string, mode: "flashcards" | "quiz" | "list", origin: Origin = null) => {
     // IELTS: the first topics are free, the rest come with Pro
@@ -574,9 +546,7 @@ export default function App() {
       }
     }
     setStudyOrigin(origin);
-    setTopic(keyParts(key).name);
     setGroupKey(key);
-    setPosFilter("all");
     setNonce(n => n + 1);
     setRoute(mode === "flashcards" ? { s: "flash", mode: "group" } : { s: mode });
   };
@@ -587,7 +557,7 @@ export default function App() {
     : studyOrigin === "ielts" ? { s: "ielts" }
     : studyOrigin === "home" ? { s: "groups" }
     : studyOrigin === "path" ? { s: "path" }
-    : { s: "mode" };
+    : { s: "groups" };
 
   // Open a step of the learning path.
   const openStep = (step: Step, origin: Origin) => {
@@ -612,19 +582,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentVersion, path.placed, path.skippedTest]);
 
-  const isEn = settings.courseLang === "en";
   const tabs: { id: Route["s"]; label: string; icon: string; badge?: number }[] = [
     { id: "groups", label: t.tabGroups, icon: "🏠" },
     { id: "levels", label: t.tabLevels, icon: "📊" },
-    ...(isEn ? [{ id: "ielts" as Route["s"], label: t.tabIelts, icon: "🎓" }] : []),
+    { id: "ielts", label: t.tabIelts, icon: "🎓" },
     { id: "grammar", label: t.tabGrammar, icon: "📚" },
-    ...(isEn ? [{ id: "phrasal" as Route["s"], label: t.tabPhrasal, icon: "🧩" }] : []),
+    { id: "phrasal", label: t.tabPhrasal, icon: "🧩" },
     { id: "review", label: t.reviewTitle, icon: "🧠", badge: learningCount },
     { id: "stats", label: t.tabStats, icon: "📈" },
     ...(user?.role === "ADMIN" ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
     { id: "pro", label: t.proMenu, icon: "👑" },
   ];
-  const groupsFamily = ["groups", "mode", "flash", "quiz", "list"];
+  const groupsFamily = ["groups", "flash", "quiz", "list"];
   const inStudy = groupsFamily.includes(route.s) && !(route.s === "flash" && (route.mode === "learning-mix" || route.mode === "review"));
   const activeTab = inStudy
     ? (route.s !== "groups" && (studyOrigin === "levels" || studyOrigin === "ielts") ? studyOrigin : "groups")
@@ -651,15 +620,6 @@ export default function App() {
     setTelegramBack(target ? () => { const t2 = backRef.current(); if (t2) setRoute(t2); } : null);
   }, [route, menuOpen, studyOrigin]);
 
-  // First launch: no course chosen yet — show the language picker full-screen.
-  if (!settings.courseLang) {
-    return (
-      <AppContext.Provider value={api2}>
-        <LanguagePicker onPick={l => api2.updateSettings({ courseLang: l })} />
-      </AppContext.Provider>
-    );
-  }
-
   return (
     <AppContext.Provider value={api2}>
       <header className="app-header">
@@ -672,7 +632,7 @@ export default function App() {
             <span className="logo-mark">W</span>
             <span>
               <h1 className="logo">WordUp</h1>
-              <p className="subtitle">{settings.courseLang === "de" ? t.subtitleDe : t.subtitle}</p>
+              <p className="subtitle">{t.subtitle}</p>
             </span>
           </button>
           <div className="header-right">
@@ -752,6 +712,7 @@ export default function App() {
 
       {/* keyed by screen so the slide-in animation replays on every navigation */}
       <main className="app-main" key={route.s}>
+        <Suspense fallback={<div className="screen-loading" />}>
         {route.s === "groups" && (
           <GroupsScreen
             onStart={(key, mode) => startGroup(key, mode, "home")}
@@ -796,7 +757,6 @@ export default function App() {
         )}
         {route.s === "placement" && (
           <PlacementScreen
-            withGrammar={settings.courseLang !== "de"}
             onDone={level => {
               updatePath(level ? { ...path, placed: level, skippedTest: false } : { ...path, skippedTest: true });
               setRoute({ s: "groups" });
@@ -838,20 +798,6 @@ export default function App() {
         })()}
         {route.s === "levels" && <LevelsScreen onStart={(key, mode) => startGroup(key, mode, "levels")} />}
         {route.s === "ielts" && <IeltsScreen onStart={(key, mode) => startGroup(key, mode, "ielts")} />}
-        {route.s === "mode" && (
-          <ModeScreen
-            topic={topic}
-            groupKey={groupKey}
-            setGroupKey={setGroupKey}
-            posFilter={posFilter}
-            setPosFilter={setPosFilter}
-            onBack={() => setRoute({ s: "groups" })}
-            onStart={m => {
-              setNonce(n => n + 1);
-              setRoute(m === "flashcards" ? { s: "flash", mode: "group" } : { s: m });
-            }}
-          />
-        )}
         {route.s === "flash" && (
           <FlashcardsScreen
             key={`${groupKey}|${route.mode}|${nonce}`}
@@ -887,23 +833,13 @@ export default function App() {
             onBack={() => setRoute(studyBack())}
           />
         )}
-        {route.s === "learning" && (
-          <LearningScreen
-            onPractice={() => {
-              setNonce(n => n + 1);
-              setRoute({ s: "flash", mode: "learning-mix" });
-            }}
-            onOpenGroup={openGroup}
-          />
-        )}
-        {route.s === "known" && <KnownScreen />}
         {route.s === "stats" && <StatsScreen />}
         {route.s === "grammar" && <GrammarScreen />}
         {route.s === "phrasal" && <PhrasalVerbsScreen onStart={(key, mode) => startGroup(key, mode, "phrasal")} />}
         {route.s === "settings" && <SettingsScreen />}
-        {route.s === "profile" && <ProfileScreen />}
         {route.s === "admin" && <AdminScreen />}
         {route.s === "pro" && <ProScreen onBack={() => setRoute({ s: "groups" })} />}
+        </Suspense>
       </main>
 
       {heartsModal && (
