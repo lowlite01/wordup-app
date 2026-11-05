@@ -2,7 +2,7 @@
 
 A full-stack app for learning **English** vocabulary — on the web and as a **Telegram Mini App**. Learn vocabulary by CEFR level and topic with flashcards, quizzes, pronunciation and speaking practice, a grammar guide, your own imported word lists, gamification and a leaderboard.
 
-The same NestJS API and PostgreSQL database serve a React web app and an Expo (React Native) mobile app, so words, progress and sign-in are shared across every device.
+A NestJS API with PostgreSQL serves the React web app, which also runs inside Telegram as a Mini App (@WordUpDailyBot) with WordUp Pro paid in Telegram Stars.
 
 ## Features
 
@@ -22,7 +22,7 @@ The same NestJS API and PostgreSQL database serve a React web app and an Expo (R
 - **Gamification**: XP, levels, a daily streak, achievements and a global leaderboard.
 - **Crystals economy**: master decks to earn crystals, spend them to unlock new topics.
 - **Word of the day** that rotates daily from the active course.
-- **Google sign-in** with avatar; progress syncs to the server across web and mobile.
+- **Google sign-in** with avatar; progress syncs to the server across devices.
 
 **Polish**
 - **4 themes** and a **Russian / English** interface, chosen in settings.
@@ -33,7 +33,7 @@ The same NestJS API and PostgreSQL database serve a React web app and an Expo (R
 | Layer | Tech |
 |---|---|
 | Web | React 18, Vite, TypeScript |
-| Mobile | Expo (React Native), TypeScript |
+| Telegram | Mini App + Bot API (Stars payments) |
 | API | NestJS, Prisma |
 | Database | PostgreSQL (Neon) |
 | Auth | Google OAuth (ID token) + JWT |
@@ -42,16 +42,15 @@ The same NestJS API and PostgreSQL database serve a React web app and an Expo (R
 ## Architecture
 
 ```
-Browser (React)  ┐
-                 ├──►  NestJS API (Render)  ──►  PostgreSQL (Neon)
-Phone  (Expo)    ┘        JWT auth, rules            words, users, progress
+Browser / Telegram Mini App (React)  ──►  NestJS API (Render)  ──►  PostgreSQL (Neon)
+                                            JWT / Telegram auth          words, users, progress
 ```
 
-The clients never talk to the database directly — they call the API, which
-enforces auth and business rules. Content is served per course language from
-`GET /content?lang=en|de`; progress, stats and gamification sync when signed in.
-Both clients also work offline against local storage and fall back gracefully
-when the API is unreachable.
+The app never talks to the database directly — it calls the API, which
+enforces auth and business rules. Content is served from `GET /content`;
+progress, stats and gamification sync when signed in. The app also works
+offline against local storage and falls back gracefully when the API is
+unreachable.
 
 ## Structure
 
@@ -61,11 +60,7 @@ Monorepo with npm workspaces:
 apps/
   web/     React + Vite + TypeScript web app
   api/     NestJS API + Prisma + PostgreSQL
-  mobile/  Expo (React Native) app
 ```
-
-> `apps/mobile` is intentionally **outside** the npm workspaces so its React 19
-> stays isolated from the web app's React 18. Install and run it on its own.
 
 ## Getting started
 
@@ -78,15 +73,10 @@ npm --prefix apps/api run dev      # http://localhost:3000/api
 
 # Web — copy apps/web/.env.example to apps/web/.env
 npm --prefix apps/web run dev      # http://localhost:5175
-
-# Mobile (separate install)
-cd apps/mobile && npm install
-npx expo start                     # open in Expo Go (Expo SDK 54)
 ```
 
 The web app works offline (localStorage) without the API; signing in with Google
-enables cross-device sync and gamification. The mobile app fetches content from
-the deployed API, so no word data is bundled in the app.
+enables cross-device sync and gamification.
 
 ## Deployment
 
@@ -98,17 +88,16 @@ Everything auto-deploys from `main`:
 
 ## Roadmap
 
-1. [x] React web app (4 themes, RU/EN/DE, settings)
+1. [x] React web app (4 themes, RU/EN, settings)
 2. [x] NestJS API + PostgreSQL (Prisma)
 3. [x] Google sign-in with avatar, server-side progress
 4. [x] Gamification: streak, XP & levels, achievements, leaderboard
 5. [x] Admin panel for words/topics
-6. [x] Expo React Native app (Android/iOS via Expo Go)
+6. [x] Telegram Mini App + WordUp Pro (Telegram Stars)
 7. [x] Deploy (web + API + database)
 8. [x] Crystals economy & topic unlocking, word of the day
 9. [x] Russian / English interface
 10. [x] Custom word lists (import / export) and a phrasal verbs section
-11. [ ] Standalone store builds (EAS)
 
 ## License
 
