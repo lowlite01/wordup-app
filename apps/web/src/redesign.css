@@ -998,3 +998,24 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .lesson-stats b { font-family: var(--font-display); font-size: 1.8rem; }
 .lesson-stats span { color: var(--muted); font-size: .85rem; }
 .fc-ru { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; color: var(--accent-strong); margin-bottom: 8px; }
+
+/* ---- Path background: soft colour + dots instead of a flat black void ---- */
+.roadmap {
+  position: relative; border-radius: 28px; padding: 14px 12px 22px;
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 38%),
+    radial-gradient(circle at 88% 46%, color-mix(in srgb, #ec4899 13%, transparent), transparent 36%),
+    radial-gradient(circle at 18% 78%, color-mix(in srgb, #14b8a6 12%, transparent), transparent 36%),
+    radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+    color-mix(in srgb, var(--card) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
+}
+.roadmap.compact { padding-top: 6px; }
+.roadmap-unit { align-self: stretch; }
+/* decorations sit on a soft glowing pad, not straight on the background */
+.roadmap-deco {
+  padding: .12em; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent) 0%, transparent 68%);
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--accent) 35%, transparent));
+}
+@media (max-width: 420px) { .roadmap-deco { font-size: 3.3rem; } }

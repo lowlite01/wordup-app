@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-// 3D emoji from Microsoft's open-source Fluent Emoji set (MIT licence),
+// Icons: our own 3D set first (see ICONS below), otherwise 3D emoji from
+// Microsoft's open-source Fluent Emoji set (MIT licence),
 // pinned to one commit so the pictures never change unexpectedly.
 // Same look on every device (Windows, iPhone, Android). If the image can't
 // load (e.g. offline), the normal system emoji is shown instead.
@@ -103,7 +104,31 @@ const NAMES: Record<string, string> = {
   "📜": "Scroll",
 };
 
+// Our own icon set (public/icons/*.webp). Used first; Fluent stays as a
+// fallback for any emoji that has no custom icon yet.
+const ICONS: Record<string, string> = {
+  "🔥": "fire", "💎": "gem", "🔒": "lock", "🎁": "chest", "🏆": "trophy", "⭐": "star", "🌟": "star",
+  "👑": "crown", "🎉": "party", "✨": "sparkles", "✅": "check", "🎯": "target", "💡": "bulb",
+  "🧠": "brain", "❓": "question", "⚙️": "gear",
+  "🔊": "speaker", "🎤": "mic", "🎧": "headphones", "🗂️": "cards", "📋": "clipboard", "📝": "notepad",
+  "✏️": "pencil", "🎓": "gradcap", "📚": "books", "📖": "openbook", "🧩": "puzzle", "📈": "chartup",
+  "📊": "chartup", "💬": "speech", "🌍": "globe", "👤": "user", "🦉": "owl", "🛠️": "toolbox",
+  "🏫": "school", "💻": "laptop", "🏛️": "museum", "✈️": "airplane", "💼": "briefcase", "🌿": "leaf",
+  "🍽️": "food", "⚽": "soccer", "😊": "smile", "🏙️": "city", "⛅": "weather", "👕": "tshirt",
+  "🎵": "note", "🐾": "paw", "⚖️": "scales", "🩺": "stethoscope",
+  "🎨": "palette", "🚀": "rocket", "🫂": "hug", "🏠": "house", "🏢": "office", "🗣️": "wave",
+  "🔢": "numbers", "🥕": "carrot", "👀": "eyes", "📅": "calendar", "🍳": "pan", "⏰": "clock",
+  "🧰": "toolbox", "🚌": "bus", "🛒": "cart", "🧹": "broom",
+  "🏪": "shop", "🎮": "gamepad", "🙂": "wink", "🧭": "compass", "🍕": "pizza", "🎭": "masks",
+  "♻️": "recycle", "📺": "tv", "💞": "hearts", "💰": "moneybag", "📞": "phone", "🔬": "microscope",
+  "🗳️": "ballot", "🎬": "clapper", "📉": "chartdown", "🦜": "parrot",
+  "🤔": "think", "📜": "scroll", "☕": "coffee", "🌱": "seedling", "🎒": "backpack", "⛰️": "mountain",
+  "🍎": "apple", "🎶": "notes", "📘": "book",
+};
+
 export function emojiUrl(char: string): string | null {
+  const own = ICONS[char];
+  if (own) return `${import.meta.env.BASE_URL}icons/${own}.webp`;
   const name = NAMES[char];
   if (!name) return null;
   const file = name.toLowerCase().replace(/ /g, "_");
