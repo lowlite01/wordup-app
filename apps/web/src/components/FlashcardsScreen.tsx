@@ -5,7 +5,7 @@ import type { FlashMode, KeyedWord } from "../types";
 import {
   collectWords, filteredLevelWords, keyLabel, knownSet, nextLevelKey,
 } from "../lib/groups";
-import { pronounceWord, useIpa, youglishUrl } from "../lib/dict";
+import { preloadWord, pronounceWord, useIpa, youglishUrl } from "../lib/dict";
 import { liveStreak, planDeck } from "../lib/dailyPlan";
 import { haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
@@ -58,8 +58,48 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
   useEffect(() => {
     setMic({ status: "idle" });
     if (current && settings.autoSpeak) pronounceWord(current.word);
+    // warm up the next card's recording so it plays instantly too
+    if (deck.length > 1) preloadWord(deck[(idx + 1) % deck.length].word);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.word]);
+
+  // ---- Swipe: drag right = "I know it", left = "still learning", tap = flip ----
+  const SWIPE = 100; // px needed to count as a swipe
+  const [dx, setDx] = useState(0);
+  const [flying, setFlying] = useState<0 | 1 | -1>(0);
+  const drag = useRef<{ x: number; y: number; id: number; moved: boolean } | null>(null);
+  const answer = useRef<{ known: () => void; learning: () => void }>({ known: () => {}, learning: () => {} });
+
+  const flyOff = (dir: 1 | -1) => {
+    setFlying(dir);
+    setTimeout(() => {
+      (dir === 1 ? answer.current.known : answer.current.learning)();
+      setFlying(0);
+      setDx(0);
+    }, 220);
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
+    // buttons/links inside the card keep working as normal taps
+    if ((e.target as HTMLElement).closest("button, a") || flying) return;
+    drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const mx = e.clientX - d.x;
+    if (!d.moved && Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(e.clientY - d.y)) d.moved = true;
+    if (d.moved) setDx(mx);
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d || d.id !== e.pointerId) return;
+    if (!d.moved) { setFlipped(f => !f); return; }
+    if (dx > SWIPE) flyOff(1);
+    else if (dx < -SWIPE) flyOff(-1);
+    else setDx(0);
+  };
 
   const micText = mic.status === "listening" ? t.micListening
     : mic.status === "good" ? t.micGood
@@ -106,6 +146,20 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
       dropCurrent();
     } else move(1);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("input, textarea")) return;
+      if (e.key === "ArrowRight") flyOff(1);
+      else if (e.key === "ArrowLeft") flyOff(-1);
+      else if (e.key === " ") { e.preventDefault(); setFlipped(f => !f); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  answer.current = { known: markKnown, learning: markLearning };
 
   const reset = () => {
     if (!confirm(t.resetGroupConfirm(keyLabel(groupKey)))) return;
@@ -222,9 +276,24 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
       {/* keyed by word so every new card plays its fly-in animation */}
       <div className="card-stage" key={current.key + "|" + current.word}>
         <div
-          className={"flashcard" + (flipped ? " flipped" : "")}
-          onClick={() => setFlipped(f => !f)}
+          className={"swipe-wrap" + (dx === 0 && !flying ? " settle" : "") + (flying ? " flying" : "")}
+          style={{
+            transform: flying
+              ? `translateX(${flying * 130}%) rotate(${flying * 18}deg)`
+              : `translateX(${dx}px) rotate(${dx / 18}deg)`,
+          }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => { drag.current = null; setDx(0); }}
         >
+        <span className="swipe-badge know" style={{ opacity: flying === 1 ? 1 : Math.max(0, Math.min(1, dx / SWIPE)) }}>
+          {t.knowItBtn}
+        </span>
+        <span className="swipe-badge learn" style={{ opacity: flying === -1 ? 1 : Math.max(0, Math.min(1, -dx / SWIPE)) }}>
+          {t.stillLearningBtn}
+        </span>
+        <div className={"flashcard" + (flipped ? " flipped" : "")}>
           <div className="flashcard-face flashcard-front">
             <div className="pos-tag">
               {current.pos}{mode === "learning-mix" || isPlan ? ` · ${keyLabel(current.key)}` : ""}
@@ -263,7 +332,9 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
             >{t.youglishFc}</a>
           </div>
         </div>
+        </div>
       </div>
+      <p className="swipe-hint">{t.swipeHint}</p>
 
       {/* one row on every screen: ‹  [Still learning] [I know it]  › */}
       <div className="flash-controls">

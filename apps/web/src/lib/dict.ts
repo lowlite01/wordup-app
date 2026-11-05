@@ -83,9 +83,30 @@ export function speakWord(word: string) {
   speechSynthesis.speak(u);
 }
 
+// Audio elements kept per URL, so a recording downloaded once (or preloaded
+// while the card is on screen) starts instantly on tap.
+const audioCache = new Map<string, HTMLAudioElement>();
+const fullUrl = (url: string) => (url.startsWith("//") ? "https:" + url : url);
+function audioFor(url: string): HTMLAudioElement {
+  const u = fullUrl(url);
+  let a = audioCache.get(u);
+  if (!a) {
+    a = new Audio(u);
+    a.preload = "auto";
+    audioCache.set(u, a);
+  }
+  return a;
+}
 function playAudio(url: string): Promise<void> {
-  const a = new Audio(url.startsWith("//") ? "https:" + url : url);
+  const a = audioFor(url);
+  a.currentTime = 0;
   return a.play();
+}
+
+/** Look the word up and start downloading its recording in the background. */
+export function preloadWord(word: string) {
+  if (!word) return;
+  fetchDict(word).then(d => { if (d?.audio) audioFor(d.audio).load(); });
 }
 
 // Plays the real recording when we have one, otherwise English TTS.
@@ -126,6 +147,7 @@ export function useIpa(word: string): string {
   useEffect(() => {
     const cached = dictEntry(word);
     setIpa(cached?.ipa || "");
+    preloadWord(word); // also downloads the recording so the first tap is instant
     if (cached) return;
     let alive = true;
     fetchDict(word).then(d => {

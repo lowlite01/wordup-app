@@ -206,11 +206,6 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
                 </button>
               ) : null;
             })()}
-            <div className="crystal-card">
-              <Emoji char="💎" className="crystal-big" />
-              <span className="crystal-num">{crystals.crystals}</span>
-              <span className="crystal-cap">{t.crystalsCap}</span>
-            </div>
           </div>
 
           {validRecent.length > 0 && (

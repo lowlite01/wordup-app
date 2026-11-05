@@ -191,6 +191,7 @@ const EN = {
 
   profileTitle: "Profile",
   accountSection: "Account",
+  swipeHint: "Swipe → I know it · ← still learning · tap to flip",
   telegramLoginSoon: "Sign-in with Telegram is coming soon. Your progress is saved on this device for now.",
   levelShort: "Lv",
   levelWord: "Level",
@@ -427,6 +428,7 @@ const RU: Dict = {
 
   profileTitle: "Профиль",
   accountSection: "Аккаунт",
+  swipeHint: "Свайп → знаю · ← ещё учу · тап — перевернуть",
   telegramLoginSoon: "Вход через Telegram скоро появится. Пока прогресс сохраняется на этом устройстве.",
   levelShort: "Ур.",
   levelWord: "Уровень",
@@ -660,6 +662,7 @@ const DE: Dict = {
 
   profileTitle: "Profil",
   accountSection: "Konto",
+  swipeHint: "Wischen → kann ich · ← lerne noch · tippen zum Umdrehen",
   telegramLoginSoon: "Anmeldung mit Telegram kommt bald. Dein Fortschritt wird vorerst auf diesem Gerät gespeichert.",
   levelShort: "St.",
   levelWord: "Stufe",

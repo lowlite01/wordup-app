@@ -22,6 +22,7 @@ import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
 import IeltsScreen from "./components/IeltsScreen";
 import Emoji from "./components/Emoji";
+import { flyCrystals } from "./lib/crystalFly";
 import { haptic, initTelegram, setTelegramBack, setTelegramSettings, syncTelegramColors } from "./lib/telegram";
 import ModeScreen from "./components/ModeScreen";
 import FlashcardsScreen from "./components/FlashcardsScreen";
@@ -106,6 +107,29 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, contentVersion]);
+
+  // ---- Crystals counter in the header ----
+  // The header shows `shownCrystals`; when crystals are earned, gems fly from
+  // the tap point into the counter and it ticks up as each one lands.
+  const crystalPillRef = useRef<HTMLButtonElement>(null);
+  const [shownCrystals, setShownCrystals] = useState(crystals.crystals);
+  const [pillBump, setPillBump] = useState(0);
+  const prevCrystals = useRef(crystals.crystals);
+  useEffect(() => {
+    const prev = prevCrystals.current;
+    const now = crystals.crystals;
+    prevCrystals.current = now;
+    const pill = crystalPillRef.current;
+    if (now <= prev || !pill || !pill.offsetParent) { setShownCrystals(now); return; }
+    const gained = now - prev;
+    const count = Math.max(3, Math.min(10, gained));
+    let hits = 0;
+    flyCrystals(gained, pill, () => {
+      hits++;
+      setShownCrystals(Math.round(prev + (gained * hits) / count));
+      setPillBump(b => b + 1);
+    }, () => setShownCrystals(now));
+  }, [crystals.crystals]);
 
   // ---- Daily plan + streak ----
   const courseLang = settings.courseLang ?? "en";
@@ -442,6 +466,15 @@ export default function App() {
             >
               <Emoji char="🔥" className="streak-flame" />
               <b>{liveStreak(streak)}</b>
+            </button>
+            <button
+              ref={crystalPillRef}
+              className="crystal-pill-h"
+              title={t.crystalsCap}
+              onClick={() => go("levels")}
+            >
+              <Emoji char="💎" className="crystal-pill-icon" />
+              <b key={pillBump} className={pillBump ? "bump" : ""}>{shownCrystals}</b>
             </button>
             {/* Account lives inside Settings; the gear shows your avatar when signed in */}
             <button
