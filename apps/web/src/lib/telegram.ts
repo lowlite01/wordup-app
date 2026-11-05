@@ -21,6 +21,8 @@ interface TgWebApp {
   setBackgroundColor(color: string): void;
   setBottomBarColor?(color: string): void;
   disableVerticalSwipes?(): void;
+  showConfirm?(message: string, cb: (ok: boolean) => void): void;
+  showAlert?(message: string, cb?: () => void): void;
   BackButton: TgButton;
   SettingsButton?: TgButton;
   HapticFeedback?: {
@@ -93,4 +95,18 @@ export function haptic(kind: "success" | "error" | "tap") {
   if (!tg?.HapticFeedback || !tg.isVersionAtLeast("6.1")) return;
   if (kind === "tap") tg.HapticFeedback.impactOccurred("light");
   else tg.HapticFeedback.notificationOccurred(kind);
+}
+
+// Native browser confirm()/alert() popups are silently blocked inside
+// Telegram on iOS (the button "does nothing"), so use Telegram's own popups
+// there and the browser's everywhere else.
+export function askConfirm(message: string): Promise<boolean> {
+  if (tg?.showConfirm && tg.isVersionAtLeast("6.2")) {
+    return new Promise(resolve => tg.showConfirm!(message, ok => resolve(ok)));
+  }
+  return Promise.resolve(window.confirm(message));
+}
+export function showMessage(message: string) {
+  if (tg?.showAlert && tg.isVersionAtLeast("6.2")) tg.showAlert(message);
+  else window.alert(message);
 }

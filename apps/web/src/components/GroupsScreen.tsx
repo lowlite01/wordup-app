@@ -12,6 +12,7 @@ import WordRow from "./WordRow";
 import Emoji from "./Emoji";
 import { IELTS_TOPICS, ieltsKey } from "../lib/ielts";
 import ImportListModal from "./ImportListModal";
+import { askConfirm, showMessage } from "../lib/telegram";
 
 type Mode = "flashcards" | "quiz" | "list";
 
@@ -150,7 +151,7 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
   const validRecent = recent.filter(r => wordsForKey(r.key).length > 0);
 
   const handleUnlock = (topic: string) => {
-    if (!unlockTopic(topic)) alert(`Not enough crystals — you need ${unlockCost(topic)} 💎.`);
+    if (!unlockTopic(topic)) showMessage(t.notEnoughCrystals(unlockCost(topic)));
   };
 
   const downloadList = (list: (typeof customLists)[number]) => {
@@ -289,7 +290,7 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
                     <button
                       className="my-list-act danger"
                       title={t.deleteListTitle}
-                      onClick={() => { if (confirm(t.deleteListConfirm(list.name))) removeCustomList(list.id); }}
+                      onClick={async () => { if (await askConfirm(t.deleteListConfirm(list.name))) removeCustomList(list.id); }}
                     >🗑</button>
                   </div>
                 );

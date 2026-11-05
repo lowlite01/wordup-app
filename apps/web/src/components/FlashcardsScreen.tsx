@@ -7,7 +7,7 @@ import {
 } from "../lib/groups";
 import { preloadWord, pronounceWord, useIpa, youglishUrl } from "../lib/dict";
 import { liveStreak, planDeck } from "../lib/dailyPlan";
-import { haptic } from "../lib/telegram";
+import { askConfirm, haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
 import Emoji from "./Emoji";
 
@@ -161,8 +161,8 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
 
   answer.current = { known: markKnown, learning: markLearning };
 
-  const reset = () => {
-    if (!confirm(t.resetGroupConfirm(keyLabel(groupKey)))) return;
+  const reset = async () => {
+    if (!(await askConfirm(t.resetGroupConfirm(keyLabel(groupKey))))) return;
     resetKey(groupKey);
     setDeck(filteredLevelWords(groupKey, posFilter).map(w => ({ ...w, key: groupKey })));
     setIdx(0);

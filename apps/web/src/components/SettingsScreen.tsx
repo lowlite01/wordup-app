@@ -2,6 +2,7 @@ import { useApp } from "../context";
 import { useT, type Dict } from "../i18n";
 import type { CourseLang, Lang, ThemeName } from "../types";
 import ProfileScreen from "./ProfileScreen";
+import { askConfirm } from "../lib/telegram";
 
 const THEME_META: { id: ThemeName; name: (t: Dict) => string; desc: (t: Dict) => string; swatches: string[] }[] = [
   {
@@ -108,13 +109,13 @@ export default function SettingsScreen() {
         <button
           className="btn danger"
           onClick={() => {
-            if (confirm(t.resetAllConfirm)) resetAllProgress();
+            askConfirm(t.resetAllConfirm).then(ok => { if (ok) resetAllProgress(); });
           }}
         >{t.resetAll}</button>
         <button
           className="btn"
           onClick={() => {
-            if (confirm(t.clearStatsConfirm)) clearStats();
+            askConfirm(t.clearStatsConfirm).then(ok => { if (ok) clearStats(); });
           }}
         >{t.clearStatsBtn}</button>
       </div>

@@ -264,8 +264,9 @@ const EN = {
   soundSection: "Sound",
   autoSpeakLabel: "Pronounce each flashcard automatically",
   dataSection: "Data",
-  resetAll: "Reset all progress",
-  resetAllConfirm: "Reset ALL learning progress (known and still-learning words)? This cannot be undone.",
+  resetAll: "Start from zero",
+  resetAllConfirm: "Start from zero? This resets ALL progress: words, your path, daily plan, streak and crystals. It cannot be undone.",
+  notEnoughCrystals: (cost: number): string => `Not enough crystals — you need ${cost} 💎.`,
   clearStatsBtn: "Clear quiz statistics",
 };
 
@@ -527,8 +528,9 @@ const RU: Dict = {
   soundSection: "Звук",
   autoSpeakLabel: "Автоматически озвучивать каждую карточку",
   dataSection: "Данные",
-  resetAll: "Сбросить весь прогресс",
-  resetAllConfirm: "Сбросить ВЕСЬ прогресс (известные и изучаемые слова)? Это нельзя отменить.",
+  resetAll: "Начать с нуля",
+  resetAllConfirm: "Начать с нуля? Сбросится ВЕСЬ прогресс: слова, дорожка, план, серия и кристаллы. Это нельзя отменить.",
+  notEnoughCrystals: (cost: number): string => `Не хватает кристаллов — нужно ${cost} 💎.`,
   clearStatsBtn: "Очистить статистику квизов",
 };
 
@@ -787,8 +789,9 @@ const DE: Dict = {
   soundSection: "Ton",
   autoSpeakLabel: "Jede Karte automatisch vorlesen",
   dataSection: "Daten",
-  resetAll: "Gesamten Fortschritt zurücksetzen",
-  resetAllConfirm: "WIRKLICH den gesamten Lernfortschritt (bekannte und noch zu lernende Wörter) zurücksetzen? Das kann nicht rückgängig gemacht werden.",
+  resetAll: "Von vorn anfangen",
+  resetAllConfirm: "Von vorn anfangen? Der GESAMTE Fortschritt wird gelöscht: Wörter, Weg, Tagesplan, Serie und Kristalle. Das kann nicht rückgängig gemacht werden.",
+  notEnoughCrystals: (cost: number): string => `Nicht genug Kristalle — du brauchst ${cost} 💎.`,
   clearStatsBtn: "Quiz-Statistik löschen",
 };
 

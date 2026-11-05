@@ -1,5 +1,6 @@
 import { useApp } from "../context";
 import { useT } from "../i18n";
+import { askConfirm } from "../lib/telegram";
 
 export default function StatsScreen() {
   const { stats, clearStats } = useApp();
@@ -37,7 +38,7 @@ export default function StatsScreen() {
         <button
           className="reset-btn"
           onClick={() => {
-            if (confirm(t.clearStatsConfirm)) clearStats();
+            askConfirm(t.clearStatsConfirm).then(ok => { if (ok) clearStats(); });
           }}
         >{t.clearStats}</button>
       )}

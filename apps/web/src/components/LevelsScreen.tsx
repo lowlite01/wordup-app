@@ -8,6 +8,7 @@ import {
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { topicEmoji } from "../lib/topicIcons";
 import Emoji from "./Emoji";
+import { showMessage } from "../lib/telegram";
 
 type Mode = "flashcards" | "quiz" | "list";
 
@@ -65,7 +66,7 @@ export default function LevelsScreen({ onStart }: Props) {
 
   const toggle = (level: string) => setOpenLevel(l => (l === level ? null : level));
   const handleUnlock = (topic: string) => {
-    if (!unlockTopic(topic)) alert(`Not enough crystals — you need ${unlockCost(topic)} 💎.`);
+    if (!unlockTopic(topic)) showMessage(t.notEnoughCrystals(unlockCost(topic)));
   };
 
   return (

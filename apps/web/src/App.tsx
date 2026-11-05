@@ -298,11 +298,30 @@ export default function App() {
       saveProgress(next);
       return next;
     }),
+    // "Start from zero": words, path (placement test again), daily plan,
+    // streak, crystals and recent groups — everything the learner earned.
     resetAllProgress: () => {
       const next = { known: {}, learning: {} };
       saveProgress(next);
       setProgress(next);
       if (isLoggedIn()) api.clearProgress().then(() => api.gamification()).then(setGamification).catch(() => {});
+      const lang = settings.courseLang ?? "en";
+      const freshPath: PathState = { placed: null, skippedTest: false, done: [] };
+      savePath(lang, freshPath);
+      setPath(freshPath);
+      const freshCrystals = { crystals: 20, unlocked: [], awarded: [] };
+      saveCrystals(freshCrystals);
+      prevCrystals.current = 20; // no "earned" animation for the reset itself
+      setCrystals(freshCrystals);
+      setShownCrystals(20);
+      const freshStreak = { count: 0, best: 0, lastDate: null, days: [] };
+      saveStreak(freshStreak);
+      setStreak(freshStreak);
+      localStorage.removeItem(`wordup-plan-v1-${lang}`);
+      setPlan(loadPlan(lang, next, freshCrystals));
+      saveRecent([]);
+      setRecent([]);
+      setRoute({ s: "placement" });
     },
     stats,
     recordQuiz: (word, picked) => {

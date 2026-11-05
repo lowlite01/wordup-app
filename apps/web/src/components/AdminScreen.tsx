@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import { api, type AdminGroup, type AdminWord } from "../lib/api";
+import { askConfirm } from "../lib/telegram";
 
 export default function AdminScreen() {
   const { refreshContent } = useApp();
@@ -34,7 +35,7 @@ export default function AdminScreen() {
   };
 
   const deleteGroup = async (key: string) => {
-    if (!confirm(t.adminDeleteGroupConfirm(key))) return;
+    if (!(await askConfirm(t.adminDeleteGroupConfirm(key)))) return;
     await api.adminDeleteGroup(key);
     if (selected === key) { setSelected(null); setWords([]); }
     await afterChange();
@@ -53,7 +54,7 @@ export default function AdminScreen() {
   };
 
   const deleteWord = async (w: AdminWord) => {
-    if (!confirm(t.adminDeleteWordConfirm(w.word))) return;
+    if (!(await askConfirm(t.adminDeleteWordConfirm(w.word)))) return;
     await api.adminDeleteWord(w.id);
     await afterChange();
   };
