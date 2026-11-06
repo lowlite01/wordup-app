@@ -84,12 +84,28 @@ export const BANK: Record<string, BankQ[]> = {
     m("Let's not beat around the bush.", "Давай говорить прямо.", "Давай не будем гулять по кустам.", "Давай не будем спешить.", "Давай не будем ссориться."),
     m("The proposal was met with scepticism.", "К предложению отнеслись скептически.", "Предложение встретили с восторгом.", "Предложение приняли без вопросов.", "Предложение отложили на потом."),
   ],
+  C2: [
+    g("She insisted that he ___ present at the meeting.", "be", "is", "was", "will be"),
+    g("I'd rather you ___ anyone about this yet.", "didn't tell", "don't tell", "won't tell", "not to tell"),
+    g("___ the circumstances, the decision was understandable.", "Given", "Giving", "Having given", "To give"),
+    g("Scarcely ___ the house when it started to pour.", "had I left", "I had left", "did I leave", "I left"),
+    c("Little did he realise what was about to happen.", "Little he realised what was about to happen.", "Little did he realised what was about to happen.", "Little realised he what was about to happen."),
+    c("Were it not for your help, I would have failed.", "Was it not for your help, I would have failed.", "Were it not for your help, I would fail yesterday.", "If it were not for your help, I would failed."),
+    tr("I couldn't care less what they think.", "Мне совершенно всё равно, что они думают.", "Мне не очень важно, что они думают.", "Я не могу перестать думать о них.", "Мне стоит меньше думать о них."),
+    m("She has a chip on her shoulder.", "Она обижена и держится с вызовом.", "У неё травма плеча.", "Ей во всём везёт.", "Она за всё отвечает."),
+    m("The plan fell through.", "План провалился.", "План перевыполнили.", "План приняли единогласно.", "План отложили на потом."),
+    m("He was taken aback by her answer.", "Её ответ застал его врасплох.", "Он отступил после её ответа.", "Он вернул ей ответ.", "Он согласился с её ответом."),
+  ],
 };
 
-/** Levels the test walks through, easiest first. Passing C1 → C2. */
-export const PLACEMENT_LEVELS = ["A1", "A2", "B1", "B2", "C1"];
-export const PER_LEVEL = 6;
-export const PASS = 5; // of 6 — one slip allowed
+/** Levels the test walks through, easiest first. */
+export const PLACEMENT_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+export const PER_LEVEL = 5;
+// 0–1 mistakes on a level: it's yours; 2: you're between levels; 3: too hard.
+export const LEVEL_PARTIAL = 2;
+export const LEVEL_FAIL = 3;
+// slips add up: the 4th mistake in the whole test ends it
+export const TOTAL_WRONG_LIMIT = 4;
 
 // 6 questions for a level: one of each kind, the rest grammar gaps / random.
 export function placementQuestions(level: string): PlacementQ[] {

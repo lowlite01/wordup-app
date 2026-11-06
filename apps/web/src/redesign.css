@@ -1340,3 +1340,26 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
   70% { transform: translate(0, -5px); }
   80% { transform: translate(0, 0); }
 }
+
+/* Touch screens have no real "hover": iOS keeps it on whatever is under the
+   last tap — e.g. the next quiz question got a green border. Hover effects
+   only on devices with a mouse. */
+@media (hover: none) {
+  .quiz-option:hover:not(:disabled) { border-color: var(--border); transform: none; }
+  .btn:hover, .tab:hover, .level-chip:hover:not(:disabled), .chip-btn:hover, .recent-chip:hover,
+  .theme-card:hover, .round-btn:hover, .icon-btn:hover { border-color: var(--border); transform: none; }
+  .btn.primary:hover, .btn.success:hover { filter: none; transform: none; }
+  .topic-card:hover, .daily-card:hover, .journey-row:hover, .journey-sub:hover, .mode-btn:hover,
+  .levels-link:hover, .today-go:hover, .streak-pill:hover, .group-card:hover { transform: none; filter: none; }
+  .topic-card:hover .topic-emoji, .mode-btn:hover .mode-icon { transform: none; animation: none; }
+  .basics-row:hover, .basics-example:hover { border-color: transparent; }
+}
+
+/* placement result: how each level went */
+.placement-scores { display: grid; gap: 6px; width: 100%; margin: 14px 0 6px; }
+.placement-score { display: grid; grid-template-columns: 40px 1fr 36px; align-items: center; gap: 10px; }
+.placement-score-lvl { border-radius: 8px; padding: 2px 0; text-align: center; font-weight: 800; font-size: .78rem; color: #08120e; }
+.placement-score-bar { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.placement-score-bar span { display: block; height: 100%; border-radius: 999px; }
+.placement-score b { font-size: .85rem; text-align: right; }
+.placement-note { color: var(--muted); font-size: .78rem; line-height: 1.4; margin: 8px 0 14px; }
