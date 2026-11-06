@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import { buildTiles, norm, type Exercise } from "../lib/exercises";
@@ -12,7 +12,11 @@ import Emoji from "./Emoji";
 // feedback with the right answer, a mistake costs a heart and the exercise
 // comes back at the end. Reports how many were right on the first try.
 
-interface Item { ex: Exercise; idx: number; retry: boolean }
+// tiles are shuffled once per item, so the preview of the next exercise
+// (shown while swiping) looks exactly like the real one
+interface Item { ex: Exercise; idx: number; retry: boolean; tiles: string[] }
+const mkItem = (ex: Exercise, idx: number, retry: boolean): Item =>
+  ({ ex, idx, retry, tiles: ex.type === "build" ? buildTiles(ex) : [] });
 
 // "**word**" → highlighted, "\n" → line break.
 function Prompt({ text }: { text: string }) {
@@ -27,6 +31,42 @@ function Prompt({ text }: { text: string }) {
   );
 }
 
+function taskOf(ex: Exercise, t: ReturnType<typeof useT>) {
+  return ex.task ?? (ex.type === "choice" ? t.exChoose : ex.type === "build" ? t.exBuild : t.exType);
+}
+
+function ExercisePreview({ item }: { item: Item }) {
+  const t = useT();
+  const { ex, tiles } = item;
+  return (
+    <>
+      {ex.review && <span className="ex-review">🔁 {ex.review}</span>}
+      <p className="wl-task">{taskOf(ex, t)}</p>
+      {ex.type === "choice" && (
+        <>
+          {ex.prompt && <div className="ex-prompt"><Prompt text={ex.prompt} /></div>}
+          {ex.hint && <p className="ex-hint">{ex.hint}</p>}
+          <div className="wl-options">{ex.options.map((o, i) => <div key={i} className="wl-option">{o}</div>)}</div>
+        </>
+      )}
+      {ex.type === "build" && (
+        <>
+          <p className="ex-ru">{ex.hint}</p>
+          <div className="sent-built"><span className="sent-placeholder">{t.sentencesTapWords}</span></div>
+          <div className="sent-options">{tiles.map((w, i) => <span key={i} className="sent-chip">{w}</span>)}</div>
+        </>
+      )}
+      {ex.type === "type" && (
+        <>
+          <div className="ex-prompt"><Prompt text={ex.prompt} /></div>
+          {ex.hint && <p className="ex-hint">{ex.hint}</p>}
+          <div className="ex-input ex-input-fake">{t.exTypePlaceholder}</div>
+        </>
+      )}
+    </>
+  );
+}
+
 const answerText = (ex: Exercise) =>
   ex.type === "choice" ? ex.options[ex.answer] : ex.answer;
 
@@ -37,7 +77,7 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
 }) {
   const t = useT();
   const { loseHeart } = useApp();
-  const [queue, setQueue] = useState<Item[]>(() => exercises.map((ex, idx) => ({ ex, idx, retry: false })));
+  const [queue, setQueue] = useState<Item[]>(() => exercises.map((ex, idx) => mkItem(ex, idx, false)));
   const [pos, setPos] = useState(0);
   const [status, setStatus] = useState<null | "ok" | "bad">(null);
   const [picked, setPicked] = useState<number | null>(null);
@@ -47,7 +87,7 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
 
   const item = queue[pos];
   const ex = item?.ex;
-  const tiles = useMemo(() => (ex?.type === "build" ? buildTiles(ex) : []), [ex]);
+  const tiles = item?.tiles ?? [];
 
   // Word tiles fly between the bank and the answer line (FLIP: measure where
   // the tile was, render it in its new place, animate from old to new).
@@ -85,7 +125,7 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
       if (!item.retry) setRight(r => r + 1);
     } else {
       loseHeart();
-      setQueue(q => [...q, { ex: item.ex, idx: item.idx, retry: true }]);
+      setQueue(q => [...q, mkItem(item.ex, item.idx, true)]);
     }
   };
 
@@ -108,8 +148,20 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
   // After answering, drag the exercise to the left like a card: it follows
   // the finger, the next one peeks in from the right, and letting go past
   // the threshold flips to it (otherwise it springs back).
-  const [drag, setDrag] = useState(0);
+  const [drag, setDragState] = useState(0);
+  const dragRef = useRef(0); // the latest offset, readable right away in pointerup
+  const setDrag = (v: number) => { dragRef.current = v; setDragState(v); };
   const [dragging, setDragging] = useState(false);
+  const [noEnter, setNoEnter] = useState(false); // swapped in by a swipe: no entrance animation
+  const stageRef = useRef<HTMLDivElement>(null);
+  const flipping = useRef(false);
+  const finishFlip = () => {
+    if (!flipping.current) return;
+    flipping.current = false;
+    setNoEnter(true);
+    next();
+    setDrag(0);
+  };
   const swipe = useRef<{ x: number; y: number; active: boolean } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
     swipe.current = status ? { x: e.clientX, y: e.clientY, active: false } : null;
@@ -130,17 +182,18 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
     swipe.current = null;
     if (!s0?.active) return;
     setDragging(false);
-    if (drag < -80) {
-      setDrag(-window.innerWidth); // fly out, then show the next one
-      setTimeout(() => { next(); setDrag(0); }, 200);
+    if (dragRef.current < -80) {
+      // the page flies out and the preview slides exactly into its place…
+      setDrag(-((stageRef.current?.offsetWidth ?? window.innerWidth) + 24));
+      // …then (when it has arrived) the real exercise replaces the identical preview
+      flipping.current = true;
+      setTimeout(finishFlip, 450); // fallback if transitionend doesn't fire
     } else setDrag(0);
   };
   const nextItem = queue[pos + 1];
-  const nextTask = (x: Exercise) => x.task ?? (x.type === "choice" ? t.exChoose : x.type === "build" ? t.exBuild : t.exType);
-  const nextText = (x: Exercise) => (x.type === "build" ? x.hint : x.prompt).replace(/\*\*/g, "").split("\n")[0];
 
   if (!ex) return null;
-  const task = ex.task ?? (ex.type === "choice" ? t.exChoose : ex.type === "build" ? t.exBuild : t.exType);
+  const task = taskOf(ex, t);
 
   return (
     <section className="wl" onPointerDown={onPointerDown} onPointerMove={onPointerMove}
@@ -151,15 +204,15 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
         <HeartsBadge />
       </div>
 
-      <div className="ex-stage">
+      <div className="ex-stage" ref={stageRef}>
       {status && (
-        <div className="ex-peek" style={{ transform: `translateX(calc(100% + 24px + ${drag}px))`, transition: dragging ? "none" : undefined }}>
+        <div className="ex-peek" onTransitionEnd={e => { if (e.propertyName === "transform") finishFlip(); }} style={{ transform: `translateX(calc(100% + 24px + ${drag}px))`, transition: dragging ? "none" : undefined }}>
           {nextItem
-            ? <><p className="wl-task">{nextTask(nextItem.ex)}</p><p className="ex-peek-text">{nextText(nextItem.ex)}</p></>
-            : <p className="wl-task">🏁 {t.exFinish}</p>}
+            ? <ExercisePreview item={nextItem} />
+            : <p className="wl-task ex-finish">🏁 {t.exFinish}</p>}
         </div>
       )}
-      <div className="wl-body ex-page" key={pos}
+      <div className={"wl-body ex-page" + (noEnter ? " no-enter" : "")} key={pos}
         style={drag ? { transform: `translateX(${drag}px) rotate(${drag / 50}deg)`, transition: dragging ? "none" : undefined } : undefined}>
         {ex.review && <span className="ex-review">🔁 {ex.review}</span>}
         <p className="wl-task">{task}</p>
@@ -234,7 +287,7 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
               : status === "bad" && <span>{answerText(ex)}</span>}
             {status === "bad" && ex.explain && <span className="ex-explain">💡 {ex.explain}</span>}
           </div>
-          <button className="today-go" onClick={next}>{t.lessonContinue}</button>
+          <button className="today-go" onClick={() => { setNoEnter(false); next(); }}>{t.lessonContinue}</button>
           <small className="ex-swipe">{t.swipeNext}</small>
         </div>
       )}

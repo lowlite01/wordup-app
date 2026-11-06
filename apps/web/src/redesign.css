@@ -1311,3 +1311,11 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 }
 .ex-peek .wl-task { margin: 0 0 8px; }
 .ex-peek-text { margin: 0; font-size: 1.1rem; font-weight: 600; opacity: .8; }
+
+/* swipe v2: the preview is an exact copy of the next exercise, no card frame */
+.ex-peek { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.ex-peek .wl-option, .ex-peek .sent-chip, .ex-peek .ex-review { animation: none !important; }
+.ex-peek .wl-task { margin: 4px 0 18px; }
+.ex-input-fake { color: var(--muted); }
+.ex-finish { margin-top: 30vh !important; text-align: center; font-size: 1.6rem; }
+.ex-page.no-enter, .ex-page.no-enter .wl-option, .ex-page.no-enter .ex-review { animation: none !important; }
