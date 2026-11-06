@@ -11,6 +11,8 @@ export interface BasicsLesson {
   intro: string;                 // the idea in one or two plain sentences
   pairs: [string, string][];     // the key words / patterns: [English, Russian]
   tip?: string;                  // one thing to remember
+  // how a sentence changes: from → to, the moving words marked **like this**
+  schemes?: { label: string; from: string; to: string; note?: string }[];
   examples: [string, string][];  // whole sentences: [English, Russian]
   exercises: () => Exercise[];   // built fresh each time (options get shuffled)
 }
@@ -75,7 +77,12 @@ export const BASICS: BasicsLesson[] = [
   },
   {
     id: "to-be-neg", title: "«Не» и вопросы", emoji: "❓",
-    intro: "Чтобы сказать «не», добавь not после am / is / are. Чтобы спросить — поставь am / is / are в самое начало.",
+    intro: "В русском вопрос отличается от обычной фразы только интонацией: «Он на работе.» → «Он на работе?». В английском так нельзя — в вопросе меняется порядок слов.",
+    schemes: [
+      { label: "Вопрос", from: "He **is** at work.", to: "**Is** he at work?", note: "is переезжает в самое начало" },
+      { label: "Вопрос", from: "You **are** OK.", to: "**Are** you OK?", note: "с am и are — так же" },
+      { label: "Отрицание", from: "She **is** here.", to: "She **is not** here.", note: "not встаёт сразу после is" },
+    ],
     pairs: [
       ["I am not tired", "Я не устал"], ["She is not here", "Её здесь нет"],
       ["Are you OK?", "Ты в порядке?"], ["Is he at work?", "Он на работе?"], ["Yes, he is", "Да"], ["No, he isn't", "Нет"],
@@ -84,6 +91,11 @@ export const BASICS: BasicsLesson[] = [
     examples: [],
     exercises: () => [
       choice("Я не устал.", ["I am not tired.", "I not am tired.", "I am tired not.", "Not I am tired."], { task: "Как правильно?" }),
+      choice("Она дома?", ["Is she at home?", "She is at home?", "She at home is?", "Is at home she?"], {
+        task: "Как правильно спросить?", explain: "В вопросе is ставим перед she: Is she…?",
+        full: ["Is she at home?", "Она дома?"],
+      }),
+      { type: "build", hint: "Ты студент?", answer: "Are you a student", extra: ["is"], full: ["Are you a student?", "Ты студент?"] },
       choice("___ you a student?", ["Are", "Is", "Am", "Do"], { task: "Вставь пропущенное", full: ["Are you a student?", "Ты студент?"] }),
       choice("— Is she your sister?\n— Yes, ___", ["she is.", "she's.", "is she.", "she are."], {
         task: "Выбери ответ", explain: "В конце фразы сокращать нельзя: Yes, she is (не she's).", full: ["Is she your sister? — Yes, she is.", "Она твоя сестра? — Да."],

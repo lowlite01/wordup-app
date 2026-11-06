@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { clearLesson, loadLesson, saveLesson } from "../lib/lessonSave";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import { buildTiles, norm, type Exercise } from "../lib/exercises";
@@ -19,7 +20,7 @@ const mkItem = (ex: Exercise, idx: number, retry: boolean): Item =>
   ({ ex, idx, retry, tiles: ex.type === "build" ? buildTiles(ex) : [] });
 
 // "**word**" → highlighted, "\n" → line break.
-function Prompt({ text }: { text: string }) {
+export function Prompt({ text }: { text: string }) {
   return (
     <>
       {text.split("\n").map((line, i) => (
@@ -70,20 +71,36 @@ function ExercisePreview({ item }: { item: Item }) {
 const answerText = (ex: Exercise) =>
   ex.type === "choice" ? ex.options[ex.answer] : ex.answer;
 
-export default function ExerciseRunner({ exercises, onClose, onFinish }: {
+interface Saved { queue: Item[]; pos: number; right: number; total: number }
+
+/** Is there an unfinished run saved under this key? (question number, total) */
+export function savedProgress(saveKey: string): { at: number; total: number } | null {
+  const s = loadLesson<Saved>(saveKey);
+  return s && s.queue?.length ? { at: s.pos + 1, total: s.queue.length } : null;
+}
+
+export default function ExerciseRunner({ exercises, onClose, onFinish, saveKey }: {
   exercises: Exercise[];
   onClose: () => void;
   onFinish: (right: number, total: number) => void;
+  saveKey?: string; // remember progress under this key (resume after leaving)
 }) {
   const t = useT();
   const { loseHeart } = useApp();
-  const [queue, setQueue] = useState<Item[]>(() => exercises.map((ex, idx) => mkItem(ex, idx, false)));
-  const [pos, setPos] = useState(0);
+  const [saved] = useState(() => (saveKey ? loadLesson<Saved>(saveKey) : null));
+  const [queue, setQueue] = useState<Item[]>(() => saved?.queue ?? exercises.map((ex, idx) => mkItem(ex, idx, false)));
+  const [pos, setPos] = useState(saved?.pos ?? 0);
+  const total = saved?.total ?? exercises.length;
   const [status, setStatus] = useState<null | "ok" | "bad">(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [built, setBuilt] = useState<number[]>([]);
   const [typed, setTyped] = useState("");
-  const [right, setRight] = useState(0);
+  const [right, setRight] = useState(saved?.right ?? 0);
+  // save after every step (the current exercise is asked again if you leave mid-way)
+  const finished = useRef(false);
+  useEffect(() => {
+    if (saveKey && !finished.current) saveLesson(saveKey, { queue, pos, right, total } satisfies Saved);
+  }, [saveKey, queue, pos, right, total]);
 
   const item = queue[pos];
   const ex = item?.ex;
@@ -141,7 +158,12 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
 
   const next = () => {
     setStatus(null); setPicked(null); setBuilt([]); setTyped("");
-    if (pos + 1 >= queue.length) { onFinish(right, exercises.length); return; }
+    if (pos + 1 >= queue.length) {
+      finished.current = true;
+      if (saveKey) clearLesson(saveKey);
+      onFinish(right, total);
+      return;
+    }
     setPos(pos + 1);
   };
 

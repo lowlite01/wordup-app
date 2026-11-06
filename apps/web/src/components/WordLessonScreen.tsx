@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { clearLesson, loadLesson, saveLesson } from "../lib/lessonSave";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import type { Word } from "../types";
@@ -59,15 +60,23 @@ export default function WordLessonScreen({ groupKey, onBack }: { groupKey: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonWords]);
 
-  const [queue, setQueue] = useState<Ex[]>(initial);
-  const [pos, setPos] = useState(0);
+  // an unfinished run of this lesson is resumed where it was left
+  const saveKey = `w:${groupKey}`;
+  const [saved] = useState(() => loadLesson<{ words: Word[]; queue: Ex[]; pos: number; mistakes: number; answered: number; total: number }>(saveKey));
+  const words = saved?.words ?? lessonWords;
+  const [queue, setQueue] = useState<Ex[]>(saved?.queue ?? initial);
+  const [pos, setPos] = useState(saved?.pos ?? 0);
   const [picked, setPicked] = useState<string | null>(null);
-  const [mistakes, setMistakes] = useState(0);
-  const [answered, setAnswered] = useState(0);
+  const [mistakes, setMistakes] = useState(saved?.mistakes ?? 0);
+  const [answered, setAnswered] = useState(saved?.answered ?? 0);
   const [finished, setFinished] = useState(false);
 
   const ex = queue[pos];
-  const total = initial.length;
+  const total = saved?.total ?? initial.length;
+  useEffect(() => {
+    if (!finished) saveLesson(saveKey, { words, queue, pos, mistakes, answered, total });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue, pos, mistakes, answered, finished]);
   const progressPct = Math.min(100, (Math.min(pos, total) / total) * 100);
 
   // play the word automatically on intro / listening screens
@@ -82,7 +91,8 @@ export default function WordLessonScreen({ groupKey, onBack }: { groupKey: strin
   const advance = () => {
     setPicked(null);
     if (pos + 1 >= queue.length) {
-      lessonWords.forEach(w => setWordState(groupKey, w.word, "known"));
+      words.forEach(w => setWordState(groupKey, w.word, "known"));
+      clearLesson(saveKey);
       setFinished(true);
       haptic("success");
       return;
@@ -115,7 +125,7 @@ export default function WordLessonScreen({ groupKey, onBack }: { groupKey: strin
           <Emoji char="🏆" className="lesson-result-icon" />
           <h2>{t.lessonDoneTitle}</h2>
           <div className="lesson-stats">
-            <div><b>{lessonWords.length}</b><span>{t.lessonWordsLearned}</span></div>
+            <div><b>{words.length}</b><span>{t.lessonWordsLearned}</span></div>
             <div><b>{accuracy}%</b><span>{t.lessonAccuracy}</span></div>
           </div>
           <button className="today-go" onClick={onBack}>{t.toPath}</button>

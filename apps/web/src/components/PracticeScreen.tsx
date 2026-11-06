@@ -60,6 +60,7 @@ export default function PracticeScreen({ partKey, prevKey, alreadyDone, onComple
     <ExerciseRunner
       key={round}
       exercises={exercises}
+      saveKey={`p:${partKey}`}
       onClose={onBack}
       onFinish={(right, total) => {
         setScore({ right, total });
