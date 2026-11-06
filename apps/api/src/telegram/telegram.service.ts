@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit, PayloadTooLargeException, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -148,6 +148,31 @@ export class TelegramService implements OnModuleInit {
       gemCredit: acc?.gemCredit ?? 0,
       prices: Object.fromEntries(Object.entries(PRODUCTS).map(([k, p]) => [k, p.stars])),
     };
+  }
+
+  // ---- Cloud save of the Mini App's progress ----
+  async getState(telegramId: number) {
+    const acc = await this.prisma.tgAccount.findUnique({
+      where: { telegramId: BigInt(telegramId) }, select: { state: true, stateAt: true },
+    });
+    return { state: acc?.state ?? null, at: acc?.stateAt ? acc.stateAt.getTime() : null };
+  }
+
+  async putState(telegramId: number, state: Record<string, unknown>) {
+    // only string values under our own keys, and not too big
+    const clean: Record<string, string> = {};
+    for (const [k, v] of Object.entries(state)) {
+      if (k.startsWith("wordup-") && typeof v === "string") clean[k] = v;
+    }
+    if (JSON.stringify(clean).length > 900_000) throw new PayloadTooLargeException("State too large");
+    const stateAt = new Date();
+    const id = BigInt(telegramId);
+    await this.prisma.tgAccount.upsert({
+      where: { telegramId: id },
+      create: { telegramId: id, state: clean, stateAt },
+      update: { state: clean, stateAt },
+    });
+    return { at: stateAt.getTime() };
   }
 
   // Hand bought crystals over to the app (it keeps the crystal balance locally).

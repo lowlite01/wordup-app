@@ -1,7 +1,12 @@
-import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Post } from "@nestjs/common";
-import { IsIn } from "class-validator";
+import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Post, Put } from "@nestjs/common";
+import { IsIn, IsObject } from "class-validator";
 import { PRODUCTS, TelegramService } from "./telegram.service";
 import { TelegramAdminService } from "./telegram-admin.service";
+
+class StateDto {
+  @IsObject()
+  state!: Record<string, unknown>;
+}
 
 class InvoiceDto {
   @IsIn(Object.keys(PRODUCTS))
@@ -22,6 +27,19 @@ export class TelegramController {
   me(@Headers("authorization") auth?: string) {
     const user = this.tg.verifyInitData(initDataOf(auth));
     return this.tg.status(user.id);
+  }
+
+  // Cloud save: the app's progress for this Telegram account
+  @Get("state")
+  getState(@Headers("authorization") auth?: string) {
+    const user = this.tg.verifyInitData(initDataOf(auth));
+    return this.tg.getState(user.id);
+  }
+
+  @Put("state")
+  putState(@Body() body: StateDto, @Headers("authorization") auth?: string) {
+    const user = this.tg.verifyInitData(initDataOf(auth));
+    return this.tg.putState(user.id, body.state);
   }
 
   @Post("claim")

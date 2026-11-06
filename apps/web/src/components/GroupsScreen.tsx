@@ -7,7 +7,7 @@ import {
 import { isTopicLocked, unlockCost } from "../lib/crystals";
 import { customKey, listToJson, listToText } from "../lib/customLists";
 import { topicEmoji } from "../lib/topicIcons";
-import { itemId, lastWeek, liveStreak, today } from "../lib/dailyPlan";
+import { itemId, lastWeek, liveStreak, today, nextMilestone } from "../lib/dailyPlan";
 import WordRow from "./WordRow";
 import Emoji from "./Emoji";
 import { IELTS_TOPICS, ieltsKey } from "../lib/ielts";
@@ -63,6 +63,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
   const { plan, streak, gamification, settings } = useApp();
   const t = useT();
   const n = liveStreak(streak);
+  const next = nextMilestone(n);
   const total = plan.items.length;
   const done = plan.done.length;
   const pct = total ? done / total : 0;
@@ -82,6 +83,7 @@ function TodayCard({ onStartPlan }: { onStartPlan: () => void }) {
           <div>
             <div className="today-num">{n}</div>
             <div className="today-label">{t.streakDays(n)}</div>
+            {next && <div className="today-next">{t.streakNext(next.days, next.reward)}</div>}
           </div>
         </div>
         <div className="today-ring" aria-label={t.planProgress(done, total)}>

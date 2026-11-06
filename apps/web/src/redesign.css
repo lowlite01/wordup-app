@@ -1363,3 +1363,13 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .placement-score-bar span { display: block; height: 100%; border-radius: 999px; }
 .placement-score b { font-size: .85rem; text-align: right; }
 .placement-note { color: var(--muted); font-size: .78rem; line-height: 1.4; margin: 8px 0 14px; }
+
+/* streak: next reward + rescue modal */
+.today-next { font-size: .72rem; font-weight: 700; color: #f5a524; margin-top: 2px; }
+.streak-rescue-icons { position: relative; display: flex; justify-content: center; margin: 4px 0 6px; }
+.streak-rescue-fire { font-size: 3.4rem; animation: flicker 2.4s ease-in-out infinite; }
+.streak-rescue-ice { position: absolute; left: 50%; bottom: -4px; margin-left: 12px; font-size: 1.8rem; animation: float 3s ease-in-out infinite; }
+.today-go.rescue-ice { background: linear-gradient(135deg, #38bdf8, #818cf8); color: #04111d; }
+.today-go.rescue-ice:disabled { opacity: .5; }
+
+.cloud-note { padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); line-height: 1.45; }

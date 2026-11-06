@@ -168,30 +168,46 @@ export function completeDay(s: Streak): Streak {
 export const MAX_FREEZES = 2;
 export const FREEZE_COST = 50; // crystals
 
-// Cover missed days with freezes so the streak survives. Pro tops the stock
-// up to 2 at the start of every month.
-export function applyFreezes(s: Streak, pro: boolean): { streak: Streak; used: number } {
-  let next = s;
+// Pro tops the freeze stock up to 2 at the start of every month.
+export function topUpFreezes(s: Streak, pro: boolean): Streak {
   const month = today().slice(0, 7);
-  if (pro && s.proMonth !== month) {
-    next = { ...next, freezes: Math.max(next.freezes ?? 0, MAX_FREEZES), proMonth: month };
-  }
-  const have = next.freezes ?? 0;
-  if (!next.lastDate || next.count === 0 || have === 0) return { streak: next, used: 0 };
+  if (!pro || s.proMonth === month) return s;
+  return { ...s, freezes: Math.max(s.freezes ?? 0, MAX_FREEZES), proMonth: month };
+}
+
+/** Days missed since the streak's last day (empty when it's still alive). */
+export function missedDays(s: Streak): string[] {
+  if (!s.lastDate || s.count === 0) return [];
   const missed: string[] = [];
   for (let i = 1; i <= 60; i++) {
     const d = shiftDay(-i);
-    if (d <= next.lastDate) break;
+    if (d <= s.lastDate) break;
     missed.push(d);
   }
-  if (missed.length === 0 || missed.length > have) return { streak: next, used: 0 };
+  return missed;
+}
+
+/** Cover the missed days with freezes (the learner agreed to spend them). */
+export function spendFreezes(s: Streak, missed: string[]): Streak {
   return {
-    streak: {
-      ...next,
-      freezes: have - missed.length,
-      frozen: [...(next.frozen ?? []).filter(d => d >= shiftDay(-30)), ...missed],
-      lastDate: yesterday(), // the streak goes on from yesterday
-    },
-    used: missed.length,
+    ...s,
+    freezes: Math.max(0, (s.freezes ?? 0) - missed.length),
+    frozen: [...(s.frozen ?? []).filter(d => d >= shiftDay(-30)), ...missed],
+    lastDate: yesterday(), // the streak goes on from yesterday
   };
+}
+
+/** The learner let the streak go: start again from zero (the best stays). */
+export function breakStreak(s: Streak): Streak {
+  return { ...s, count: 0 };
+}
+
+// ---- streak milestones: crystals for days in a row ----
+export const STREAK_MILESTONES: [number, number][] = [[3, 10], [7, 25], [14, 50], [30, 100], [50, 150], [100, 300], [365, 1000]];
+export function milestoneReward(count: number): number {
+  return STREAK_MILESTONES.find(([d]) => d === count)?.[1] ?? 0;
+}
+export function nextMilestone(count: number): { days: number; reward: number } | null {
+  const m = STREAK_MILESTONES.find(([d]) => d > count);
+  return m ? { days: m[0] - count, reward: m[1] } : null;
 }

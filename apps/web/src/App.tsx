@@ -19,6 +19,7 @@ import { REFILL_COST, fullHearts, loadHearts, loseOne, regen, saveHearts } from 
 import { IELTS_TOPICS, ieltsKey } from "./lib/ielts";
 const ProScreen = lazy(() => import("./components/ProScreen"));
 import HeartsModal from "./components/HeartsModal";
+import StreakRescueModal from "./components/StreakRescueModal";
 import {
   addCustomList, deleteCustomList as deleteCustomListFn, getCustomLists,
   parseWords, renameCustomList as renameCustomListFn,
@@ -50,8 +51,10 @@ const SettingsScreen = lazy(() => import("./components/SettingsScreen"));
 const AdminScreen = lazy(() => import("./components/AdminScreen"));
 import ContextModal from "./components/ContextModal";
 import { loadContent } from "./lib/content";
+import { pullState, pushState, startAutoSync } from "./lib/cloudSync";
 import {
-  FREEZE_COST, MAX_FREEZES, PLAN_BONUS, applyFreezes, completeDay, liveStreak, loadPlan, loadStreak, markPlanItem,
+  FREEZE_COST, MAX_FREEZES, PLAN_BONUS, breakStreak, completeDay, liveStreak, loadPlan, loadStreak, markPlanItem,
+  milestoneReward, missedDays, spendFreezes, topUpFreezes,
   savePlan, saveStreak, today,
 } from "./lib/dailyPlan";
 
@@ -251,11 +254,15 @@ export default function App() {
       const s = completeDay(streakRef.current);
       setStreak(s);
       saveStreak(s);
-      addGems(PLAN_BONUS * mult);
+      const milestone = milestoneReward(s.count) * mult;
+      addGems(PLAN_BONUS * mult + milestone);
       // finishing the plan also refills the hearts
       const hadAll = heartsRef.current.count >= 5;
       if (!hadAll) { const h = fullHearts(); saveHearts(h); setHearts(h); }
-      showToast(`🔥 ${s.count} · +${PLAN_BONUS * mult} 💎${hadAll || isPro ? "" : " · ❤️"}`);
+      void pushState();
+      showToast(milestone
+        ? t.streakMilestone(s.count, milestone + PLAN_BONUS * mult)
+        : `🔥 ${s.count} · +${PLAN_BONUS * mult} 💎${hadAll || isPro ? "" : " · ❤️"}`);
     }
   };
   const statsRef = useRef(stats);
@@ -266,6 +273,15 @@ export default function App() {
     document.documentElement.lang = settings.lang;
     syncTelegramColors(); // Telegram's header follows our theme
   }, [settings.theme, settings.lang]);
+
+  // Telegram: progress lives in the cloud too. A newer copy (another phone,
+  // cleared cache) replaces this device's data, then the app reloads with it.
+  useEffect(() => {
+    pullState().then(pulled => {
+      if (pulled) window.location.reload();
+      else startAutoSync();
+    });
+  }, []);
 
   // Telegram Mini App: start up + "Settings" in the ⋯ menu.
   useEffect(() => {
@@ -344,14 +360,23 @@ export default function App() {
     showToast(product.startsWith("gems") ? `+${gems} 💎` : t.proThanks);
   };
 
-  // Streak freezes cover missed days (checked on start and when a new day begins).
+  // Missed a day? Offer to save the streak with a freeze (or buy one) —
+  // nothing is spent without asking. Checked on start and when a day begins.
+  const [rescue, setRescue] = useState<string[] | null>(null);
+  const updateStreak = (s: typeof streak) => { streakRef.current = s; setStreak(s); saveStreak(s); };
   useEffect(() => {
-    const { streak: s, used } = applyFreezes(streakRef.current, isPro);
-    if (s !== streakRef.current) {
-      setStreak(s);
-      saveStreak(s);
-      if (used) showToast(t.freezeSaved(used));
+    let s = topUpFreezes(streakRef.current, isPro);
+    if (s !== streakRef.current) updateStreak(s);
+    const missed = missedDays(s);
+    if (!missed.length) { setRescue(null); return; }
+    if (missed.length > MAX_FREEZES) {
+      // too long a break to save — start again
+      s = breakStreak(s);
+      updateStreak(s);
+      showToast(t.streakLost);
+      return;
     }
+    setRescue(missed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPro, plan.date]);
 
@@ -898,6 +923,21 @@ export default function App() {
         </Suspense>
       </main>
 
+      {rescue && route.s === "groups" && (
+        <StreakRescueModal
+          missed={rescue.length}
+          onFreeze={() => { updateStreak(spendFreezes(streakRef.current, rescue)); setRescue(null); haptic("success"); showToast(t.freezeSaved(rescue.length)); }}
+          onBuyAndFreeze={cost => {
+            if (crystalsRef.current.crystals < cost) return;
+            addGems(-cost);
+            const s = streakRef.current;
+            updateStreak(spendFreezes({ ...s, freezes: Math.max(s.freezes ?? 0, rescue.length) }, rescue));
+            setRescue(null); haptic("success"); showToast(t.freezeSaved(rescue.length));
+          }}
+          onPro={() => setRoute({ s: "pro" })}
+          onLetGo={() => { updateStreak(breakStreak(streakRef.current)); setRescue(null); }}
+        />
+      )}
       {heartsModal && (
         <HeartsModal
           onRefilled={() => setHeartsModal(false)}

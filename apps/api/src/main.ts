@@ -1,10 +1,13 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // the cloud save of a learner's progress can be a few hundred KB
+  app.useBodyParser("json", { limit: "1mb" });
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix("api");

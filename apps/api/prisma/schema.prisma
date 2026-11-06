@@ -120,6 +120,8 @@ model TgAccount {
   premiumUntil DateTime?
   introUsed    Boolean   @default(false) // the one-time "newcomer week" offer
   gemCredit    Int       @default(0)     // bought crystals not yet added in the app
+  state        Json?                     // cloud save of the app's progress (Mini App storage)
+  stateAt      DateTime?                 // when that copy was saved (server clock)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
