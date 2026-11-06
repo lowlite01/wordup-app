@@ -35,9 +35,11 @@ export default function RoadmapPath({ steps, path, current, compact, onOpen }: P
   const label = (s: Step) =>
     s.kind === "words" ? t.stepWords(s.title)
     : s.kind === "grammar" ? s.title
+    : s.kind === "basics" ? s.title
+    : s.kind === "practice" ? t.stepPractice(s.title)
     : s.kind === "chest" ? t.stepChest
-    : s.kind === "trophy" ? t.stepTrophy(s.level)
-    : t.stepSentences;
+    : s.kind === "trophy" ? t.stepTrophy(s.level === "A0" ? t.basicsName : s.level)
+    : s.title;
 
   // Unit banner: level, what it covers and how far along it is.
   const Banner = ({ level }: { level: string }) => {
@@ -46,8 +48,8 @@ export default function RoadmapPath({ steps, path, current, compact, onOpen }: P
     return (
       <div className="roadmap-unit" style={{ "--lvl": LEVEL_COLORS[level] } as React.CSSProperties}>
         <div className="roadmap-unit-top">
-          <span className="roadmap-unit-badge">{level}</span>
-          <span className="roadmap-unit-name">{LEVEL_NAMES[level]}</span>
+          <span className="roadmap-unit-badge">{level === "A0" ? "★" : level}</span>
+          <span className="roadmap-unit-name">{level === "A0" ? t.basicsName : LEVEL_NAMES[level]}</span>
           <span className="roadmap-unit-count">{done}/{lvlSteps.length}</span>
         </div>
         <div className="roadmap-unit-desc">{t.unitDesc(level)}</div>

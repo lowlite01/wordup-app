@@ -1218,3 +1218,41 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .pro-btn:hover { transform: translateY(-1px); }
 .pro-btn.on { background: color-mix(in srgb, #fbbf24 16%, var(--card)); color: #fbbf24; box-shadow: none; border: 1px solid color-mix(in srgb, #fbbf24 45%, transparent); }
 @media (max-width: 640px) { .tab-row, .pro-btn { display: none; } }
+
+/* ---- Exercises (Basics / Practice) ---- */
+.ex-prompt { font-size: 1.3rem; font-weight: 700; line-height: 1.5; margin: 4px 0 10px; }
+.ex-line { display: block; }
+.ex-prompt mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); padding: 0 6px; border-radius: 8px; }
+.ex-hint { color: var(--accent-strong); font-weight: 600; margin: 0 0 16px; }
+.ex-ru { font-size: 1.35rem; font-weight: 700; margin: 4px 0 16px; }
+.ex-input {
+  width: 100%; padding: 16px 18px; border-radius: 16px; font: inherit; font-size: 1.15rem; font-weight: 600;
+  background: var(--card); color: var(--text); border: 2px solid var(--border); outline: none;
+}
+.ex-input:focus { border-color: var(--accent); }
+.ex-input.ok { border-color: var(--success); }
+.ex-input.bad { border-color: var(--danger); animation: shake .4s ease; }
+.ex-explain { color: var(--text); opacity: .85; font-weight: 500; font-size: .92rem; margin-top: 4px; }
+
+/* ---- Basics lesson: the rule card ---- */
+.basics-card {
+  padding: 22px 20px; border-radius: 24px; margin-bottom: 16px;
+  background: radial-gradient(260px 140px at 100% 0%, color-mix(in srgb, #fbbf24 22%, transparent), transparent 70%), var(--card);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.basics-icon { font-size: 2.8rem; }
+.basics-card h2 { font-family: var(--font-display); margin: 8px 0 12px; }
+.basics-rules { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 8px; line-height: 1.45; }
+.basics-examples { display: grid; gap: 8px; }
+.basics-example {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 14px; cursor: pointer;
+  background: var(--card-2); border: 1px solid transparent; color: var(--text); font: inherit; text-align: left;
+}
+.basics-example:hover { border-color: var(--border); }
+.basics-example span { display: flex; flex-direction: column; }
+.basics-example small { color: var(--muted); }
+.basics-sound { font-size: 1.3rem; flex-shrink: 0; }
+
+/* ---- Placement test ---- */
+.placement-sentences .quiz-option { text-align: left; font-size: .98rem; }
+.placement-dontknow { margin-top: 12px; background: none; border-style: dashed; color: var(--muted); }

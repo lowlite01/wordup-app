@@ -31,10 +31,11 @@ import WordLessonScreen from "./components/WordLessonScreen";
 import { clearWordTimes, touchWord } from "./lib/wordTimes";
 const PlacementScreen = lazy(() => import("./components/PlacementScreen"));
 import LessonScreen from "./components/LessonScreen";
-import SentencesScreen from "./components/SentencesScreen";
+import BasicsLessonScreen from "./components/BasicsLessonScreen";
+import PracticeScreen from "./components/PracticeScreen";
 import RoadmapPath from "./components/RoadmapPath";
 import {
-  STEP_REWARD, buildSteps, currentStepIndex, loadPath, savePath, type PathState, type Step,
+  PATH_VERSION, STEP_REWARD, buildSteps, currentStepIndex, loadPath, migratePath, savePath, type PathState, type Step,
 } from "./lib/roadmap";
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
@@ -71,7 +72,8 @@ type Route =
   | { s: "wordlesson"; key: string }
   | { s: "path" }
   | { s: "lesson"; id: string }
-  | { s: "sentences"; id: string }
+  | { s: "basics"; id: string }
+  | { s: "practice"; id: string }
   | { s: "pro" };
 
 type Origin = "phrasal" | "levels" | "ielts" | "home" | "path" | null;
@@ -182,6 +184,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [contentVersion]);
   const currentStep = currentStepIndex(steps, progress, path);
+  // paths saved before Basics / Practice existed: keep the learner where they were
+  useEffect(() => {
+    if (contentVersion > 0 && path.v !== PATH_VERSION) updatePath(migratePath(steps, progress, path));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentVersion, path.v]);
   // Finish a lesson / sentence / chest / trophy step and pay its crystals.
   const completeStep = (id: string) => {
     if (path.done.includes(id)) return;
@@ -389,7 +396,7 @@ export default function App() {
       setProgress(next);
       if (isLoggedIn()) api.clearProgress().then(() => api.gamification()).then(setGamification).catch(() => {});
       const lang = "en";
-      const freshPath: PathState = { placed: null, skippedTest: false, done: [] };
+      const freshPath: PathState = { placed: null, skippedTest: false, done: [], v: PATH_VERSION };
       savePath(lang, freshPath);
       setPath(freshPath);
       const freshCrystals = { crystals: 20, unlocked: [], awarded: [] };
@@ -567,7 +574,7 @@ export default function App() {
       // reward steps open right where they are; gems fly into the counter
       if (!path.done.includes(step.id)) {
         completeStep(step.id);
-        showToast(step.kind === "trophy" ? t.trophyToast(step.level) : t.chestToast);
+        showToast(step.kind === "trophy" ? t.trophyToast(step.level === "A0" ? t.basicsName : step.level) : t.chestToast);
       }
       return;
     }
@@ -575,7 +582,8 @@ export default function App() {
     if (!isPro && regen(heartsRef.current).count === 0) { setHeartsModal(true); return; }
     if (step.kind === "words" && step.key) setRoute({ s: "wordlesson", key: step.key }); // Duolingo-style lesson
     else if (step.kind === "grammar") setRoute({ s: "lesson", id: step.id });
-    else setRoute({ s: "sentences", id: step.id });
+    else if (step.kind === "basics") setRoute({ s: "basics", id: step.id });
+    else setRoute({ s: "practice", id: step.id });
   };
   // First visit: offer the placement test once content is ready.
   useEffect(() => {
@@ -615,7 +623,7 @@ export default function App() {
       if (route.mode === "plan") return { s: "groups" };
       return studyBack();
     }
-    if (route.s === "quiz" || route.s === "list" || route.s === "lesson" || route.s === "sentences" || route.s === "wordlesson") return studyBack();
+    if (route.s === "quiz" || route.s === "list" || route.s === "lesson" || route.s === "basics" || route.s === "practice" || route.s === "wordlesson") return studyBack();
     return { s: "groups" };
   };
   const backRef = useRef(backTarget);
@@ -818,12 +826,24 @@ export default function App() {
             />
           ) : null;
         })()}
-        {route.s === "sentences" && (() => {
+        {route.s === "basics" && (() => {
           const st = steps.find(x => x.id === route.id);
-          return st?.sourceKeys ? (
-            <SentencesScreen
+          return st?.lesson ? (
+            <BasicsLessonScreen
               key={st.id}
-              sourceKeys={st.sourceKeys}
+              lessonId={st.lesson}
+              alreadyDone={path.done.includes(st.id)}
+              onComplete={() => completeStep(st.id)}
+              onBack={() => setRoute(studyBack())}
+            />
+          ) : null;
+        })()}
+        {route.s === "practice" && (() => {
+          const st = steps.find(x => x.id === route.id);
+          return st?.key ? (
+            <PracticeScreen
+              key={st.id}
+              partKey={st.key}
               alreadyDone={path.done.includes(st.id)}
               onComplete={() => completeStep(st.id)}
               onBack={() => setRoute(studyBack())}
@@ -883,7 +903,7 @@ export default function App() {
           onPractice={() => { setHeartsModal(false); setRoute({ s: "review" }); }}
           onClose={() => {
             setHeartsModal(false);
-            if (route.s === "wordlesson" || route.s === "lesson" || route.s === "sentences") setRoute(studyBack());
+            if (route.s === "wordlesson" || route.s === "lesson" || route.s === "basics" || route.s === "practice") setRoute(studyBack());
           }}
         />
       )}

@@ -25,9 +25,11 @@ function partInfo(key: string) {
 
 // Per-level accent colours for the journey-path badges.
 export const LEVEL_COLORS: Record<string, string> = {
+  A0: "#FBBF24",
   A1: "#4ADE80", A2: "#2DD4BF", B1: "#3B82F6", B2: "#60A5FA", C1: "#A78BFA", C2: "#F472B6",
 };
 export const LEVEL_NAMES: Record<string, string> = {
+  A0: "Starter",
   A1: "Beginner", A2: "Elementary", B1: "Intermediate",
   B2: "Upper-Intermediate", C1: "Advanced", C2: "Mastery",
 };

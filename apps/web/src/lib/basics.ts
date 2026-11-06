@@ -1,0 +1,164 @@
+import { choice, type Exercise } from "./exercises";
+
+// "Basics" — the very first unit of the path for learners starting from zero.
+// Each lesson: a short rule in Russian with examples, then practice.
+// (Russian on purpose: a true beginner can't read an English explanation yet.)
+
+export interface BasicsLesson {
+  id: string;
+  title: string;
+  emoji: string;
+  rules: string[];               // short points of the rule
+  examples: [string, string][];  // [English, Russian]
+  exercises: () => Exercise[];   // built fresh each time (options get shuffled)
+}
+
+export const BASICS: BasicsLesson[] = [
+  {
+    id: "hello", title: "Привет! Знакомимся", emoji: "🗣️",
+    rules: [
+      "Hello / Hi — привет. Goodbye / Bye — пока.",
+      "I'm … (= I am …) — я … : I'm Anna — я Анна.",
+      "My name is … — меня зовут …",
+      "Nice to meet you! — приятно познакомиться!",
+      "How are you? — как дела? → I'm fine, thanks. — хорошо, спасибо.",
+    ],
+    examples: [["Hi! I'm Tom.", "Привет! Я Том."], ["My name is Anna.", "Меня зовут Анна."], ["Nice to meet you!", "Приятно познакомиться!"]],
+    exercises: () => [
+      choice("Как сказать «Привет»?", ["Hello", "Goodbye", "Thanks", "Sorry"]),
+      choice("Nice to meet you!", ["Приятно познакомиться!", "Как дела?", "До встречи!", "Спасибо!"], { task: "Что это значит?" }),
+      { type: "build", hint: "Меня зовут Анна.", answer: "My name is Anna", extra: ["I", "are"] },
+      choice("— How are you?\n— ___", ["I'm fine, thanks.", "I'm Anna.", "Nice to meet you.", "Goodbye."], { task: "Выбери ответ" }),
+      { type: "build", hint: "Я Том.", answer: "I am Tom", extra: ["is", "my"] },
+      { type: "type", prompt: "___ to meet you!", hint: "Приятно познакомиться!", answer: "Nice" },
+    ],
+  },
+  {
+    id: "pronouns", title: "Я, ты, он, она", emoji: "👤",
+    rules: [
+      "I — я (всегда с большой буквы!)",
+      "you — ты / вы,  we — мы,  they — они",
+      "he — он (о мужчине),  she — она (о женщине)",
+      "it — он / она / оно, когда речь о предмете или животном: the table → it",
+    ],
+    examples: [["She is my friend.", "Она моя подруга."], ["They are students.", "Они студенты."], ["It is big.", "Он (предмет) большой."]],
+    exercises: () => [
+      choice("она", ["she", "he", "it", "we"], { task: "Как по-английски?" }),
+      choice("мы", ["we", "they", "you", "I"], { task: "Как по-английски?" }),
+      choice("the table (стол) → ___", ["it", "he", "she", "they"], { task: "Какое слово заменит?", explain: "О предметах говорим it, даже если по-русски «он»." }),
+      choice("Tom and Anna → ___", ["they", "we", "he", "you"], { task: "Какое слово заменит?" }),
+      choice("Anna → ___", ["she", "he", "it", "they"], { task: "Какое слово заменит?" }),
+      { type: "type", prompt: "«они» по-английски: ___", answer: "they" },
+    ],
+  },
+  {
+    id: "to-be", title: "am / is / are", emoji: "💡",
+    rules: [
+      "По-русски говорим «Я студент», а в английском нужна связка: I am a student.",
+      "I → am",
+      "he / she / it → is",
+      "you / we / they → are",
+      "Коротко: I'm, he's, she's, it's, you're, we're, they're.",
+    ],
+    examples: [["I am happy.", "Я счастлив."], ["She is a doctor.", "Она врач."], ["They are at home.", "Они дома."]],
+    exercises: () => [
+      choice("I ___ hungry.", ["am", "is", "are"], { task: "Вставь пропущенное", explain: "С I всегда am." }),
+      choice("She ___ my sister.", ["is", "am", "are"], { task: "Вставь пропущенное", explain: "he / she / it → is." }),
+      choice("We ___ friends.", ["are", "is", "am"], { task: "Вставь пропущенное", explain: "you / we / they → are." }),
+      choice("It ___ cold today.", ["is", "are", "am"], { task: "Вставь пропущенное" }),
+      { type: "build", hint: "Он врач.", answer: "He is a doctor", extra: ["are", "am"] },
+      { type: "build", hint: "Мы дома.", answer: "We are at home", extra: ["is"] },
+      { type: "type", prompt: "They ___ from Kyiv.", hint: "Они из Киева.", answer: "are" },
+    ],
+  },
+  {
+    id: "to-be-neg", title: "«Не» и вопросы", emoji: "❓",
+    rules: [
+      "Отрицание: not после am / is / are: I am not tired. She is not here.",
+      "Коротко: isn't = is not, aren't = are not (но I'm not).",
+      "Вопрос: ставим am / is / are в начало: Are you OK? Is he at work?",
+      "Короткий ответ: Yes, I am. / No, she isn't.",
+    ],
+    examples: [["I'm not tired.", "Я не устал."], ["Is he at work?", "Он на работе?"], ["Yes, he is.", "Да."]],
+    exercises: () => [
+      choice("Я не устал.", ["I am not tired.", "I not am tired.", "I am tired not.", "Not I am tired."], { task: "Как правильно?" }),
+      choice("___ you a student?", ["Are", "Is", "Am", "Do"], { task: "Вставь пропущенное" }),
+      choice("— Is she your sister?\n— Yes, ___", ["she is.", "she's.", "is she.", "she are."], {
+        task: "Выбери ответ", explain: "В конце фразы сокращать нельзя: Yes, she is (не she's).",
+      }),
+      { type: "build", hint: "Он дома?", answer: "Is he at home", extra: ["are"] },
+      { type: "build", hint: "Они не здесь.", answer: "They are not here", extra: ["is"] },
+      { type: "type", prompt: "It ___ not expensive.", hint: "Это не дорого.", answer: "is" },
+    ],
+  },
+  {
+    id: "a-an", title: "a / an", emoji: "🍎",
+    rules: [
+      "Перед одним предметом или человеком ставим a: a cat, a book.",
+      "Если слово начинается с гласного звука — an: an apple, an egg, an hour.",
+      "Профессии тоже с a / an: I am a teacher (по-русски просто «я учитель»).",
+    ],
+    examples: [["I have a dog.", "У меня есть собака."], ["It's an apple.", "Это яблоко."], ["She is an engineer.", "Она инженер."]],
+    exercises: () => [
+      choice("___ apple", ["an", "a"], { task: "a или an?", explain: "apple начинается с гласного звука → an." }),
+      choice("___ dog", ["a", "an"], { task: "a или an?" }),
+      choice("She is ___ engineer.", ["an", "a"], { task: "a или an?" }),
+      choice("Я студент.", ["I am a student.", "I am student.", "I a student.", "I am an student."], {
+        task: "Как правильно?", explain: "Нужны и am, и a: I am a student.",
+      }),
+      { type: "build", hint: "Это яблоко.", answer: "It is an apple", extra: ["a"] },
+      { type: "type", prompt: "He is ___ actor.", hint: "Он актёр.", answer: "an" },
+    ],
+  },
+  {
+    id: "this-that", title: "this / that", emoji: "📋",
+    rules: [
+      "this — это / этот (рядом),  that — то / тот (далеко).",
+      "Много предметов: these — эти,  those — те.",
+      "What is this? — Что это?  This is my phone. — Это мой телефон.",
+    ],
+    examples: [["This is my bag.", "Это моя сумка."], ["That car is new.", "Та машина новая."], ["These are my friends.", "Это мои друзья."]],
+    exercises: () => [
+      choice("Это моя книга (она у меня в руках).", ["This is my book.", "That is my book.", "These is my book.", "This are my book."], { task: "Как правильно?" }),
+      choice("___ are my shoes. (эти)", ["These", "This", "That", "Those"], { task: "Вставь пропущенное" }),
+      choice("Look at ___ bird over there! (вон та)", ["that", "this", "these", "those"], { task: "Вставь пропущенное" }),
+      { type: "build", hint: "Что это?", answer: "What is this", extra: ["are"] },
+      { type: "build", hint: "Те машины новые.", answer: "Those cars are new", extra: ["is", "that"] },
+      { type: "type", prompt: "___ is my house.", hint: "Это мой дом.", answer: "This" },
+    ],
+  },
+  {
+    id: "my-your", title: "my, your, his, her", emoji: "🏠",
+    rules: [
+      "my — мой,  your — твой / ваш,  our — наш,  their — их",
+      "his — его (если хозяин он),  her — её (если хозяйка она)",
+      "Tom's bag → his bag,  Anna's bag → her bag.",
+    ],
+    examples: [["This is my room.", "Это моя комната."], ["What's your name?", "Как тебя зовут?"], ["Her brother is tall.", "Её брат высокий."]],
+    exercises: () => [
+      choice("Это его машина.", ["This is his car.", "This is her car.", "This is he car.", "This is him car."], { task: "Как правильно?" }),
+      choice("Anna and ___ brother", ["her", "his", "she", "its"], { task: "Вставь пропущенное", explain: "Брат Анны → её брат → her." }),
+      choice("We love ___ city.", ["our", "we", "us", "their"], { task: "Вставь пропущенное" }),
+      { type: "build", hint: "Как тебя зовут?", answer: "What is your name", extra: ["you"] },
+      { type: "build", hint: "Их дом большой.", answer: "Their house is big", extra: ["they", "are"] },
+      { type: "type", prompt: "Tom and ___ dog", hint: "Том и его собака", answer: "his" },
+    ],
+  },
+  {
+    id: "have-has", title: "have / has", emoji: "🎁",
+    rules: [
+      "«У меня есть …» по-английски: I have …  (I have a cat).",
+      "he / she / it → has:  She has a car.",
+      "Остальные — have:  you have, we have, they have.",
+    ],
+    examples: [["I have a sister.", "У меня есть сестра."], ["He has a new phone.", "У него новый телефон."], ["We have a big family.", "У нас большая семья."]],
+    exercises: () => [
+      choice("She ___ two sisters.", ["has", "have", "is", "are"], { task: "Вставь пропущенное", explain: "she → has." }),
+      choice("We ___ a big family.", ["have", "has", "are", "is"], { task: "Вставь пропущенное" }),
+      choice("У него есть велосипед.", ["He has a bike.", "He have a bike.", "He is a bike.", "He has bike."], { task: "Как правильно?" }),
+      { type: "build", hint: "У меня есть собака.", answer: "I have a dog", extra: ["has", "am"] },
+      { type: "build", hint: "У них есть машина.", answer: "They have a car", extra: ["has"] },
+      { type: "type", prompt: "My brother ___ a new phone.", hint: "У моего брата новый телефон.", answer: "has" },
+    ],
+  },
+];
