@@ -105,29 +105,62 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
     setPos(pos + 1);
   };
 
-  // after answering, a swipe to the right goes to the next exercise
-  const swipe = useRef<{ x: number; y: number } | null>(null);
-  const onPointerDown = (e: React.PointerEvent) => { swipe.current = { x: e.clientX, y: e.clientY }; };
-  const onPointerUp = (e: React.PointerEvent) => {
+  // After answering, drag the exercise to the left like a card: it follows
+  // the finger, the next one peeks in from the right, and letting go past
+  // the threshold flips to it (otherwise it springs back).
+  const [drag, setDrag] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const swipe = useRef<{ x: number; y: number; active: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    swipe.current = status ? { x: e.clientX, y: e.clientY, active: false } : null;
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const s0 = swipe.current;
+    if (!s0) return;
+    const dx = e.clientX - s0.x, dy = e.clientY - s0.y;
+    if (!s0.active) {
+      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy)) return; // a tap or a scroll
+      s0.active = true;
+      setDragging(true);
+    }
+    setDrag(dx < 0 ? dx : dx * 0.15); // to the right it only gives a little
+  };
+  const onPointerUp = () => {
     const s0 = swipe.current;
     swipe.current = null;
-    if (!s0 || !status) return;
-    const dx = e.clientX - s0.x, dy = e.clientY - s0.y;
-    if (dx > 70 && Math.abs(dy) < 60) next();
+    if (!s0?.active) return;
+    setDragging(false);
+    if (drag < -80) {
+      setDrag(-window.innerWidth); // fly out, then show the next one
+      setTimeout(() => { next(); setDrag(0); }, 200);
+    } else setDrag(0);
   };
+  const nextItem = queue[pos + 1];
+  const nextTask = (x: Exercise) => x.task ?? (x.type === "choice" ? t.exChoose : x.type === "build" ? t.exBuild : t.exType);
+  const nextText = (x: Exercise) => (x.type === "build" ? x.hint : x.prompt).replace(/\*\*/g, "").split("\n")[0];
 
   if (!ex) return null;
   const task = ex.task ?? (ex.type === "choice" ? t.exChoose : ex.type === "build" ? t.exBuild : t.exType);
 
   return (
-    <section className="wl" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
+    <section className="wl" onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
       <div className="wl-top">
         <button className="wl-close" onClick={onClose} aria-label={t.back}>✕</button>
         <div className="plan-bar wl-bar"><span style={{ width: `${(pos / queue.length) * 100}%` }} /></div>
         <HeartsBadge />
       </div>
 
-      <div className="wl-body" key={pos}>
+      <div className="ex-stage">
+      {status && (
+        <div className="ex-peek" style={{ transform: `translateX(calc(100% + 24px + ${drag}px))`, transition: dragging ? "none" : undefined }}>
+          {nextItem
+            ? <><p className="wl-task">{nextTask(nextItem.ex)}</p><p className="ex-peek-text">{nextText(nextItem.ex)}</p></>
+            : <p className="wl-task">🏁 {t.exFinish}</p>}
+        </div>
+      )}
+      <div className="wl-body ex-page" key={pos}
+        style={drag ? { transform: `translateX(${drag}px) rotate(${drag / 50}deg)`, transition: dragging ? "none" : undefined } : undefined}>
         {ex.review && <span className="ex-review">🔁 {ex.review}</span>}
         <p className="wl-task">{task}</p>
 
@@ -183,6 +216,7 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
             />
           </>
         )}
+      </div>
       </div>
 
       {!status && ex.type !== "choice" && (
