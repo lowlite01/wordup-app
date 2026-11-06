@@ -26,9 +26,10 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
     return (
       <section>
         <Title />
-        <p className="muted">{t.loginPitch}</p>
+        {/* In Telegram the account is the Telegram one (no sign-in needed);
+            Google blocks sign-in inside embedded browsers anyway. */}
+        {!isTelegram && <p className="muted">{t.loginPitch}</p>}
         {isTelegram ? (
-          // Google blocks sign-in inside embedded browsers like Telegram's.
           <p className="cloud-note">☁️ {t.cloudSaved}</p>
         ) : GOOGLE_CLIENT_ID ? (
           <div className="login-box">
