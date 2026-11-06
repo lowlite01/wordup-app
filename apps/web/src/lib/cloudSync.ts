@@ -1,7 +1,7 @@
 import { isTelegram, telegramInitData } from "./telegram";
 
 // Cloud save for the Telegram Mini App: everything the learner has done
-// (words, path, streak, crystals, plan, settings…) lives in the phone's
+// (words, path, streak, crystals, plan…) lives in the phone's
 // storage, which Telegram may clear and which another device doesn't have.
 // So we keep a copy on the server under the Telegram account:
 //   - on start: if the server's copy is newer than what this device last
@@ -15,11 +15,21 @@ const SYNCED_AT = "wordup-sync-at"; // server time of the copy this device has
 
 // What is the learner's own data (caches and server-owned things are not).
 const INCLUDE = [
-  /^wordup-(progress|quiz-stats|recent|settings|streak|crystals|custom-lists|hearts|word-times)-v\d+$/,
+  // (settings — theme, language — stay per device: a desktop in English
+  // shouldn't switch the phone's Russian interface)
+  /^wordup-(progress|quiz-stats|recent|streak|crystals|custom-lists|hearts|word-times)-v\d+$/,
   /^wordup-(path|plan)-v1-en$/,
   /^wordup-lesson-/,
 ];
 const isSynced = (k: string) => INCLUDE.some(r => r.test(k));
+
+// How much has been learned in a copy (to pick the right one on a first sync).
+function learned(state: Record<string, string>): number {
+  try {
+    const p = JSON.parse(state["wordup-progress-v2"] || "{}") as { known?: Record<string, string[]> };
+    return Object.values(p.known || {}).reduce((n, l) => n + (l?.length || 0), 0);
+  } catch { return 0; }
+}
 
 function snapshot(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -62,6 +72,12 @@ export async function pullState(): Promise<boolean> {
     if (!res.ok) return false;
     const { state, at } = (await res.json()) as { state: Record<string, string> | null; at: number | null };
     const localAt = Number(localStorage.getItem(SYNCED_AT) || 0);
+    // First sync on this device while it already has its own progress: keep
+    // whichever copy has learned more (don't wipe a phone with a fresh desktop).
+    if (state && at && localAt === 0 && learned(snapshot()) > learned(state)) {
+      await pushState();
+      return false;
+    }
     if (state && at && at > localAt) {
       // newer progress from another device: take it
       for (const k of Object.keys(snapshot())) localStorage.removeItem(k);

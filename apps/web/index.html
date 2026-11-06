@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WordUp — Learn English Vocabulary</title>
+  <!-- apply the saved theme before anything is drawn (no flash of the default theme) -->
+  <script>
+    try {
+      var s = JSON.parse(localStorage.getItem("wordup-settings-v1") || "{}");
+      document.documentElement.dataset.theme = s.theme || "midnight";
+      document.documentElement.lang = s.lang || "ru";
+    } catch (e) { document.documentElement.dataset.theme = "midnight"; }
+  </script>
   <!-- open connections early: API, icons fallback CDN, fonts -->
   <link rel="preconnect" href="https://wordup-api.onrender.com" crossorigin />
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
