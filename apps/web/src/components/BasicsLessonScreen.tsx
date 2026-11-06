@@ -1,21 +1,15 @@
 import { useState } from "react";
 import { useT } from "../i18n";
 import { BASICS } from "../lib/basics";
-import { pronounceWord, speakWord } from "../lib/dict";
 import { withReview, type Exercise } from "../lib/exercises";
 import { shuffle } from "../lib/groups";
-import ExerciseRunner, { LessonResult, Prompt, savedProgress } from "./ExerciseRunner";
+import ExerciseRunner, { LessonResult, savedProgress } from "./ExerciseRunner";
+import BasicsRule from "./BasicsRule";
 import { clearLesson } from "../lib/lessonSave";
 import Emoji from "./Emoji";
 
 const PASS = 0.7; // share of exercises right on the first try
 
-// One word → the real recording (louder and clearer); a phrase → the voice.
-// "Hello / Hi" → "Hello, Hi".
-const say = (en: string) => {
-  const text = en.replace(/ \/ /g, ", ");
-  if (/^[A-Za-z']+$/.test(text)) pronounceWord(text); else speakWord(text);
-};
 
 // A "Basics" lesson: the idea in plain Russian, a small table of key phrases
 // (tap to hear), a tip, examples — then practice with one review question
@@ -47,48 +41,7 @@ export default function BasicsLessonScreen({ lessonId, alreadyDone, onComplete, 
         <div className="basics-card">
           <Emoji char={lesson.emoji} className="basics-icon" />
           <h2>{lesson.title}</h2>
-          <p className="basics-intro">{lesson.intro}</p>
-
-          <div className="basics-table">
-            {lesson.pairs.map(([en, ru], i) => (
-              <button key={en} className="basics-row" style={{ animationDelay: `${i * 55}ms` }} onClick={() => say(en)}>
-                <b>{en}</b>
-                <span>{ru}</span>
-              </button>
-            ))}
-          </div>
-          <p className="basics-tap">{t.basicsTapHint}</p>
-
-          {lesson.schemes && (
-            <div className="basics-schemes">
-              <h3 className="basics-sub">{t.basicsSchemes}</h3>
-              {lesson.schemes.map((sc, i) => (
-                <div key={sc.label} className="basics-scheme" style={{ animationDelay: `${300 + i * 150}ms` }}>
-                  <span className="basics-scheme-label">{sc.label}</span>
-                  <button className="basics-scheme-line" onClick={() => say(sc.from.replace(/\*\*/g, ""))}><Prompt text={sc.from} /></button>
-                  <span className="basics-scheme-arrow">↓</span>
-                  <button className="basics-scheme-line to" onClick={() => say(sc.to.replace(/\*\*/g, ""))}><Prompt text={sc.to} /></button>
-                  {sc.note && <span className="basics-scheme-note">{sc.note}</span>}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {lesson.tip && <div className="basics-tip"><Emoji char="💡" /> <span>{lesson.tip}</span></div>}
-
-          {lesson.examples.length > 0 && (
-            <>
-              <h3 className="basics-sub">{t.basicsExamples}</h3>
-              <div className="basics-examples">
-                {lesson.examples.map(([en, ru]) => (
-                  <button key={en} className="basics-example" onClick={() => say(en)}>
-                    <Emoji char="🔊" className="basics-sound" />
-                    <span><b>{en}</b><small>{ru}</small></span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          <BasicsRule lesson={lesson} />
         </div>
         {resume ? (
           <>

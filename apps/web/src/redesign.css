@@ -1403,3 +1403,56 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .lb-streak { font-size: .8rem; color: #f5a524; font-weight: 700; white-space: nowrap; }
 .lb-words { font-family: var(--font-display); font-size: 1.05rem; }
 .lb-loading { text-align: center; color: var(--muted); padding: 30px; }
+
+/* ---- Rule tree: to be → am / is / are → I / he she it / you we they ---- */
+.rule-tree {
+  display: flex; flex-direction: column; align-items: center; margin: 2px 0 16px; padding: 16px 6px 14px;
+  border-radius: 18px; background: var(--card-2); border: 1px solid var(--border);
+}
+.rule-tree-root {
+  padding: 8px 20px; border-radius: 999px; border: none; cursor: pointer; margin-bottom: 14px;
+  background: var(--grad); color: var(--on-accent); font-family: var(--font-display); font-weight: 800; font-size: 1.15rem;
+  box-shadow: var(--glow); animation: pop-in .4s ease backwards;
+}
+.rule-tree-branches { position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); width: 100%; padding-top: 2px; }
+/* the stub down from the root and the bar joining the branches */
+.rule-tree-branches::after { content: ""; position: absolute; top: -14px; left: 50%; width: 2px; height: 16px; margin-left: -1px; background: var(--muted); opacity: .6; }
+.rule-tree-branches::before {
+  content: ""; position: absolute; top: 0; height: 2px; background: var(--muted); opacity: .6;
+  left: calc(100% / var(--n) / 2); right: calc(100% / var(--n) / 2);
+}
+.rule-tree-branch { --c: #34d399; display: flex; flex-direction: column; align-items: center; animation: rise .45s ease backwards; }
+.rule-tree-branch:nth-child(2) { --c: #60a5fa; }
+.rule-tree-branch:nth-child(3) { --c: #f472b6; }
+.rule-tree-arrow { position: relative; width: 2px; height: 16px; background: var(--c); }
+.rule-tree-arrow::after {
+  content: ""; position: absolute; bottom: -5px; left: 50%; margin-left: -5px;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--c);
+}
+.rule-tree-arrow.small { height: 10px; margin-top: 2px; }
+.rule-tree-word {
+  margin-top: 6px; padding: 6px 16px; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; font-size: 1.15rem;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border: 2px solid var(--c);
+}
+.rule-tree-subjects { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; }
+.rule-tree-subject {
+  min-width: 52px; padding: 4px 10px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 700;
+  color: var(--text); background: var(--card); border: 1px solid color-mix(in srgb, var(--c) 45%, var(--border));
+}
+
+/* ---- Notes (конспект) ---- */
+.notes { max-width: 640px; margin: 0 auto; }
+.notes-hero { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+.notes-icon { font-size: 3rem; flex-shrink: 0; }
+.notes-section { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 8px; }
+.notes-card { border-radius: 18px; background: var(--card); border: 1px solid var(--border); margin-bottom: 8px; overflow: hidden; }
+.notes-card.open { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.notes-head {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; cursor: pointer;
+  background: none; border: none; color: var(--text); font: inherit; font-weight: 700; text-align: left;
+}
+.notes-head span:nth-child(2) { flex: 1; }
+.notes-emoji { font-size: 1.6rem; }
+.notes-chev { color: var(--muted); font-size: 1.4rem; transition: transform .2s; }
+.notes-card.open .notes-chev { transform: rotate(90deg); }
+.notes-body { padding: 0 16px 16px; animation: rise .3s ease backwards; }

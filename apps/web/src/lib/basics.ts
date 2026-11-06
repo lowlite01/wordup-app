@@ -11,6 +11,8 @@ export interface BasicsLesson {
   intro: string;                 // the idea in one or two plain sentences
   pairs: [string, string][];     // the key words / patterns: [English, Russian]
   tip?: string;                  // one thing to remember
+  // a small tree: "to be" → am / is / are → I / he she it / you we they
+  tree?: { root: string; branches: { word: string; subjects: string[] }[] };
   // how a sentence changes: from → to, the moving words marked **like this**
   schemes?: { label: string; from: string; to: string; note?: string }[];
   examples: [string, string][];  // whole sentences: [English, Russian]
@@ -58,6 +60,14 @@ export const BASICS: BasicsLesson[] = [
   {
     id: "to-be", title: "am / is / are", emoji: "💡",
     intro: "По-русски говорим «Я студент». В английском между «я» и «студент» обязательно нужно слово-связка: am, is или are.",
+    tree: {
+      root: "to be",
+      branches: [
+        { word: "am", subjects: ["I"] },
+        { word: "is", subjects: ["he", "she", "it"] },
+        { word: "are", subjects: ["you", "we", "they"] },
+      ],
+    },
     pairs: [
       ["I am", "я"],
       ["he is", "он"], ["she is", "она"], ["it is", "оно (предмет)"],
@@ -154,6 +164,13 @@ export const BASICS: BasicsLesson[] = [
   {
     id: "have-has", title: "have / has", emoji: "🎁",
     intro: "«У меня есть…» по-английски звучит как «я имею»: I have…",
+    tree: {
+      root: "to have",
+      branches: [
+        { word: "have", subjects: ["I", "you", "we", "they"] },
+        { word: "has", subjects: ["he", "she", "it"] },
+      ],
+    },
     pairs: [
       ["I have", "у меня есть"], ["you have", "у тебя есть"], ["we have", "у нас есть"], ["they have", "у них есть"],
       ["he has", "у него есть"], ["she has", "у неё есть"], ["it has", "у него / неё есть (предмет)"],
