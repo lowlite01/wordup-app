@@ -1256,3 +1256,40 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 /* ---- Placement test ---- */
 .placement-sentences .quiz-option { text-align: left; font-size: .98rem; }
 .placement-dontknow { margin-top: 12px; background: none; border-style: dashed; color: var(--muted); }
+
+/* ---- Basics v2: plain intro, a phrase table, a tip ---- */
+.basics-intro { font-size: 1.05rem; line-height: 1.5; margin: 0 0 16px; }
+.basics-table { display: grid; gap: 6px; }
+.basics-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center;
+  padding: 12px 14px; border-radius: 14px; cursor: pointer; text-align: left; font: inherit; color: var(--text);
+  background: var(--card-2); border: 1px solid transparent;
+  animation: rise .35s ease backwards; transition: border-color .15s, transform .1s;
+}
+.basics-row:hover { border-color: var(--border); }
+.basics-row:active { transform: scale(.98); }
+.basics-row b { font-weight: 800; color: var(--accent-strong); font-size: 1.05rem; }
+.basics-row span { color: var(--text); opacity: .85; }
+.basics-tap { color: var(--muted); font-size: .78rem; margin: 6px 2px 14px; }
+.basics-tip {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; margin-bottom: 16px;
+  background: color-mix(in srgb, #fbbf24 12%, transparent); border: 1px solid color-mix(in srgb, #fbbf24 35%, transparent);
+  line-height: 1.45;
+}
+.basics-tip .emoji-3d { font-size: 1.3rem; flex-shrink: 0; }
+.basics-sub { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 4px 0 8px; }
+.basics-rules { display: none; }
+
+/* ---- Exercises: review badge, livelier options and tiles ---- */
+.ex-review {
+  display: inline-block; margin-bottom: 8px; padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 800;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-strong);
+}
+.wl-options .wl-option { animation: rise .32s ease backwards; }
+.wl-options .wl-option:nth-child(2) { animation-delay: 50ms; }
+.wl-options .wl-option:nth-child(3) { animation-delay: 100ms; }
+.wl-options .wl-option:nth-child(4) { animation-delay: 150ms; }
+.sent-options .sent-chip { transition: opacity .2s, transform .1s; }
+.sent-options .sent-chip.used { opacity: .25; transform: scale(.94); }
+.sent-built.ok { animation: correct-pop .4s ease; }
+.sent-built.bad { animation: shake .4s ease; }

@@ -2,22 +2,36 @@ import { useState } from "react";
 import { useT } from "../i18n";
 import { BASICS } from "../lib/basics";
 import { speakWord } from "../lib/dict";
+import { withReview, type Exercise } from "../lib/exercises";
+import { shuffle } from "../lib/groups";
 import ExerciseRunner, { LessonResult } from "./ExerciseRunner";
 import Emoji from "./Emoji";
 
 const PASS = 0.7; // share of exercises right on the first try
 
-// A "Basics" lesson: the rule in Russian with examples, then practice.
+// "I'm Anna / I am" → say "I'm Anna, I am"
+const say = (en: string) => speakWord(en.replace(/ \/ /g, ", "));
+
+// A "Basics" lesson: the idea in plain Russian, a small table of key phrases
+// (tap to hear), a tip, examples — then practice with one review question
+// from the previous lesson so it doesn't get forgotten.
 export default function BasicsLessonScreen({ lessonId, alreadyDone, onComplete, onBack }: {
   lessonId: string; alreadyDone: boolean; onComplete: () => void; onBack: () => void;
 }) {
   const t = useT();
-  const lesson = BASICS.find(l => l.id === lessonId);
+  const idx = BASICS.findIndex(l => l.id === lessonId);
+  const lesson = BASICS[idx];
+  const prev = idx > 0 ? BASICS[idx - 1] : null;
   const [phase, setPhase] = useState<"rules" | "practice" | "done">("rules");
   const [round, setRound] = useState(0);
   const [score, setScore] = useState({ right: 0, total: 0 });
 
   if (!lesson) return null;
+
+  const exercises = (): Exercise[] => {
+    const review = prev ? shuffle(prev.exercises())[0] : undefined;
+    return withReview(lesson.exercises(), review, t.reviewPrev(prev?.title ?? ""));
+  };
 
   if (phase === "rules") {
     return (
@@ -26,17 +40,33 @@ export default function BasicsLessonScreen({ lessonId, alreadyDone, onComplete, 
         <div className="basics-card">
           <Emoji char={lesson.emoji} className="basics-icon" />
           <h2>{lesson.title}</h2>
-          <ul className="basics-rules">
-            {lesson.rules.map(r => <li key={r}>{r}</li>)}
-          </ul>
-          <div className="basics-examples">
-            {lesson.examples.map(([en, ru]) => (
-              <button key={en} className="basics-example" onClick={() => speakWord(en)}>
-                <Emoji char="🔊" className="basics-sound" />
-                <span><b>{en}</b><small>{ru}</small></span>
+          <p className="basics-intro">{lesson.intro}</p>
+
+          <div className="basics-table">
+            {lesson.pairs.map(([en, ru], i) => (
+              <button key={en} className="basics-row" style={{ animationDelay: `${i * 55}ms` }} onClick={() => say(en)}>
+                <b>{en}</b>
+                <span>{ru}</span>
               </button>
             ))}
           </div>
+          <p className="basics-tap">{t.basicsTapHint}</p>
+
+          {lesson.tip && <div className="basics-tip"><Emoji char="💡" /> <span>{lesson.tip}</span></div>}
+
+          {lesson.examples.length > 0 && (
+            <>
+              <h3 className="basics-sub">{t.basicsExamples}</h3>
+              <div className="basics-examples">
+                {lesson.examples.map(([en, ru]) => (
+                  <button key={en} className="basics-example" onClick={() => say(en)}>
+                    <Emoji char="🔊" className="basics-sound" />
+                    <span><b>{en}</b><small>{ru}</small></span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
         <button className="today-go" onClick={() => setPhase("practice")}>{t.basicsGo}</button>
       </section>
@@ -47,7 +77,7 @@ export default function BasicsLessonScreen({ lessonId, alreadyDone, onComplete, 
     return (
       <ExerciseRunner
         key={round}
-        exercises={lesson.exercises()}
+        exercises={exercises()}
         onClose={onBack}
         onFinish={(right, total) => {
           setScore({ right, total });

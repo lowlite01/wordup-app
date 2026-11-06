@@ -844,6 +844,8 @@ export default function App() {
             <PracticeScreen
               key={st.id}
               partKey={st.key}
+              prevKey={steps.filter(x => x.kind === "practice" && x.level === st.level && x.key)
+                .map(x => x.key!).find((_, i, keys) => keys[i + 1] === st.key)}
               alreadyDone={path.done.includes(st.id)}
               onComplete={() => completeStep(st.id)}
               onBack={() => setRoute(studyBack())}

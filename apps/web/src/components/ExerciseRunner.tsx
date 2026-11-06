@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import { buildTiles, norm, type Exercise } from "../lib/exercises";
@@ -49,6 +49,31 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
   const ex = item?.ex;
   const tiles = useMemo(() => (ex?.type === "build" ? buildTiles(ex) : []), [ex]);
 
+  // Word tiles fly between the bank and the answer line (FLIP: measure where
+  // the tile was, render it in its new place, animate from old to new).
+  const builtRef = useRef<HTMLDivElement>(null);
+  const bankRef = useRef<HTMLDivElement>(null);
+  const fly = useRef<{ from: DOMRect; to: "built" | number } | null>(null);
+  useLayoutEffect(() => {
+    const f = fly.current;
+    fly.current = null;
+    if (!f) return;
+    const el = (f.to === "built"
+      ? builtRef.current?.lastElementChild
+      : bankRef.current?.querySelector(`[data-i="${f.to}"]`)) as HTMLElement | null;
+    if (!el?.animate) return;
+    const to = el.getBoundingClientRect();
+    el.animate(
+      [{ transform: `translate(${f.from.left - to.left}px, ${f.from.top - to.top}px)` }, { transform: "translate(0, 0)" }],
+      { duration: 280, easing: "cubic-bezier(.2, .8, .2, 1)" },
+    );
+  }, [built]);
+  const addTile = (i: number, from: DOMRect) => { fly.current = { from, to: "built" }; setBuilt(b => [...b, i]); };
+  const removeTile = (k: number, from: DOMRect) => {
+    fly.current = { from, to: built[k] };
+    setBuilt(b => b.filter((_, j) => j !== k));
+  };
+
   const judge = (ok: boolean) => {
     setStatus(ok ? "ok" : "bad");
     haptic(ok ? "success" : "error");
@@ -93,6 +118,7 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
       </div>
 
       <div className="wl-body" key={pos}>
+        {ex.review && <span className="ex-review">🔁 {ex.review}</span>}
         <p className="wl-task">{task}</p>
 
         {ex.type === "choice" && (
@@ -114,17 +140,18 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
         {ex.type === "build" && (
           <>
             <p className="ex-ru">{ex.hint}</p>
-            <div className={"sent-built" + (status === "ok" ? " ok" : status === "bad" ? " bad" : "")}>
+            <div ref={builtRef} className={"sent-built" + (status === "ok" ? " ok" : status === "bad" ? " bad" : "")}>
               {built.length === 0 && <span className="sent-placeholder">{t.sentencesTapWords}</span>}
               {built.map((ti, k) => (
                 <button key={k} className="sent-chip in" disabled={!!status}
-                  onClick={() => setBuilt(b => b.filter((_, j) => j !== k))}>{tiles[ti]}</button>
+                  onClick={e => removeTile(k, e.currentTarget.getBoundingClientRect())}>{tiles[ti]}</button>
               ))}
             </div>
-            <div className="sent-options">
+            <div ref={bankRef} className="sent-options">
               {tiles.map((w, i) => (
-                <button key={i} className={"sent-chip" + (built.includes(i) ? " used" : "")}
-                  disabled={built.includes(i) || !!status} onClick={() => setBuilt(b => [...b, i])}>{w}</button>
+                <button key={i} data-i={i} className={"sent-chip" + (built.includes(i) ? " used" : "")}
+                  disabled={built.includes(i) || !!status}
+                  onClick={e => addTile(i, e.currentTarget.getBoundingClientRect())}>{w}</button>
               ))}
             </div>
           </>

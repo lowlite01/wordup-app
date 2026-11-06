@@ -6,10 +6,18 @@ import { shuffle, wordsForKey } from "./groups";
 //   choice — pick one option (prompt may mark a word as **word**)
 //   build  — tap word tiles to build a sentence (from a Russian hint)
 //   type   — type the missing word yourself
-export type Exercise =
+export type Exercise = (
   | { type: "choice"; task?: string; prompt: string; hint?: string; options: string[]; answer: number; explain?: string }
   | { type: "build"; task?: string; hint: string; answer: string; extra?: string[]; explain?: string }
-  | { type: "type"; task?: string; prompt: string; hint?: string; answer: string; alts?: string[]; explain?: string };
+  | { type: "type"; task?: string; prompt: string; hint?: string; answer: string; alts?: string[]; explain?: string }
+) & { review?: string }; // set on a review question from an earlier lesson (shown as a badge)
+
+/** Put one review question from an earlier lesson into the middle of a lesson. */
+export function withReview(list: Exercise[], review: Exercise | undefined, label: string): Exercise[] {
+  if (!review) return list;
+  const at = Math.ceil(list.length / 2);
+  return [...list.slice(0, at), { ...review, review: label }, ...list.slice(at)];
+}
 
 /** Lower-case, no punctuation, single spaces — for comparing answers. */
 export const norm = (s: string) =>
