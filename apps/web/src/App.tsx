@@ -18,6 +18,7 @@ import { FREE_IELTS, buy, claimGems, fetchPro, isProActive, loadPro, type Produc
 import { REFILL_COST, fullHearts, loadHearts, loseOne, regen, saveHearts } from "./lib/hearts";
 import { IELTS_TOPICS, ieltsKey } from "./lib/ielts";
 const ProScreen = lazy(() => import("./components/ProScreen"));
+const LeaderboardScreen = lazy(() => import("./components/LeaderboardScreen"));
 import HeartsModal from "./components/HeartsModal";
 import StreakRescueModal from "./components/StreakRescueModal";
 import {
@@ -40,7 +41,7 @@ import {
 } from "./lib/roadmap";
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
-import { askConfirm, haptic, initTelegram, setTelegramBack, setTelegramSettings, showMessage, syncTelegramColors } from "./lib/telegram";
+import { askConfirm, haptic, initTelegram, isTelegram, setTelegramBack, setTelegramSettings, showMessage, syncTelegramColors } from "./lib/telegram";
 import FlashcardsScreen from "./components/FlashcardsScreen";
 import QuizScreen from "./components/QuizScreen";
 import WordListScreen from "./components/WordListScreen";
@@ -77,7 +78,8 @@ type Route =
   | { s: "lesson"; id: string }
   | { s: "basics"; id: string }
   | { s: "practice"; id: string }
-  | { s: "pro" };
+  | { s: "pro" }
+  | { s: "leaderboard" };
 
 type Origin = "phrasal" | "levels" | "ielts" | "home" | "path" | null;
 
@@ -625,6 +627,7 @@ export default function App() {
     { id: "review", label: t.reviewTitle, icon: "🧠", badge: learningCount },
     { id: "stats", label: t.tabStats, icon: "📈" },
     ...(user?.role === "ADMIN" || pro.admin ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
+    ...(isTelegram ? [{ id: "leaderboard" as Route["s"], label: t.tabLeaderboard, icon: "🏆" }] : []),
     { id: "pro", label: t.proMenu, icon: "👑" },
   ];
   const groupsFamily = ["groups", "flash", "quiz", "list"];
@@ -920,6 +923,7 @@ export default function App() {
         {route.s === "settings" && <SettingsScreen />}
         {route.s === "admin" && <AdminScreen />}
         {route.s === "pro" && <ProScreen onBack={() => setRoute({ s: "groups" })} />}
+        {route.s === "leaderboard" && <LeaderboardScreen onBack={() => setRoute({ s: "groups" })} />}
         </Suspense>
       </main>
 

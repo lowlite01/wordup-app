@@ -36,7 +36,33 @@ export const PRODUCTS: Record<string, Product> = {
 const DAY = 24 * 60 * 60 * 1000;
 const SUBSCRIPTION_PERIOD = 2592000; // 30 days — the only period Telegram allows
 
-export interface TgUser { id: number; first_name?: string }
+export interface TgUser { id: number; first_name?: string; last_name?: string; photo_url?: string }
+
+// "Anna K." — first name and the first letter of the last name, nothing more
+function shownName(u: TgUser): string {
+  const first = (u.first_name || "").trim().slice(0, 24);
+  const last = (u.last_name || "").trim();
+  return (first || "Learner") + (last ? ` ${last[0].toUpperCase()}.` : "");
+}
+
+// Words learned and the live streak, read from the app's cloud save.
+function statsFromState(state: Record<string, string>): { words: number; streak: number } {
+  let words = 0;
+  let streak = 0;
+  try {
+    const p = JSON.parse(state["wordup-progress-v2"] || "{}") as { known?: Record<string, string[]> };
+    const all = new Set<string>();
+    for (const list of Object.values(p.known || {})) for (const w of list || []) all.add(w);
+    words = all.size;
+  } catch { /* ignore */ }
+  try {
+    const s = JSON.parse(state["wordup-streak-v1"] || "{}") as { count?: number; lastDate?: string };
+    // alive if the last finished day is at most ~2 days ago (time zones differ)
+    const last = s.lastDate ? Date.parse(s.lastDate + "T12:00:00Z") : 0;
+    streak = last && Date.now() - last < 2.5 * DAY ? s.count || 0 : 0;
+  } catch { /* ignore */ }
+  return { words, streak };
+}
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -130,12 +156,14 @@ export class TelegramService implements OnModuleInit {
   }
 
   // ---- Status for the app ----
-  async status(telegramId: number) {
-    // remember everyone who opens the app (for /stats); creates the row on first visit
+  async status(user: TgUser) {
+    const telegramId = user.id;
+    // remember everyone who opens the app (for /stats and the leaderboard name)
+    const profile = { name: shownName(user), photoUrl: user.photo_url?.startsWith("https://") ? user.photo_url : null };
     const acc = await this.prisma.tgAccount.upsert({
       where: { telegramId: BigInt(telegramId) },
-      create: { telegramId: BigInt(telegramId) },
-      update: {},
+      create: { telegramId: BigInt(telegramId), ...profile },
+      update: profile,
     });
     const admin = this.isAdmin(telegramId);
     // admins always have Pro (to test everything without buying)
@@ -167,12 +195,37 @@ export class TelegramService implements OnModuleInit {
     if (JSON.stringify(clean).length > 900_000) throw new PayloadTooLargeException("State too large");
     const stateAt = new Date();
     const id = BigInt(telegramId);
+    const stats = statsFromState(clean);
     await this.prisma.tgAccount.upsert({
       where: { telegramId: id },
-      create: { telegramId: id, state: clean, stateAt },
-      update: { state: clean, stateAt },
+      create: { telegramId: id, state: clean, stateAt, ...stats },
+      update: { state: clean, stateAt, ...stats },
     });
     return { at: stateAt.getTime() };
+  }
+
+  // ---- Leaderboard: who has learned the most words ----
+  async leaderboard(telegramId: number) {
+    const top = await this.prisma.tgAccount.findMany({
+      where: { words: { gt: 0 } },
+      orderBy: [{ words: "desc" }, { streak: "desc" }],
+      take: 50,
+      select: { telegramId: true, name: true, photoUrl: true, words: true, streak: true },
+    });
+    const me = await this.prisma.tgAccount.findUnique({
+      where: { telegramId: BigInt(telegramId) }, select: { words: true, streak: true },
+    });
+    const myRank = me && me.words > 0
+      ? (await this.prisma.tgAccount.count({ where: { words: { gt: me.words } } })) + 1
+      : null;
+    return {
+      top: top.map((r, i) => ({
+        rank: i + 1, name: r.name || "Learner", photoUrl: r.photoUrl, words: r.words, streak: r.streak,
+        me: r.telegramId === BigInt(telegramId),
+      })),
+      me: { rank: myRank, words: me?.words ?? 0, streak: me?.streak ?? 0 },
+      total: await this.prisma.tgAccount.count({ where: { words: { gt: 0 } } }),
+    };
   }
 
   // Hand bought crystals over to the app (it keeps the crystal balance locally).

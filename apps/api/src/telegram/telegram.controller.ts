@@ -26,7 +26,13 @@ export class TelegramController {
   @Get("me")
   me(@Headers("authorization") auth?: string) {
     const user = this.tg.verifyInitData(initDataOf(auth));
-    return this.tg.status(user.id);
+    return this.tg.status(user);
+  }
+
+  @Get("leaderboard")
+  leaderboard(@Headers("authorization") auth?: string) {
+    const user = this.tg.verifyInitData(initDataOf(auth));
+    return this.tg.leaderboard(user.id);
   }
 
   // Cloud save: the app's progress for this Telegram account

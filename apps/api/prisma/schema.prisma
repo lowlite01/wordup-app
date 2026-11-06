@@ -122,6 +122,13 @@ model TgAccount {
   gemCredit    Int       @default(0)     // bought crystals not yet added in the app
   state        Json?                     // cloud save of the app's progress (Mini App storage)
   stateAt      DateTime?                 // when that copy was saved (server clock)
+  // leaderboard: shown name + numbers taken from the cloud save
+  name         String?
+  photoUrl     String?
+  words        Int       @default(0)     // words learned
+  streak       Int       @default(0)     // current streak (days)
+
+  @@index([words])
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
