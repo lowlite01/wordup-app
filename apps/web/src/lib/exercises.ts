@@ -10,7 +10,10 @@ export type Exercise = (
   | { type: "choice"; task?: string; prompt: string; hint?: string; options: string[]; answer: number; explain?: string }
   | { type: "build"; task?: string; hint: string; answer: string; extra?: string[]; explain?: string }
   | { type: "type"; task?: string; prompt: string; hint?: string; answer: string; alts?: string[]; explain?: string }
-) & { review?: string }; // set on a review question from an earlier lesson (shown as a badge)
+) & {
+  review?: string;          // set on a review question from an earlier lesson (shown as a badge)
+  full?: [string, string];  // the whole right sentence + its translation, shown after answering
+};
 
 /** Put one review question from an earlier lesson into the middle of a lesson. */
 export function withReview(list: Exercise[], review: Exercise | undefined, label: string): Exercise[] {
@@ -77,21 +80,22 @@ export function practiceExercises(key: string, tr: (w: Word) => string, t: {
       return true;
     });
     const kind = kinds[out.length % kinds.length];
+    const full: [string, string] = [w.example, `${w.word} — ${tr(w)}`];
     if (kind === "context") {
-      out.push(choice(`${before}**${m[0]}**${after}`, [tr(w), ...others.slice(0, 3).map(tr)], { task: t.context }));
+      out.push(choice(`${before}**${m[0]}**${after}`, [tr(w), ...others.slice(0, 3).map(tr)], { task: t.context, full }));
     } else if (kind === "gap") {
       let opts = others.slice(0, 3).map(o => o.word);
       // gap at the start of a sentence: capitalise all options so none stands out
       if (/^[A-Z]/.test(m[0])) opts = opts.map(o => o[0].toUpperCase() + o.slice(1));
-      out.push(choice(`${before}___${after}`, [m[0], ...opts], { task: t.gap, hint: tr(w) }));
+      out.push(choice(`${before}___${after}`, [m[0], ...opts], { task: t.gap, hint: tr(w), full }));
     } else if (kind === "build") {
       const n = w.example.split(/\s+/).length;
       if (n < 3 || n > 10) { out.push(choice(`${before}**${m[0]}**${after}`, [tr(w), ...others.slice(0, 3).map(tr)], { task: t.context })); continue; }
-      out.push({ type: "build", task: t.build, hint: `${w.word} — ${tr(w)}`, answer: w.example });
+      out.push({ type: "build", task: t.build, hint: `${w.word} — ${tr(w)}`, answer: w.example, full });
     } else {
       out.push({
         type: "type", task: t.typeIt, prompt: `${before}___${after}`,
-        hint: `${tr(w)} · ${m[0][0]}…`, answer: m[0], alts: [w.word],
+        hint: `${tr(w)} · ${m[0][0]}…`, answer: m[0], alts: [w.word], full,
       });
     }
   }

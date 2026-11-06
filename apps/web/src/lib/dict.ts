@@ -81,6 +81,7 @@ export function speakWord(word: string) {
   u.lang = englishVoice?.lang || "en-US";
   if (englishVoice) u.voice = englishVoice;
   u.rate = 0.9;
+  u.volume = 1;
   speechSynthesis.speak(u);
 }
 

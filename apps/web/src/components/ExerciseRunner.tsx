@@ -77,13 +77,12 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
   const judge = (ok: boolean) => {
     setStatus(ok ? "ok" : "bad");
     haptic(ok ? "success" : "error");
+    // hear the right answer: the whole sentence when we have it,
+    // a recording for single words, the voice for sentences
+    const say = ex.full?.[0] ?? (ex.type !== "choice" ? answerText(ex) : "");
+    if (say) { if (say.includes(" ")) speakWord(say); else pronounceWord(say); }
     if (ok) {
       if (!item.retry) setRight(r => r + 1);
-      if (ex.type !== "choice") {
-        // hear the right answer: a recording for single words, the voice for sentences
-        const a = answerText(ex);
-        if (a.includes(" ")) speakWord(a); else pronounceWord(a);
-      }
     } else {
       loseHeart();
       setQueue(q => [...q, { ex: item.ex, idx: item.idx, retry: true }]);
@@ -106,11 +105,22 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
     setPos(pos + 1);
   };
 
+  // after answering, a swipe to the right goes to the next exercise
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => { swipe.current = { x: e.clientX, y: e.clientY }; };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const s0 = swipe.current;
+    swipe.current = null;
+    if (!s0 || !status) return;
+    const dx = e.clientX - s0.x, dy = e.clientY - s0.y;
+    if (dx > 70 && Math.abs(dy) < 60) next();
+  };
+
   if (!ex) return null;
   const task = ex.task ?? (ex.type === "choice" ? t.exChoose : ex.type === "build" ? t.exBuild : t.exType);
 
   return (
-    <section className="wl">
+    <section className="wl" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
       <div className="wl-top">
         <button className="wl-close" onClick={onClose} aria-label={t.back}>✕</button>
         <div className="plan-bar wl-bar"><span style={{ width: `${(pos / queue.length) * 100}%` }} /></div>
@@ -185,10 +195,13 @@ export default function ExerciseRunner({ exercises, onClose, onFinish }: {
         <div className={"wl-footer feedback " + status}>
           <div className="wl-feedback">
             <b>{status === "ok" ? t.lessonRight : t.lessonWrong}</b>
-            {status === "bad" && <span>{answerText(ex)}</span>}
+            {ex.full
+              ? <span className="ex-full"><b>{ex.full[0]}</b><small>{ex.full[1]}</small></span>
+              : status === "bad" && <span>{answerText(ex)}</span>}
             {status === "bad" && ex.explain && <span className="ex-explain">💡 {ex.explain}</span>}
           </div>
           <button className="today-go" onClick={next}>{t.lessonContinue}</button>
+          <small className="ex-swipe">{t.swipeNext}</small>
         </div>
       )}
     </section>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useT } from "../i18n";
 import { BASICS } from "../lib/basics";
-import { speakWord } from "../lib/dict";
+import { pronounceWord, speakWord } from "../lib/dict";
 import { withReview, type Exercise } from "../lib/exercises";
 import { shuffle } from "../lib/groups";
 import ExerciseRunner, { LessonResult } from "./ExerciseRunner";
@@ -9,8 +9,12 @@ import Emoji from "./Emoji";
 
 const PASS = 0.7; // share of exercises right on the first try
 
-// "I'm Anna / I am" → say "I'm Anna, I am"
-const say = (en: string) => speakWord(en.replace(/ \/ /g, ", "));
+// One word → the real recording (louder and clearer); a phrase → the voice.
+// "Hello / Hi" → "Hello, Hi".
+const say = (en: string) => {
+  const text = en.replace(/ \/ /g, ", ");
+  if (/^[A-Za-z']+$/.test(text)) pronounceWord(text); else speakWord(text);
+};
 
 // A "Basics" lesson: the idea in plain Russian, a small table of key phrases
 // (tap to hear), a tip, examples — then practice with one review question
