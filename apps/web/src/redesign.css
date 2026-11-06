@@ -1373,3 +1373,8 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .today-go.rescue-ice:disabled { opacity: .5; }
 
 .cloud-note { padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); line-height: 1.45; }
+
+/* home: room between the path and the cards below; search sits above the word shelves */
+.roadmap-home { margin-bottom: 16px; }
+.roadmap-home .pro-promo { margin-bottom: 0; }
+.search-box.words-search { margin: 22px 0 6px; }

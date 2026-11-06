@@ -177,26 +177,6 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
 
   return (
     <section>
-      <div className="search-box">
-        <input
-          type="search"
-          placeholder={t.searchPlaceholder}
-          value={query}
-          autoComplete="off"
-          onChange={e => setQuery(e.target.value)}
-        />
-      </div>
-
-      {searching ? (
-        <div className="word-table">
-          {matches.length === 0 && <p className="muted">{t.noWordsFound(query.trim())}</p>}
-          {matches.slice(0, 40).map(w => (
-            <WordRow key={w.key + w.word} w={w} showGroup showStatus onOpenGroup={(_n, key) => onStart(key, "flashcards")} />
-          ))}
-          {matches.length > 40 && <p className="muted">{t.moreResults(matches.length - 40)}</p>}
-        </div>
-      ) : (
-        <>
           <TodayCard onStartPlan={onStartPlan} />
 
           {roadmap}
@@ -228,6 +208,27 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
             </>
           )}
 
+          {/* Words: search right above the shelves; results replace them while typing */}
+          <div className="search-box words-search">
+            <input
+              type="search"
+              placeholder={t.searchPlaceholder}
+              value={query}
+              autoComplete="off"
+              onChange={e => setQuery(e.target.value)}
+            />
+          </div>
+
+      {searching ? (
+        <div className="word-table">
+          {matches.length === 0 && <p className="muted">{t.noWordsFound(query.trim())}</p>}
+          {matches.slice(0, 40).map(w => (
+            <WordRow key={w.key + w.word} w={w} showGroup showStatus onOpenGroup={(_n, key) => onStart(key, "flashcards")} />
+          ))}
+          {matches.length > 40 && <p className="muted">{t.moreResults(matches.length - 40)}</p>}
+        </div>
+      ) : (
+        <>
           {/* IELTS shelf */}
           {(
             <div className="shelf">
