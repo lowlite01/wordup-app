@@ -39,8 +39,9 @@ import BasicsLessonScreen from "./components/BasicsLessonScreen";
 import PracticeScreen from "./components/PracticeScreen";
 import RoadmapPath from "./components/RoadmapPath";
 import {
-  PATH_VERSION, STEP_REWARD, buildSteps, currentStepIndex, loadPath, migratePath, savePath, type PathState, type Step,
+  PATH_VERSION, STEP_REWARD, buildSteps, currentStepIndex, isStepDone, loadPath, migratePath, savePath, type PathState, type Step,
 } from "./lib/roadmap";
+import { learnerProfile } from "./lib/tutorProfile";
 import Emoji from "./components/Emoji";
 import { flyCrystals } from "./lib/crystalFly";
 import { askConfirm, haptic, initTelegram, isTelegram, setTelegramBack, setTelegramSettings, showMessage, syncTelegramColors } from "./lib/telegram";
@@ -117,6 +118,7 @@ export default function App() {
   // ---- WordUp Pro + hearts ----
   const [pro, setPro] = useState(loadPro);
   const isPro = isProActive(pro);
+  const isAdmin = user?.role === "ADMIN" || Boolean(pro.admin);
   setProUnlock(isPro); // Pro opens every topic
   const mult = isPro ? 2 : 1; // Pro: double crystals
   const [hearts, setHearts] = useState(loadHearts);
@@ -199,8 +201,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentVersion, path.v]);
   // Finish a lesson / sentence / chest / trophy step and pay its crystals.
+  // Lessons an admin opened ahead of the path only to check them: finishing
+  // them does not move the path or give crystals.
+  const adminPreview = useRef(new Set<string>());
   const completeStep = (id: string) => {
     if (path.done.includes(id)) return;
+    if (adminPreview.current.has(id)) { showToast(t.adminPreviewDone); return; }
     updatePath({ ...path, done: [...path.done, id] });
     const kind = steps.find(st => st.id === id)?.kind;
     const bonus = ((kind && STEP_REWARD[kind]) || 3) * mult;
@@ -601,6 +607,9 @@ export default function App() {
   // Open a step of the learning path.
   const openStep = (step: Step, origin: Origin) => {
     setStudyOrigin(origin);
+    const idx = steps.findIndex(x => x.id === step.id);
+    if (isAdmin && idx > currentStep && !isStepDone(step, progress, path)) adminPreview.current.add(step.id);
+    else adminPreview.current.delete(step.id);
     if (step.kind === "chest" || step.kind === "trophy") {
       // reward steps open right where they are; gems fly into the counter
       if (!path.done.includes(step.id)) {
@@ -798,7 +807,7 @@ export default function App() {
                   <span>{t.pathTitle}</span>
                   <button className="shelf-more" onClick={() => setRoute({ s: "path" })}>{t.pathAll} ›</button>
                 </div>
-                <RoadmapPath steps={steps} path={path} current={currentStep} compact onOpen={st => openStep(st, "home")} />
+                <RoadmapPath steps={steps} path={path} current={currentStep} compact unlockAll={isAdmin} onOpen={st => openStep(st, "home")} />
                 {!isPro && (
                   <button className="pro-promo" onClick={() => setRoute({ s: "pro" })}>
                     <Emoji char="👑" className="pro-promo-icon" />
@@ -844,7 +853,7 @@ export default function App() {
             <button className="back-btn" onClick={() => setRoute({ s: "groups" })}>{t.back}</button>
             <h2 className="screen-title">{t.pathTitle}</h2>
             <p className="muted">{t.pathHint(Math.min(currentStep, steps.length), steps.length)}</p>
-            <RoadmapPath steps={steps} path={path} current={currentStep} onOpen={st => openStep(st, "path")} />
+            <RoadmapPath steps={steps} path={path} current={currentStep} unlockAll={isAdmin} onOpen={st => openStep(st, "path")} />
             <button className="btn wide" onClick={() => setRoute({ s: "placement" })}>{t.retakeTest}</button>
           </section>
         )}
@@ -931,7 +940,7 @@ export default function App() {
         {route.s === "pro" && <ProScreen onBack={() => setRoute({ s: "groups" })} />}
         {route.s === "leaderboard" && <LeaderboardScreen onBack={() => setRoute({ s: "groups" })} />}
         {route.s === "notes" && <NotesScreen steps={steps} path={path} onBack={() => setRoute({ s: "groups" })} />}
-        {route.s === "tutor" && <TutorScreen level={path.placed} onBack={() => setRoute({ s: "groups" })} onPro={() => setRoute({ s: "pro" })} />}
+        {route.s === "tutor" && <TutorScreen profile={learnerProfile(steps, path, progress, stats)} onBack={() => setRoute({ s: "groups" })} onPro={() => setRoute({ s: "pro" })} />}
         </Suspense>
       </main>
 

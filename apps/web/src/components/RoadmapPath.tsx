@@ -11,6 +11,7 @@ interface Props {
   current: number;            // index of the current step
   compact?: boolean;          // home: only a window around the current step
   onOpen: (step: Step) => void;
+  unlockAll?: boolean;        // admin: every lesson can be opened (to check it)
 }
 
 // Horizontal offsets that make the column of nodes snake left and right.
@@ -19,7 +20,7 @@ const WAVE = [0, 46, 72, 46, 0, -46, -72, -46];
 const DECOS = ["🦉", "📚", "🌍", "🎧", "✏️", "🚀", "☕", "🌱", "🎒", "⛰️", "🍎", "🎶"];
 
 // The learning path: a winding column of round steps, Duolingo style.
-export default function RoadmapPath({ steps, path, current, compact, onOpen }: Props) {
+export default function RoadmapPath({ steps, path, current, compact, onOpen, unlockAll }: Props) {
   const { progress } = useApp();
   const t = useT();
   const currentRef = useRef<HTMLButtonElement>(null);
@@ -65,12 +66,13 @@ export default function RoadmapPath({ steps, path, current, compact, onOpen }: P
         const idx = from + k;
         const done = isStepDone(s, progress, path);
         const isCurrent = idx === current;
-        const locked = !done && !isCurrent;
+        const reward = s.kind === "chest" || s.kind === "trophy";
+        // admins may open any lesson ahead, but rewards still need the real path
+        const locked = !done && !isCurrent && !(unlockAll && !reward);
         const offset = WAVE[idx % WAVE.length];
         const newLevel = !compact && (idx === 0 || steps[idx - 1].level !== s.level);
         const pct = s.kind === "words" && s.key
           ? Math.round((knownCount(progress, s.key) / Math.max(1, wordsForKey(s.key).length)) * 100) : 0;
-        const reward = s.kind === "chest" || s.kind === "trophy";
         // decoration on every 4th row, on the opposite side of the bend
         const deco = idx % 4 === 1 ? DECOS[Math.floor(idx / 4) % DECOS.length] : null;
         return (

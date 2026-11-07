@@ -4,10 +4,12 @@ import { useT } from "../i18n";
 import { BOT_LINK } from "../lib/pro";
 import { askConfirm, haptic, isTelegram, openTelegramLink } from "../lib/telegram";
 import { askTutor, fetchQuota, loadChat, saveChat, type TutorQuota, type TutorTurn } from "../lib/tutor";
+import { startersFor, type LearnerProfile } from "../lib/tutorProfile";
 import Emoji from "./Emoji";
+import TutorDialogues from "./TutorDialogues";
 
 // Tutor chat: write in English, get corrections and explanations (WordUp Pro).
-export default function TutorScreen({ level, onBack, onPro }: { level: string | null; onBack: () => void; onPro: () => void }) {
+export default function TutorScreen({ profile, onBack, onPro }: { profile: LearnerProfile; onBack: () => void; onPro: () => void }) {
   const { isPro, settings } = useApp();
   const t = useT();
   const [turns, setTurns] = useState<TutorTurn[]>(loadChat);
@@ -15,6 +17,7 @@ export default function TutorScreen({ level, onBack, onPro }: { level: string | 
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [quota, setQuota] = useState<TutorQuota | null>(null);
+  const [mode, setMode] = useState<"dialogues" | "chat">(() => (loadChat().length ? "chat" : "dialogues"));
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (isTelegram && isPro) fetchQuota().then(setQuota); }, [isPro]);
@@ -25,7 +28,7 @@ export default function TutorScreen({ level, onBack, onPro }: { level: string | 
     if (!msg || busy) return;
     const next: TutorTurn[] = [...turns, { role: "user", text: msg }];
     setTurns(next); saveChat(next); setText(""); setNote(null); setBusy(true);
-    const r = await askTutor(next, settings.lang, level);
+    const r = await askTutor(next, settings.lang, profile);
     setBusy(false);
     if ("error" in r) {
       haptic("error");
@@ -71,6 +74,24 @@ export default function TutorScreen({ level, onBack, onPro }: { level: string | 
     );
   }
 
+  const tabs = (
+    <div className="tutor-tabs">
+      <button className={mode === "dialogues" ? "on" : ""} onClick={() => setMode("dialogues")}>{t.dlgTab}</button>
+      <button className={mode === "chat" ? "on" : ""} onClick={() => setMode("chat")}>{t.tutorChatTab}</button>
+    </div>
+  );
+
+  if (mode === "dialogues") {
+    return (
+      <section className="tutor">
+        <button className="back-btn" onClick={onBack}>{t.back}</button>
+        {hero}
+        {tabs}
+        <TutorDialogues profile={profile} quota={quota} setQuota={setQuota} onPro={onPro} />
+      </section>
+    );
+  }
+
   const out = quota !== null && quota.left <= 0;
   return (
     <section className="tutor">
@@ -79,13 +100,17 @@ export default function TutorScreen({ level, onBack, onPro }: { level: string | 
         {turns.length > 0 && <button className="tutor-clear" onClick={clear}>{t.tutorClear}</button>}
       </div>
       {hero}
+      {tabs}
 
       <div className="tutor-chat">
         {turns.length === 0 && (
           <div className="tutor-starters">
             <p className="muted">{t.tutorStartHint}</p>
-            {t.tutorStarters.map(s => (
-              <button key={s} className="tutor-starter" disabled={busy || out} onClick={() => send(s)}>{s}</button>
+            {startersFor(profile, settings.lang === "ru").map(s => (
+              <button key={s.text} className="tutor-starter" disabled={busy || out} onClick={() => send(s.text)}>
+                <b>{s.label}</b>
+                <small>{s.text}</small>
+              </button>
             ))}
           </div>
         )}
