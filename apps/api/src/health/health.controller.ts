@@ -14,6 +14,8 @@ export class HealthController {
     } catch {
       db = "down";
     }
-    return { status: "ok", db, time: new Date().toISOString() };
+    // which commit is running (Render sets RENDER_GIT_COMMIT) — used by tools/wait-deploy.sh
+    const commit = (process.env.RENDER_GIT_COMMIT || "dev").slice(0, 7);
+    return { status: "ok", db, commit, time: new Date().toISOString() };
   }
 }
