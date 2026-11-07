@@ -9,6 +9,7 @@ import { GamificationModule } from "./gamification/gamification.module";
 import { AuthModule } from "./auth/auth.module";
 import { ContentModule } from "./content/content.module";
 import { TelegramModule } from "./telegram/telegram.module";
+import { TutorModule } from "./tutor/tutor.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TelegramModule } from "./telegram/telegram.module";
     GamificationModule,
     ContentModule,
     TelegramModule,
+    TutorModule,
   ],
   controllers: [HealthController],
 })

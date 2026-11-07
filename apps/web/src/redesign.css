@@ -1456,3 +1456,49 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .notes-chev { color: var(--muted); font-size: 1.4rem; transition: transform .2s; }
 .notes-card.open .notes-chev { transform: rotate(90deg); }
 .notes-body { padding: 0 16px 16px; animation: rise .3s ease backwards; }
+
+/* ---- Tutor chat (Pro) ---- */
+.tutor { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; }
+.tutor-top { display: flex; justify-content: space-between; align-items: center; }
+.tutor-clear { background: none; border: none; color: var(--muted); font: inherit; font-size: .9rem; cursor: pointer; padding: 6px 4px; }
+.tutor-hero { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
+.tutor-icon { font-size: 3rem; flex-shrink: 0; }
+.tutor-hero .screen-title { margin: 0 0 4px; }
+.tutor-hero .muted { margin: 0; }
+.tutor-lock { border-radius: 18px; background: var(--card); border: 1px solid var(--border); padding: 18px; text-align: center; }
+.tutor-lock p { margin: 0 0 14px; }
+.tutor-chat { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 12px; min-height: 40vh; }
+.tutor-starters { display: flex; flex-direction: column; gap: 8px; }
+.tutor-starters .muted { margin: 0 0 4px; }
+.tutor-starter {
+  text-align: left; padding: 12px 14px; border-radius: 14px; cursor: pointer; font: inherit; color: var(--text);
+  background: var(--card); border: 1px solid var(--border);
+}
+.tutor-starter:active { transform: scale(.98); }
+.tutor-msg {
+  max-width: 85%; padding: 10px 14px; border-radius: 18px; white-space: pre-wrap; overflow-wrap: anywhere;
+  line-height: 1.45; animation: rise .25s ease backwards;
+}
+.tutor-msg.me { align-self: flex-end; background: var(--grad); color: var(--on-accent, #fff); border-bottom-right-radius: 6px; }
+.tutor-msg.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 6px; }
+.tutor-msg.typing { display: flex; gap: 5px; padding: 14px 16px; }
+.tutor-msg.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: tutor-dot 1s infinite ease-in-out; }
+.tutor-msg.typing span:nth-child(2) { animation-delay: .15s; }
+.tutor-msg.typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes tutor-dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.tutor-note { align-self: center; text-align: center; color: var(--muted); font-size: .9rem; margin: 4px 0; }
+.tutor-input {
+  position: sticky; bottom: 0; display: flex; gap: 8px; align-items: flex-end; padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+.tutor-input textarea {
+  flex: 1; resize: none; min-height: 44px; max-height: 140px; field-sizing: content; padding: 11px 14px; border-radius: 22px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 16px;
+}
+.tutor-input textarea:focus { outline: none; border-color: var(--accent); }
+.tutor-send {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--grad); color: var(--on-accent, #fff); font-size: 1.1rem;
+}
+.tutor-send:disabled { opacity: .45; cursor: default; }
+.tutor-quota { text-align: center; color: var(--muted); font-size: .8rem; margin: 2px 0 0; }

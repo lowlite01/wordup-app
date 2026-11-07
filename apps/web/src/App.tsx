@@ -20,6 +20,7 @@ import { IELTS_TOPICS, ieltsKey } from "./lib/ielts";
 const ProScreen = lazy(() => import("./components/ProScreen"));
 const LeaderboardScreen = lazy(() => import("./components/LeaderboardScreen"));
 const NotesScreen = lazy(() => import("./components/NotesScreen"));
+const TutorScreen = lazy(() => import("./components/TutorScreen"));
 import HeartsModal from "./components/HeartsModal";
 import StreakRescueModal from "./components/StreakRescueModal";
 import {
@@ -81,7 +82,8 @@ type Route =
   | { s: "practice"; id: string }
   | { s: "pro" }
   | { s: "leaderboard" }
-  | { s: "notes" };
+  | { s: "notes" }
+  | { s: "tutor" };
 
 type Origin = "phrasal" | "levels" | "ielts" | "home" | "path" | null;
 
@@ -629,6 +631,7 @@ export default function App() {
     { id: "review", label: t.reviewTitle, icon: "🧠", badge: learningCount },
     { id: "stats", label: t.tabStats, icon: "📈" },
     ...(user?.role === "ADMIN" || pro.admin ? [{ id: "admin" as Route["s"], label: t.tabAdmin, icon: "🛠️" }] : []),
+    ...(isTelegram ? [{ id: "tutor" as Route["s"], label: t.tutorTitle, icon: "🦉" }] : []),
     { id: "notes", label: t.notesTitle, icon: "📝" },
     ...(isTelegram ? [{ id: "leaderboard" as Route["s"], label: t.tabLeaderboard, icon: "🏆" }] : []),
     { id: "pro", label: t.proMenu, icon: "👑" },
@@ -928,6 +931,7 @@ export default function App() {
         {route.s === "pro" && <ProScreen onBack={() => setRoute({ s: "groups" })} />}
         {route.s === "leaderboard" && <LeaderboardScreen onBack={() => setRoute({ s: "groups" })} />}
         {route.s === "notes" && <NotesScreen steps={steps} path={path} onBack={() => setRoute({ s: "groups" })} />}
+        {route.s === "tutor" && <TutorScreen level={path.placed} onBack={() => setRoute({ s: "groups" })} onPro={() => setRoute({ s: "pro" })} />}
         </Suspense>
       </main>
 

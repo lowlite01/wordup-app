@@ -127,6 +127,9 @@ model TgAccount {
   photoUrl     String?
   words        Int       @default(0)     // words learned
   streak       Int       @default(0)     // current streak (days)
+  // tutor chat (Pro): messages sent today, counted per UTC day
+  tutorDay     String?                   // "YYYY-MM-DD"
+  tutorUsed    Int       @default(0)
 
   @@index([words])
   createdAt    DateTime  @default(now())

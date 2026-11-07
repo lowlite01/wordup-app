@@ -23,6 +23,7 @@ export default function ProScreen({ onBack }: { onBack: () => void }) {
   };
 
   const benefits: [string, string, string][] = [
+    ["🦉", t.proB6, t.proB6d],
     ["❤️", t.proB1, t.proB1d],
     ["📚", t.proB2, t.proB2d(TOPICS.length)],
     ["🎓", t.proB3, t.proB3d],
