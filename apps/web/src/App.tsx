@@ -944,6 +944,12 @@ export default function App() {
         </Suspense>
       </main>
 
+      {isPro && isTelegram && route.s === "groups" && (
+        <button className="tutor-fab" onClick={() => setRoute({ s: "tutor" })} aria-label={t.tutorFab}>
+          <Emoji char="🦉" className="tutor-fab-icon" />
+        </button>
+      )}
+
       {rescue && route.s === "groups" && (
         <StreakRescueModal
           missed={rescue.length}

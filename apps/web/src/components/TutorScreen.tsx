@@ -3,10 +3,11 @@ import { useApp } from "../context";
 import { useT } from "../i18n";
 import { BOT_LINK } from "../lib/pro";
 import { askConfirm, haptic, isTelegram, openTelegramLink } from "../lib/telegram";
-import { askTutor, fetchQuota, loadChat, saveChat, type TutorQuota, type TutorTurn } from "../lib/tutor";
+import { askTutor, fetchQuota, loadChat, saveChat, type TutorError, type TutorQuota, type TutorTurn } from "../lib/tutor";
 import { startersFor, type LearnerProfile } from "../lib/tutorProfile";
 import Emoji from "./Emoji";
 import TutorDialogues from "./TutorDialogues";
+import { BotMessage, HintPanel, useHint } from "./TutorHints";
 
 // Tutor chat: write in English, get corrections and explanations (WordUp Pro).
 export default function TutorScreen({ profile, onBack, onPro }: { profile: LearnerProfile; onBack: () => void; onPro: () => void }) {
@@ -19,6 +20,11 @@ export default function TutorScreen({ profile, onBack, onPro }: { profile: Learn
   const [quota, setQuota] = useState<TutorQuota | null>(null);
   const [mode, setMode] = useState<"dialogues" | "chat">(() => (loadChat().length ? "chat" : "dialogues"));
   const endRef = useRef<HTMLDivElement>(null);
+  const hintError = (e: TutorError) => {
+    if (e === "pro") { onPro(); return; }
+    setNote(e === "limit" ? t.tutorHintLimit : e === "network" ? t.tutorOffline : t.tutorBusy);
+  };
+  const hints = useHint(profile, hintError);
 
   useEffect(() => { if (isTelegram && isPro) fetchQuota().then(setQuota); }, [isPro]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns, busy]);
@@ -27,7 +33,7 @@ export default function TutorScreen({ profile, onBack, onPro }: { profile: Learn
     const msg = raw.trim().slice(0, 2000);
     if (!msg || busy) return;
     const next: TutorTurn[] = [...turns, { role: "user", text: msg }];
-    setTurns(next); saveChat(next); setText(""); setNote(null); setBusy(true);
+    setTurns(next); saveChat(next); setText(""); setNote(null); setBusy(true); hints.close();
     const r = await askTutor(next, settings.lang, profile);
     setBusy(false);
     if ("error" in r) {
@@ -114,15 +120,34 @@ export default function TutorScreen({ profile, onBack, onPro }: { profile: Learn
             ))}
           </div>
         )}
-        {turns.map((m, i) => (
-          <div key={i} className={"tutor-msg " + (m.role === "user" ? "me" : "bot")}>{m.text}</div>
-        ))}
+        {turns.map((m, i) => m.role === "user"
+          ? <div key={i} className="tutor-msg me">{m.text}</div>
+          : (
+            <BotMessage
+              key={i}
+              text={m.text}
+              tr={m.tr}
+              onError={hintError}
+              onTranslated={tr => {
+                const next = turns.map((x, j) => (j === i ? { ...x, tr } : x));
+                setTurns(next); saveChat(next);
+              }}
+            />
+          ))}
         {busy && <div className="tutor-msg bot typing"><span /><span /><span /></div>}
         {note && <p className="tutor-note">{note}</p>}
         <div ref={endRef} />
       </div>
 
+      {hints.open && <HintPanel hint={hints.hint ?? null} onUse={(piece: string) => setText(cur => (cur.trim() ? cur.replace(/\s*$/, " ") + piece : piece + " "))} onClose={hints.close} />}
       <form className="tutor-input" onSubmit={e => { e.preventDefault(); send(text); }}>
+        <button
+          type="button"
+          className={"tutor-lamp" + (hints.open ? " on" : "")}
+          disabled={hints.busy || out}
+          onClick={() => hints.ask(turns)}
+          aria-label={t.tutorHintTitle}
+        >{hints.busy ? "…" : "💡"}</button>
         <textarea
           value={text}
           rows={1}

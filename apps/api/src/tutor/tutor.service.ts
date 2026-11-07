@@ -8,6 +8,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { TelegramService, type TgUser } from "../telegram/telegram.service";
 
 export const TUTOR_DAILY_LIMIT = 30;
+export const HINT_DAILY_LIMIT = 40;
 const MODEL = "claude-haiku-5-5";
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -143,6 +144,122 @@ export class TutorService {
   }
 
   dialogues() { return dialogueList(); }
+
+  // Hints have their own daily cap so they never eat the learner's messages.
+  private async takeHint(telegramId: bigint): Promise<boolean> {
+    const day = today();
+    await this.prisma.tgAccount.upsert({ where: { telegramId }, create: { telegramId }, update: {} });
+    const fresh = await this.prisma.tgAccount.updateMany({
+      where: { telegramId, OR: [{ hintDay: null }, { hintDay: { not: day } }] },
+      data: { hintDay: day, hintUsed: 1 },
+    });
+    if (fresh.count) return true;
+    const more = await this.prisma.tgAccount.updateMany({
+      where: { telegramId, hintDay: day, hintUsed: { lt: HINT_DAILY_LIMIT } },
+      data: { hintUsed: { increment: 1 } },
+    });
+    return more.count > 0;
+  }
+
+  private async beginHint(user: TgUser): Promise<Anthropic> {
+    if (!this.client) throw new ServiceUnavailableException("Tutor is not configured");
+    if (!(await this.isPro(user))) throw new HttpException("Pro only", HttpStatus.PAYMENT_REQUIRED);
+    if (!(await this.takeHint(BigInt(user.id)))) throw new HttpException("Daily limit reached", HttpStatus.TOO_MANY_REQUESTS);
+    return this.client;
+  }
+
+  /** Translate one tutor message into the learner's language. */
+  async translate(user: TgUser, text: string, lang: string) {
+    const client = await this.beginHint(user);
+    const native = lang === "en" ? "English" : "Russian";
+    try {
+      const res = await client.messages.create({
+        model: MODEL,
+        max_tokens: 2000,
+        output_config: { effort: "low" },
+        system: `Translate the English parts of the message into natural ${native} for a language learner. Keep the meaning and tone. Return only the translation, plain text, no comments.`,
+        messages: [{ role: "user", content: text }],
+      });
+      if (res.stop_reason === "refusal") return { translation: "" };
+      const translation = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map(b => b.text).join("").trim();
+      return { translation };
+    } catch (err) {
+      this.failed(err);
+    }
+  }
+
+  /** A hint that helps the learner build the next message themselves (no ready answer). */
+  async suggest(user: TgUser, turns: ChatTurn[], lang: string, profile?: Profile, dialogueId?: string, done: number[] = []) {
+    const client = await this.beginHint(user);
+    const native = lang === "en" ? "English" : "Russian";
+    const d = dialogueId ? DIALOGUES.find(x => x.id === dialogueId) : undefined;
+    const context = d
+      ? [
+        `This is a role-play: the tutor plays ${d.role} and opened with "${d.opener}".`,
+        "The learner's tasks: " + d.tasks.map((t, i) => `${i}. ${t.goal}${done.includes(i) ? " (done)" : ""}`).join("; ") + ".",
+        "The hint should point the learner towards the next unfinished task.",
+      ].join("\n")
+      : "This is a free chat with an English tutor.";
+    const system = [
+      `You help an English learner who is stuck and does not know what to write next. Their native language is ${native}.`,
+      profileLines(profile ?? (d ? { level: d.level } : undefined)),
+      context,
+      "Your goal is to make the learner think and build the sentence themselves. NEVER give a full ready answer or a complete English sentence they could copy.",
+      "Return:",
+      `- idea: one short sentence in ${native} about WHAT they could say next (the meaning, not the English words). If the chat has not started, suggest what to start with.`,
+      `- start: only the first 1-3 English words of a possible answer (for example "I usually" or "Could I"), never more.`,
+      `- words: 2-4 useful English words or short phrases for this answer, each with a ${native} translation. Prefer the learner's recent or weak words when they fit.`,
+      `- grammar: one short tip in ${native} about the grammar they will need (for example which tense and how it is formed), or null if nothing special.`,
+    ].join("\n");
+    const convo = turns.length
+      ? turns.slice(-10).map(t => `${t.role === "user" ? "Learner" : "Tutor"}: ${t.text}`).join("\n")
+      : "(no messages yet)";
+    try {
+      const res = await client.messages.create({
+        model: MODEL,
+        max_tokens: 3000,
+        output_config: {
+          effort: "low",
+          format: {
+            type: "json_schema",
+            schema: {
+              type: "object",
+              properties: {
+                idea: { type: "string" },
+                start: { type: "string" },
+                words: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { en: { type: "string" }, native: { type: "string" } },
+                    required: ["en", "native"],
+                    additionalProperties: false,
+                  },
+                },
+                grammar: { type: ["string", "null"] },
+              },
+              required: ["idea", "start", "words", "grammar"],
+              additionalProperties: false,
+            },
+          },
+        },
+        system,
+        messages: [{ role: "user", content: `Conversation so far:\n${convo}\n\nGive the learner a hint for their next message.` }],
+      });
+      if (res.stop_reason === "refusal") return null;
+      const text = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map(b => b.text).join("");
+      const out = JSON.parse(text) as { idea: string; start: string; words: { en: string; native: string }[]; grammar: string | null };
+      return {
+        idea: out.idea.trim(),
+        // only the beginning: anything past three words is cut off
+        start: out.start.trim().split(/\s+/).slice(0, 3).join(" "),
+        words: out.words.slice(0, 4).map(w => ({ en: w.en.trim(), native: w.native.trim() })),
+        grammar: out.grammar?.trim() || null,
+      };
+    } catch (err) {
+      this.failed(err);
+    }
+  }
 
   // One step of a dialogue lesson: the character answers, mistakes are fixed,
   // finished tasks are ticked off. `done` = task numbers already finished.

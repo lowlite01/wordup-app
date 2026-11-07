@@ -4,10 +4,11 @@ import { useT } from "../i18n";
 import { askConfirm, haptic } from "../lib/telegram";
 import {
   askDialogue, cachedDialogues, fetchDialogues, loadDoneDialogues, loadRuns, markDialogueDone, saveRun,
-  type DialogueInfo, type DialogueRun, type DialogueTurn, type TutorQuota,
+  type DialogueInfo, type DialogueRun, type DialogueTurn, type TutorError, type TutorQuota,
 } from "../lib/tutor";
 import type { LearnerProfile } from "../lib/tutorProfile";
 import Emoji from "./Emoji";
+import { BotMessage, HintPanel, useHint } from "./TutorHints";
 
 const EMPTY: DialogueRun = { turns: [], completed: [], finished: false };
 
@@ -85,6 +86,11 @@ function DialogueRunView({ d, profile, quota, setQuota, onPro, onClose, onFinish
   const [note, setNote] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const ru = settings.lang === "ru";
+  const hintError = (e: TutorError) => {
+    if (e === "pro") { onPro(); return; }
+    setNote(e === "limit" ? t.tutorHintLimit : e === "network" ? t.tutorOffline : t.tutorBusy);
+  };
+  const hints = useHint(profile, hintError);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [run, busy]);
 
@@ -94,7 +100,7 @@ function DialogueRunView({ d, profile, quota, setQuota, onPro, onClose, onFinish
     const msg = text.trim().slice(0, 2000);
     if (!msg || busy || run.finished) return;
     const turns: DialogueTurn[] = [...run.turns, { role: "user", text: msg }];
-    update({ ...run, turns }); setText(""); setNote(null); setBusy(true);
+    update({ ...run, turns }); setText(""); setNote(null); setBusy(true); hints.close();
     const r = await askDialogue(d.id, turns, run.completed, settings.lang, profile);
     setBusy(false);
     if ("error" in r) {
@@ -141,10 +147,19 @@ function DialogueRunView({ d, profile, quota, setQuota, onPro, onClose, onFinish
       </ul>
 
       <div className="tutor-chat">
-        <div className="tutor-msg bot">{d.opener}</div>
+        <BotMessage text={d.opener} onError={hintError} />
         {run.turns.map((m, i) => (
           <div key={i} className={"dlg-turn " + (m.role === "user" ? "me" : "bot")}>
-            <div className={"tutor-msg " + (m.role === "user" ? "me" : "bot")}>{m.text}</div>
+            {m.role === "user"
+              ? <div className="tutor-msg me">{m.text}</div>
+              : (
+                <BotMessage
+                  text={m.text}
+                  tr={m.tr}
+                  onError={hintError}
+                  onTranslated={tr => update({ ...run, turns: run.turns.map((x, j) => (j === i ? { ...x, tr } : x)) })}
+                />
+              )}
             {m.correction && (
               <div className="dlg-fix">
                 <span className="dlg-fix-label">{t.dlgBetter}</span>
@@ -169,8 +184,16 @@ function DialogueRunView({ d, profile, quota, setQuota, onPro, onClose, onFinish
         <div ref={endRef} />
       </div>
 
+      {!run.finished && hints.open && <HintPanel hint={hints.hint ?? null} onUse={(piece: string) => setText(cur => (cur.trim() ? cur.replace(/\s*$/, " ") + piece : piece + " "))} onClose={hints.close} />}
       {!run.finished && (
         <form className="tutor-input" onSubmit={e => { e.preventDefault(); send(); }}>
+          <button
+            type="button"
+            className={"tutor-lamp" + (hints.open ? " on" : "")}
+            disabled={hints.busy || out}
+            onClick={() => hints.ask(run.turns, { id: d.id, done: run.completed })}
+            aria-label={t.tutorHintTitle}
+          >{hints.busy ? "…" : "💡"}</button>
           <textarea
             value={text}
             rows={1}

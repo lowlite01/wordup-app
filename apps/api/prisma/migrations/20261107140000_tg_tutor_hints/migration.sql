@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "TgAccount" ADD COLUMN "hintDay" TEXT,
+ADD COLUMN "hintUsed" INTEGER NOT NULL DEFAULT 0;

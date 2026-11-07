@@ -1545,3 +1545,57 @@ h2, h3, .screen-title { font-family: var(--font-display); font-weight: 700; lett
 .dlg-finish-btns { display: flex; gap: 8px; }
 .tutor-starter { display: flex; flex-direction: column; gap: 2px; }
 .tutor-starter small { color: var(--muted); font-size: .85rem; }
+
+/* ---- Tutor hints: translate + what to answer ---- */
+.tutor-bot { align-self: flex-start; max-width: 85%; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.tutor-bot .tutor-msg { max-width: 100%; }
+.tutor-tr {
+  padding: 8px 12px; border-radius: 14px; font-size: .9rem; color: var(--muted); white-space: pre-wrap;
+  background: color-mix(in srgb, var(--accent) 8%, var(--card)); border: 1px dashed var(--border); animation: rise .2s ease backwards;
+}
+.tutor-hint-link { background: none; border: none; padding: 2px 6px; color: var(--accent); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
+.tutor-hint-link:disabled { color: var(--muted); }
+.tutor-lamp {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; cursor: pointer; font-size: 1.15rem;
+  background: var(--card); border: 1px solid var(--border);
+}
+.tutor-lamp.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+.tutor-lamp:disabled { opacity: .5; cursor: default; }
+.tutor-suggest {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px; margin-bottom: 4px; border-radius: 18px;
+  background: var(--card); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border)); animation: rise .2s ease backwards;
+}
+.tutor-suggest-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: .9rem; padding: 0 4px; }
+.tutor-suggest-head button { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 4px; }
+.tutor-suggest-opt {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text); font: inherit;
+}
+.tutor-suggest-opt small { color: var(--muted); }
+.tutor-suggest-opt:active { transform: scale(.98); }
+
+/* ---- Tutor button on the home screen (Pro) ---- */
+.tutor-fab {
+  position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 50;
+  width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: grid; place-items: center;
+  background: var(--grad); box-shadow: var(--glow), 0 6px 18px rgba(0, 0, 0, .35);
+  animation: fab-in .4s cubic-bezier(.2, 1.4, .4, 1) backwards .3s;
+}
+.tutor-fab-icon { font-size: 2.1rem; }
+.tutor-fab:active { transform: scale(.94); }
+@keyframes fab-in { from { opacity: 0; transform: scale(.4); } }
+.hint-idea { margin: 2px 4px 4px; line-height: 1.4; }
+.hint-start {
+  align-self: flex-start; display: flex; align-items: baseline; gap: 8px; padding: 8px 12px; border-radius: 12px; cursor: pointer;
+  background: var(--bg); border: 1px dashed var(--accent); color: var(--text); font: inherit;
+}
+.hint-start small { color: var(--muted); }
+.hint-words { display: flex; flex-wrap: wrap; gap: 6px; }
+.hint-word {
+  padding: 6px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: .9rem; color: var(--text);
+  background: var(--bg); border: 1px solid var(--border);
+}
+.hint-word small { color: var(--muted); }
+.hint-word:active, .hint-start:active { transform: scale(.97); }
+.hint-grammar { margin: 2px 4px; font-size: .9rem; color: var(--muted); line-height: 1.4; }
+.hint-note { margin: 0 4px; font-size: .78rem; color: var(--muted); }

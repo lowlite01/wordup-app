@@ -72,6 +72,32 @@ class DialogueDto {
   profile?: ProfileDto;
 }
 
+class TranslateDto {
+  @IsString() @MinLength(1) @MaxLength(2000)
+  text!: string;
+
+  @IsOptional() @IsIn(["ru", "en"])
+  lang?: string;
+}
+
+class SuggestDto {
+  @ValidateNested({ each: true }) @Type(() => TurnDto)
+  @ArrayMaxSize(40)
+  turns!: TurnDto[];
+
+  @IsOptional() @IsString() @MaxLength(40)
+  dialogueId?: string;
+
+  @IsOptional() @IsArray() @ArrayMaxSize(10) @IsInt({ each: true }) @Min(0, { each: true })
+  done?: number[];
+
+  @IsOptional() @IsIn(["ru", "en"])
+  lang?: string;
+
+  @IsOptional() @ValidateNested() @Type(() => ProfileDto)
+  profile?: ProfileDto;
+}
+
 const initDataOf = (auth?: string) => (auth?.startsWith("tma ") ? auth.slice(4) : "");
 
 // Tutor chat for Pro learners in the Telegram Mini App.
@@ -102,5 +128,20 @@ export class TutorController {
   dialogue(@Body() body: DialogueDto, @Headers("authorization") auth?: string) {
     const user = this.tg.verifyInitData(initDataOf(auth));
     return this.tutor.dialogue(user, body.id, body.turns, body.done, body.lang ?? "ru", body.profile);
+  }
+
+  // Hints (own daily cap): translate a tutor message, or suggest what to answer.
+  @Post("translate")
+  @HttpCode(200)
+  translate(@Body() body: TranslateDto, @Headers("authorization") auth?: string) {
+    const user = this.tg.verifyInitData(initDataOf(auth));
+    return this.tutor.translate(user, body.text, body.lang ?? "ru");
+  }
+
+  @Post("suggest")
+  @HttpCode(200)
+  suggest(@Body() body: SuggestDto, @Headers("authorization") auth?: string) {
+    const user = this.tg.verifyInitData(initDataOf(auth));
+    return this.tutor.suggest(user, body.turns, body.lang ?? "ru", body.profile, body.dialogueId, body.done);
   }
 }

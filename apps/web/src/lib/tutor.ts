@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const KEY = "wordup-tutor-v1";
 const KEEP = 60; // messages kept on the device
 
-export interface TutorTurn { role: "user" | "assistant"; text: string }
+export interface TutorTurn { role: "user" | "assistant"; text: string; tr?: string }
 export interface TutorQuota { pro: boolean; limit: number; left: number; enabled: boolean }
 export type TutorError = "pro" | "limit" | "busy" | "network";
 
@@ -118,4 +118,43 @@ export async function askDialogue(id: string, turns: TutorTurn[], done: number[]
   } catch {
     return { error: "network" };
   }
+}
+
+// ---- Hints (own daily cap on the server) ----
+export async function translateText(text: string, lang: string): Promise<string | { error: TutorError }> {
+  try {
+    const res = await fetch(API_URL + "/tg/tutor/translate", {
+      method: "POST", headers: headers(), body: JSON.stringify({ text: text.slice(0, 2000), lang }),
+    });
+    if (res.status === 402) return { error: "pro" };
+    if (res.status === 429) return { error: "limit" };
+    if (!res.ok) return { error: "busy" };
+    return ((await res.json()) as { translation: string }).translation;
+  } catch { return { error: "network" }; }
+}
+
+export interface TutorHint {
+  idea: string;                              // what to say, in the learner's language
+  start: string;                             // the first 1-3 English words
+  words: { en: string; native: string }[];   // useful words for the answer
+  grammar: string | null;                    // a grammar tip
+}
+export async function suggestReplies(
+  turns: TutorTurn[], lang: string, profile: LearnerProfile, dialogue?: { id: string; done: number[] },
+): Promise<TutorHint | null | { error: TutorError }> {
+  try {
+    const res = await fetch(API_URL + "/tg/tutor/suggest", {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        turns: turns.slice(-10).map(t => ({ role: t.role, text: t.text })),
+        lang, profile,
+        ...(dialogue ? { dialogueId: dialogue.id, done: dialogue.done } : {}),
+      }),
+    });
+    if (res.status === 402) return { error: "pro" };
+    if (res.status === 429) return { error: "limit" };
+    if (!res.ok) return { error: "busy" };
+    return (await res.json()) as TutorHint | null;
+  } catch { return { error: "network" }; }
 }

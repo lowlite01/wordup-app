@@ -130,6 +130,8 @@ model TgAccount {
   // tutor chat (Pro): messages sent today, counted per UTC day
   tutorDay     String?                   // "YYYY-MM-DD"
   tutorUsed    Int       @default(0)
+  hintDay      String?                   // tutor hints (translate / what to answer), own daily cap
+  hintUsed     Int       @default(0)
 
   @@index([words])
   createdAt    DateTime  @default(now())
