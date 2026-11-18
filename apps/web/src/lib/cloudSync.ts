@@ -1,10 +1,11 @@
 import { collectReversoWords } from "./reversoInbox";
-import { isTelegram, telegramInitData } from "./telegram";
+import { accountHeaders, hasAccount } from "./account";
 
 // Cloud save for the Telegram Mini App: everything the learner has done
 // (words, path, streak, crystals, plan…) lives in the phone's
 // storage, which Telegram may clear and which another device doesn't have.
-// So we keep a copy on the server under the Telegram account:
+// So we keep a copy on the server under the Telegram account (the website
+// on a computer uses the same copy with the key from /reverso, see account.ts):
 //   - on start: if the server's copy is newer than what this device last
 //     synced, it replaces the local data (new phone, cleared cache);
 //   - while the app is open: upload every 20 s if anything changed, and when
@@ -41,13 +42,13 @@ function snapshot(): Record<string, string> {
   return out;
 }
 
-const headers = () => ({ "Content-Type": "application/json", Authorization: `tma ${telegramInitData}` });
+const headers = accountHeaders;
 
 let lastSent = "";
 
 /** Upload the current data if it changed since the last upload. */
 export async function pushState(keepalive = false): Promise<void> {
-  if (!isTelegram) return;
+  if (!hasAccount()) return;
   const state = snapshot();
   const json = JSON.stringify(state);
   if (json === lastSent) return;
@@ -67,7 +68,7 @@ export async function pushState(keepalive = false): Promise<void> {
  * a newer copy from the server — the app should reload to show it.
  */
 export async function pullState(): Promise<boolean> {
-  if (!isTelegram) return false;
+  if (!hasAccount()) return false;
   try {
     const res = await fetch(`${API_URL}/tg/state`, { headers: headers() });
     if (!res.ok) return false;
@@ -100,7 +101,7 @@ export async function pullState(): Promise<boolean> {
 
 let started = false;
 export function startAutoSync() {
-  if (!isTelegram || started) return;
+  if (!hasAccount() || started) return;
   started = true;
   setInterval(() => { void pushState(); }, 20_000);
   document.addEventListener("visibilitychange", () => {

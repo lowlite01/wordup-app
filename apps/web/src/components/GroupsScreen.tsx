@@ -277,7 +277,8 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
             <div className="my-lists">
               {customLists.map(list => {
                 const total = list.words.length;
-                const known = knownSet(progress, customKey(list.id)).size;
+                const knownWords = knownSet(progress, customKey(list.id));
+                const known = list.words.filter(w => knownWords.has(w.word)).length; // removed words don't count
                 return (
                   <div className="my-list" key={list.id}>
                     <button className="my-list-main" onClick={() => onStart(customKey(list.id), "flashcards")}>
@@ -287,6 +288,7 @@ export default function GroupsScreen({ onStart, onStartPlan, onOpenLevels, onOpe
                         <span className="my-list-sum">{known} / {total}</span>
                       </span>
                     </button>
+                    <button className="my-list-act" title={t.listWordsTitle} onClick={() => onStart(customKey(list.id), "list")}>☰</button>
                     <button className="my-list-act" title={t.exportCopyText} onClick={() => copyList(list)}>
                       {copiedId === list.id ? "✓" : "⧉"}
                     </button>

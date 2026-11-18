@@ -83,6 +83,12 @@ export function addWordsToNamedList(name: string, words: Word[]): number {
   persist();
   return fresh.length;
 }
+/** Remove these words from a list (e.g. a wrong one, or the ones already learned). */
+export function removeWordsFromList(id: string, words: string[]) {
+  const drop = new Set(words);
+  lists = lists.map(l => (l.id === id ? { ...l, words: l.words.filter(w => !drop.has(w.word)) } : l));
+  persist();
+}
 export function deleteCustomList(id: string) {
   lists = lists.filter(l => l.id !== id);
   persist();

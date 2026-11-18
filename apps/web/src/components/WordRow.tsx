@@ -10,9 +10,10 @@ interface Props {
   showGroup?: boolean;
   showStatus?: boolean;
   onOpenGroup?: (name: string, key: string) => void;
+  onRemove?: () => void; // own lists: a ✕ to take the word out
 }
 
-export default function WordRow({ w, showGroup, showStatus, onOpenGroup }: Props) {
+export default function WordRow({ w, showGroup, showStatus, onOpenGroup, onRemove }: Props) {
   const { progress, openContext } = useApp();
   const t = useT();
   const [ipa, setIpa] = useState(() => dictEntry(w.word)?.ipa || "");
@@ -67,6 +68,9 @@ export default function WordRow({ w, showGroup, showStatus, onOpenGroup }: Props
           rel="noopener noreferrer"
           title={t.reversoTooltip}
         >↔ Reverso</a>
+        {onRemove && (
+          <button className="chip-btn remove-word" title={t.removeWordTitle} onClick={onRemove}>✕</button>
+        )}
       </div>
     </div>
   );

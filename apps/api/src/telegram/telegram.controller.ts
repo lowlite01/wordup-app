@@ -40,17 +40,17 @@ export class TelegramController {
     return this.tg.leaderboard(user.id);
   }
 
-  // Cloud save: the app's progress for this Telegram account
+  // Cloud save: the app's progress for this Telegram account.
+  // The website (outside Telegram) can use the same save with the personal
+  // key from /reverso instead of Telegram's launch data.
   @Get("state")
-  getState(@Headers("authorization") auth?: string) {
-    const user = this.tg.verifyInitData(initDataOf(auth));
-    return this.tg.getState(user.id);
+  async getState(@Headers("authorization") auth?: string, @Headers("x-link-key") key?: string) {
+    return this.tg.getState(await this.accountId(auth, key));
   }
 
   @Put("state")
-  putState(@Body() body: StateDto, @Headers("authorization") auth?: string) {
-    const user = this.tg.verifyInitData(initDataOf(auth));
-    return this.tg.putState(user.id, body.state);
+  async putState(@Body() body: StateDto, @Headers("authorization") auth?: string, @Headers("x-link-key") key?: string) {
+    return this.tg.putState(await this.accountId(auth, key), body.state);
   }
 
   @Post("claim")
@@ -67,9 +67,14 @@ export class TelegramController {
 
   // The app collects the words that came from Reverso.
   @Post("inbox/claim")
-  async claimInbox(@Headers("authorization") auth?: string) {
-    const user = this.tg.verifyInitData(initDataOf(auth));
-    return { words: await this.tg.claimInbox(user.id) };
+  async claimInbox(@Headers("authorization") auth?: string, @Headers("x-link-key") key?: string) {
+    return { words: await this.tg.claimInbox(await this.accountId(auth, key)) };
+  }
+
+  // Telegram launch data, or else the personal key (website).
+  private async accountId(auth?: string, key?: string): Promise<number> {
+    if (key && !auth) return this.tg.idByLinkKey(key);
+    return this.tg.verifyInitData(initDataOf(auth)).id;
   }
 
   @Post("invoice")

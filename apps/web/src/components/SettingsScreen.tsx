@@ -1,8 +1,60 @@
+import { useState } from "react";
 import { useApp } from "../context";
 import { useT, type Dict } from "../i18n";
 import type { Lang, ThemeName } from "../types";
 import ProfileScreen from "./ProfileScreen";
-import { askConfirm } from "../lib/telegram";
+import { askConfirm, isTelegram } from "../lib/telegram";
+import { connectLinkKey, disconnectLinkKey, linkKey } from "../lib/account";
+
+// Website only: use the Telegram account's progress with the key from /reverso.
+function TelegramLink() {
+  const t = useT();
+  const connected = Boolean(linkKey());
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const connect = async () => {
+    setBusy(true);
+    setError("");
+    const result = await connectLinkKey(key);
+    setBusy(false);
+    if (result === "ok") window.location.reload(); // start again with the account's data
+    else setError(result === "bad" ? t.linkBad : t.linkOffline);
+  };
+
+  return (
+    <>
+      <h3 className="settings-group">{t.linkSection}</h3>
+      {connected ? (
+        <div className="link-box">
+          <p className="link-ok">✓ {t.linkConnected}</p>
+          <button className="btn" onClick={() => { disconnectLinkKey(); window.location.reload(); }}>
+            {t.linkDisconnect}
+          </button>
+        </div>
+      ) : (
+        <div className="link-box">
+          <p className="import-hint">{t.linkHint}</p>
+          <div className="link-row">
+            <input
+              className="import-name"
+              placeholder={t.linkPlaceholder}
+              value={key}
+              onChange={e => setKey(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && key.trim()) void connect(); }}
+              aria-label={t.linkPlaceholder}
+            />
+            <button className="btn primary" disabled={busy || !key.trim()} onClick={connect}>
+              {t.linkConnect}
+            </button>
+          </div>
+          {error && <p className="link-error">{error}</p>}
+        </div>
+      )}
+    </>
+  );
+}
 
 const THEME_META: { id: ThemeName; name: (t: Dict) => string; desc: (t: Dict) => string; swatches: string[] }[] = [
   {
@@ -86,6 +138,8 @@ export default function SettingsScreen() {
         />
         <span>{t.autoSpeakLabel}</span>
       </label>
+
+      {!isTelegram && <TelegramLink />}
 
       <h3 className="settings-group">{t.dataSection}</h3>
       <div className="settings-actions">

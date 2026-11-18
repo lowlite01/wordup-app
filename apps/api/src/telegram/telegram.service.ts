@@ -236,6 +236,13 @@ export class TelegramService implements OnModuleInit {
     return linkKey;
   }
 
+  /** The Telegram account behind a personal key (used by the website). */
+  async idByLinkKey(linkKey: string): Promise<number> {
+    const acc = await this.prisma.tgAccount.findUnique({ where: { linkKey }, select: { telegramId: true } });
+    if (!acc) throw new UnauthorizedException("Unknown link key");
+    return Number(acc.telegramId);
+  }
+
   async addToInbox(linkKey: string | undefined, words: unknown[]) {
     if (!linkKey) throw new UnauthorizedException("No link key");
     const acc = await this.prisma.tgAccount.findUnique({ where: { linkKey }, select: { telegramId: true, inbox: true } });

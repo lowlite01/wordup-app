@@ -51,6 +51,7 @@ export interface AppApi {
   customLists: CustomList[];
   importCustomList: (name: string, text: string) => number; // returns words imported
   removeCustomList: (id: string) => void;
+  removeListWords: (id: string, words: string[]) => void;
   renameCustomList: (id: string, name: string) => void;
 }
 

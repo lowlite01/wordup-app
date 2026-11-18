@@ -1,6 +1,6 @@
 import type { Word } from "../types";
 import { addWordsToNamedList } from "./customLists";
-import { isTelegram, telegramInitData } from "./telegram";
+import { accountHeaders, hasAccount } from "./account";
 
 // Words looked up in Reverso on the computer arrive on the server (sent by
 // the sync script with the key from /reverso in the bot). On start the app
@@ -18,11 +18,11 @@ const LIST_NAMES: Record<string, string> = {
 
 /** Returns how many new words were added to the lists. */
 export async function collectReversoWords(): Promise<number> {
-  if (!isTelegram) return 0;
+  if (!hasAccount()) return 0;
   try {
     const res = await fetch(`${API_URL}/tg/inbox/claim`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `tma ${telegramInitData}` },
+      headers: accountHeaders(),
     });
     if (!res.ok) return 0;
     const { words } = (await res.json()) as { words: Word[] };

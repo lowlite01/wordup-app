@@ -25,7 +25,7 @@ import HeartsModal from "./components/HeartsModal";
 import StreakRescueModal from "./components/StreakRescueModal";
 import {
   addCustomList, deleteCustomList as deleteCustomListFn, getCustomLists,
-  parseWords, renameCustomList as renameCustomListFn,
+  parseWords, removeWordsFromList, renameCustomList as renameCustomListFn,
 } from "./lib/customLists";
 import GroupsScreen from "./components/GroupsScreen";
 import LevelsScreen from "./components/LevelsScreen";
@@ -573,6 +573,11 @@ export default function App() {
     },
     renameCustomList: (id, name) => {
       renameCustomListFn(id, name);
+      setCustomVersion(v => v + 1);
+    },
+    removeListWords: (id, words) => {
+      removeWordsFromList(id, words);
+      resetSearchIndex();
       setCustomVersion(v => v + 1);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
