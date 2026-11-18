@@ -63,6 +63,26 @@ export function addCustomList(name: string, words: Word[]): CustomList {
   persist();
   return list;
 }
+/**
+ * Add words to the list with this name (created if it doesn't exist yet),
+ * skipping words the list already has. Returns how many were added.
+ */
+export function addWordsToNamedList(name: string, words: Word[]): number {
+  let list = lists.find(l => l.name === name);
+  if (!list) list = addCustomList(name, []);
+  const have = new Set(list.words.map(w => w.word.toLowerCase()));
+  const fresh = words.filter(w => {
+    const k = w.word.toLowerCase();
+    if (have.has(k)) return false;
+    have.add(k);
+    return true;
+  });
+  if (!fresh.length) return 0;
+  const id = list.id;
+  lists = lists.map(l => (l.id === id ? { ...l, words: [...l.words, ...fresh] } : l));
+  persist();
+  return fresh.length;
+}
 export function deleteCustomList(id: string) {
   lists = lists.filter(l => l.id !== id);
   persist();

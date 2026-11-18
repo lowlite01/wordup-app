@@ -1,3 +1,4 @@
+import { collectReversoWords } from "./reversoInbox";
 import { isTelegram, telegramInitData } from "./telegram";
 
 // Cloud save for the Telegram Mini App: everything the learner has done
@@ -88,6 +89,11 @@ export async function pullState(): Promise<boolean> {
     }
     if (!state) await pushState(); // first time: upload what this device has
     else lastSent = localAt === at ? JSON.stringify(snapshot()) : "";
+    // Words from Reverso: add them to the lists, save, and reload to show them.
+    if (await collectReversoWords()) {
+      await pushState();
+      return true;
+    }
   } catch { /* offline */ }
   return false;
 }

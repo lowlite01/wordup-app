@@ -143,6 +143,13 @@ export function youglishUrl(phrase: string) {
   return "https://youglish.com/pronounce/" + encodeURIComponent(phrase) + "/english";
 }
 
+// Reverso Context: the word in real sentences with translations
+// (opens the Reverso app on a phone that has it).
+export function reversoUrl(phrase: string) {
+  const path = phrase.trim().split(/\s+/).map(encodeURIComponent).join("+");
+  return "https://context.reverso.net/translation/english-russian/" + path;
+}
+
 // Eagerly fetches IPA for the given word (used on flashcards).
 export function useIpa(word: string): string {
   const [ipa, setIpa] = useState(() => dictEntry(word)?.ipa || "");

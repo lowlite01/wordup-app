@@ -102,6 +102,7 @@ const EN = {
   resetGroupConfirm: (label: string) => `Reset progress for "${label}"?`,
   clickToFlip: "Click to flip",
   youglishFc: "▶ Real examples on YouTube",
+  reversoFc: "↔ Examples in Reverso",
   micListening: "🎙️ Listening… say the word",
   micGood: "✓ Sounds right!",
   micHeard: (h: string) => `✗ Heard “${h}” — try again`,
@@ -124,6 +125,7 @@ const EN = {
 
   ctxTooltip: "Phrasal verbs, collocations & synonyms",
   ytTooltip: "Real examples from YouTube videos (YouGlish)",
+  reversoTooltip: "The word in real sentences with translations (Reverso Context)",
   openGroupTooltip: "Open this group",
   tagKnown: "✓ known",
   tagLearning: "still learning",
@@ -534,6 +536,7 @@ const RU: Dict = {
   resetGroupConfirm: label => `Сбросить прогресс для «${label}»?`,
   clickToFlip: "Нажми, чтобы перевернуть",
   youglishFc: "▶ Примеры из YouTube",
+  reversoFc: "↔ Примеры в Reverso",
   micListening: "🎙️ Слушаю… произнеси слово",
   micGood: "✓ Звучит отлично!",
   micHeard: h => `✗ Услышал «${h}» — попробуй ещё`,
@@ -556,6 +559,7 @@ const RU: Dict = {
 
   ctxTooltip: "Фразовые глаголы, коллокации и синонимы",
   ytTooltip: "Реальные примеры из видео на YouTube (YouGlish)",
+  reversoTooltip: "Слово в настоящих предложениях с переводом (Reverso Context)",
   openGroupTooltip: "Открыть эту группу",
   tagKnown: "✓ знаю",
   tagLearning: "ещё учу",

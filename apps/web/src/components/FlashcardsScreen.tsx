@@ -5,7 +5,7 @@ import type { FlashMode, KeyedWord } from "../types";
 import {
   collectWords, filteredLevelWords, keyLabel, knownCount, knownSet, nextLevelKey,
 } from "../lib/groups";
-import { preloadWord, pronounceWord, useIpa, youglishUrl } from "../lib/dict";
+import { preloadWord, pronounceWord, reversoUrl, useIpa, youglishUrl } from "../lib/dict";
 import { liveStreak, planDeck } from "../lib/dailyPlan";
 import { askConfirm, haptic } from "../lib/telegram";
 import Confetti from "./Confetti";
@@ -326,13 +326,22 @@ export default function FlashcardsScreen({ mode, groupKey, posFilter, onBack, on
             {settings.lang === "ru" && current.ru && <div className="fc-ru">{current.ru}</div>}
             <div className="fc-def">{current.def}</div>
             <div className="fc-example">{current.example}</div>
-            <a
-              className="fc-youglish"
-              href={youglishUrl(current.word)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-            >{t.youglishFc}</a>
+            <div className="fc-links">
+              <a
+                className="fc-youglish"
+                href={youglishUrl(current.word)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+              >{t.youglishFc}</a>
+              <a
+                className="fc-youglish"
+                href={reversoUrl(current.word)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+              >{t.reversoFc}</a>
+            </div>
           </div>
         </div>
         </div>

@@ -132,6 +132,10 @@ model TgAccount {
   tutorUsed    Int       @default(0)
   hintDay      String?                   // tutor hints (translate / what to answer), own daily cap
   hintUsed     Int       @default(0)
+  // Reverso → WordUp: the learner's own sync script sends looked-up words
+  // with this personal key; the app collects them into its word lists.
+  linkKey      String?   @unique
+  inbox        Json?                     // words waiting to be added in the app
 
   @@index([words])
   createdAt    DateTime  @default(now())

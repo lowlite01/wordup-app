@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit, PayloadTooLargeException, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createHash, createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 // WordUp Pro, paid with Telegram Stars (currency "XTR") inside the Mini App.
@@ -35,6 +36,22 @@ export const PRODUCTS: Record<string, Product> = {
 
 const DAY = 24 * 60 * 60 * 1000;
 const SUBSCRIPTION_PERIOD = 2592000; // 30 days — the only period Telegram allows
+
+// A word sent from Reverso, as the app's word lists store it.
+export interface InboxWord { word: string; def: string; pos: string; example: string }
+
+const POS = ["noun", "verb", "adjective", "adverb", "phrase", "other"];
+
+function cleanInboxWord(raw: unknown): InboxWord | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const str = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
+  const word = str(r.word, 60);
+  const def = str(r.def, 200);
+  if (!word || !def) return null;
+  const pos = POS.includes(str(r.pos, 20)) ? str(r.pos, 20) : "other";
+  return { word, def, pos, example: str(r.example, 300) };
+}
 
 export interface TgUser { id: number; first_name?: string; last_name?: string; photo_url?: string }
 
@@ -204,6 +221,54 @@ export class TelegramService implements OnModuleInit {
     return { at: stateAt.getTime() };
   }
 
+  // ---- Reverso → WordUp inbox ----
+  // The learner's sync script on their computer sends the words they looked
+  // up in Reverso, signed with a personal key (/reverso in the bot). They wait
+  // here until the app opens and collects them into its word lists.
+  async linkKey(telegramId: number): Promise<string> {
+    const id = BigInt(telegramId);
+    const acc = await this.prisma.tgAccount.findUnique({ where: { telegramId: id }, select: { linkKey: true } });
+    if (acc?.linkKey) return acc.linkKey;
+    const linkKey = randomBytes(18).toString("base64url");
+    await this.prisma.tgAccount.upsert({
+      where: { telegramId: id }, create: { telegramId: id, linkKey }, update: { linkKey },
+    });
+    return linkKey;
+  }
+
+  async addToInbox(linkKey: string | undefined, words: unknown[]) {
+    if (!linkKey) throw new UnauthorizedException("No link key");
+    const acc = await this.prisma.tgAccount.findUnique({ where: { linkKey }, select: { telegramId: true, inbox: true } });
+    if (!acc) throw new UnauthorizedException("Unknown link key");
+
+    const inbox = Array.isArray(acc.inbox) ? (acc.inbox as unknown as InboxWord[]) : [];
+    const have = new Set(inbox.map(w => w.word.toLowerCase()));
+    let added = 0;
+    for (const raw of words.slice(0, 200)) {
+      const w = cleanInboxWord(raw);
+      if (!w || have.has(w.word.toLowerCase())) continue;
+      have.add(w.word.toLowerCase());
+      inbox.push(w);
+      added++;
+    }
+    const kept = inbox.slice(-1000); // the app hasn't been opened for ages — keep the newest
+    await this.prisma.tgAccount.update({
+      where: { telegramId: acc.telegramId }, data: { inbox: kept as unknown as Prisma.InputJsonValue },
+    });
+    return { added, waiting: kept.length };
+  }
+
+  /** The app takes the waiting words (and the inbox is emptied). */
+  async claimInbox(telegramId: number): Promise<InboxWord[]> {
+    const id = BigInt(telegramId);
+    return this.prisma.$transaction(async tx => {
+      const acc = await tx.tgAccount.findUnique({ where: { telegramId: id }, select: { inbox: true } });
+      const words = Array.isArray(acc?.inbox) ? (acc!.inbox as unknown as InboxWord[]) : [];
+      if (words.length) await tx.tgAccount.update({ where: { telegramId: id }, data: { inbox: [] } });
+      return words;
+    });
+  }
+
   // ---- Leaderboard: who has learned the most words ----
   async leaderboard(telegramId: number) {
     const top = await this.prisma.tgAccount.findMany({
@@ -274,6 +339,15 @@ export class TelegramService implements OnModuleInit {
     }
     const text: string = msg.text || "";
     if (text.startsWith("/start")) return this.welcome(msg.chat.id);
+    if (text.startsWith("/reverso")) {
+      const key = await this.linkKey(msg.from.id);
+      return {
+        method: "sendMessage", chat_id: msg.chat.id, parse_mode: "HTML",
+        text: "🔗 Твой ключ для Reverso → WordUp:\n\n<code>" + key + "</code>\n\n"
+          +"Вставь его в скрипт синхронизации на компьютере. Слова, которые ты переводишь в Reverso, "
+          + "появятся в WordUp в «Моих списках» (по частям речи). Никому не показывай ключ.",
+      };
+    }
     if (text.startsWith("/myid")) {
       return { method: "sendMessage", chat_id: msg.chat.id, text: `Твой Telegram ID: ${msg.from?.id}` };
     }

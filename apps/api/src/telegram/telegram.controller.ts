@@ -1,11 +1,16 @@
 import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Post, Put } from "@nestjs/common";
-import { IsIn, IsObject } from "class-validator";
+import { IsArray, IsIn, IsObject } from "class-validator";
 import { PRODUCTS, TelegramService } from "./telegram.service";
 import { TelegramAdminService } from "./telegram-admin.service";
 
 class StateDto {
   @IsObject()
   state!: Record<string, unknown>;
+}
+
+class InboxDto {
+  @IsArray()
+  words!: unknown[]; // checked word by word in the service
 }
 
 class InvoiceDto {
@@ -52,6 +57,19 @@ export class TelegramController {
   async claim(@Headers("authorization") auth?: string) {
     const user = this.tg.verifyInitData(initDataOf(auth));
     return { gems: await this.tg.claimGems(user.id) };
+  }
+
+  // Reverso sync script on the learner's computer (personal key from /reverso).
+  @Post("inbox")
+  addToInbox(@Body() body: InboxDto, @Headers("x-link-key") key?: string) {
+    return this.tg.addToInbox(key, body.words);
+  }
+
+  // The app collects the words that came from Reverso.
+  @Post("inbox/claim")
+  async claimInbox(@Headers("authorization") auth?: string) {
+    const user = this.tg.verifyInitData(initDataOf(auth));
+    return { words: await this.tg.claimInbox(user.id) };
   }
 
   @Post("invoice")

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../i18n";
 import type { Word } from "../types";
-import { pronounceWord, useIpa, youglishUrl } from "../lib/dict";
+import { pronounceWord, reversoUrl, useIpa, youglishUrl } from "../lib/dict";
 import { fetchWordContext, type WordCtx } from "../lib/wordContext";
 
 interface Props {
@@ -63,6 +63,13 @@ export default function ContextModal({ word, onClose }: Props) {
             rel="noopener noreferrer"
             title={t.ytTooltip}
           >▶ YouTube</a>
+          <a
+            className="chip-btn"
+            href={reversoUrl(word.word)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t.reversoTooltip}
+          >↔ Reverso</a>
         </div>
 
         {!ctx && <p className="muted">{t.ctxLoading}</p>}

@@ -3,7 +3,7 @@ import { useApp } from "../context";
 import { useT } from "../i18n";
 import type { KeyedWord } from "../types";
 import { keyLabel, keyParts, knownSet, learningSet } from "../lib/groups";
-import { dictEntry, pronounceWord, youglishUrl } from "../lib/dict";
+import { dictEntry, pronounceWord, reversoUrl, youglishUrl } from "../lib/dict";
 
 interface Props {
   w: KeyedWord;
@@ -60,6 +60,13 @@ export default function WordRow({ w, showGroup, showStatus, onOpenGroup }: Props
           rel="noopener noreferrer"
           title={t.ytTooltip}
         >▶ YouTube</a>
+        <a
+          className="chip-btn"
+          href={reversoUrl(w.word)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t.reversoTooltip}
+        >↔ Reverso</a>
       </div>
     </div>
   );
